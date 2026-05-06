@@ -190,7 +190,11 @@ export default function HomePage() {
           <h2>Ready to Make a Difference?</h2>
           <p>Start your campaign today or donate to an existing cause.</p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button className="btn-hero-outline" style={{ borderColor: 'rgba(255,255,255,.8)' }} onClick={() => openAuth('register')}>
+            <button 
+              className="btn-hero-outline" 
+              style={{ borderColor: 'rgba(255,255,255,.8)' }} 
+              onClick={() => openAuth('register', 'creator')}
+            >
               <i className="fas fa-plus"></i> Start a Campaign
             </button>
             <button className="cta-strip-btn-white" onClick={() => scrollTo('donate')}>Donate Now <i className="fas fa-arrow-right"></i></button>
@@ -219,7 +223,8 @@ export default function HomePage() {
           <div>
             <h4>Sign In As</h4>
             <ul className="footer-links">
-              <li><a onClick={() => openAuth('register')}>Campaign Creator</a></li>
+              <li><a onClick={() => openAuth('register', 'donor')}>Donor </a></li>
+              <li><a onClick={() => openAuth('register', 'creator')}>Campaign Creator</a></li>
             </ul>
           </div>
           <div>

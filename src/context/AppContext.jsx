@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import {
-  authApi, campaignApi, donationApi, adminApi,
+  authApi, campaignApi, donationApi, adminApi, walletApi,
   saveToken, clearToken, getToken,
 } from '../services/api'
 
@@ -13,8 +13,10 @@ export function AppProvider({ children }) {
   const [toast, setToast]             = useState(null)
   const [authOpen, setAuthOpen]       = useState(false)
   const [authMode, setAuthMode]       = useState('login')   // 'login' or 'register'
+  const [authRole, setAuthRole]       = useState('donor')   // 'donor' or 'creator'
   const [loading, setLoading]         = useState(true)
   const [theme, setTheme]             = useState({})
+  const [walletBalance, setWalletBalance] = useState(0)
 
   // Prevents double /auth/me call in React StrictMode
   const sessionRestored = useRef(false)
@@ -23,6 +25,17 @@ export function AppProvider({ children }) {
     setToast({ msg, error })
     setTimeout(() => setToast(null), 3500)
   }, [])
+
+  // Fetch wallet balance for logged‑in user
+  const fetchWalletBalance = useCallback(async () => {
+    if (!currentUser) return
+    try {
+      const data = await walletApi.getBalance()
+      setWalletBalance(data.balance)
+    } catch (err) {
+      console.warn('Wallet fetch failed:', err.message)
+    }
+  }, [currentUser])
 
   // Restore session on page load
   useEffect(() => {
@@ -40,14 +53,22 @@ export function AppProvider({ children }) {
     authApi.me()
       .then(data => {
         console.log('[AppContext] /auth/me success:', data)
-        setCurrentUser(data.user ?? data)
+        const user = data.user ?? data
+        setCurrentUser(user)
+        if (user) fetchWalletBalance()
       })
       .catch((err) => {
         console.warn('[AppContext] /auth/me failed:', err.message)
         clearToken()
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [fetchWalletBalance])
+
+  // Refresh wallet when currentUser changes (login/logout)
+  useEffect(() => {
+    if (currentUser) fetchWalletBalance()
+    else setWalletBalance(0)
+  }, [currentUser, fetchWalletBalance])
 
   // Theme (admin only)
   const applyTheme = useCallback((themeObj) => {
@@ -93,15 +114,16 @@ export function AppProvider({ children }) {
   }, [showToast])
 
   // Auth
-  const openAuth = (mode = 'login') => {
+  const openAuth = (mode = 'login', role = 'donor') => {
     setAuthMode(mode)
+    setAuthRole(role)
     setAuthOpen(true)
   }
   const closeAuth = () => setAuthOpen(false)
 
   const register = async (name, email, password, role, recaptchaToken) => {
-    // Always create a creator account – ignore passed role
-    const data = await authApi.register({ name, email, password, role: 'creator', recaptchaToken })
+    // role is either 'donor' or 'creator' – backend will accept it
+    const data = await authApi.register({ name, email, password, role, recaptchaToken })
     saveToken(data.token)
     setCurrentUser(data.user)
     showToast(data.message)
@@ -120,14 +142,26 @@ export function AppProvider({ children }) {
     clearToken()
     setCurrentUser(null)
     setMyCampaigns([])
+    setWalletBalance(0)
     showToast('Logged out successfully')
   }
 
-  // Donations
+  // Donations (guest or card/PayPal)
   const donate = async ({ campaign_id, donor_name, donor_email, amount, message, is_monthly }) => {
     const data = await donationApi.create({ campaign_id, donor_name, donor_email, amount, message, is_monthly })
     showToast(data.message)
     await loadCampaigns()
+    return data
+  }
+
+  // Wallet donation (logged‑in user)
+  const donateFromWallet = async ({ campaign_id, amount, donor_name, donor_email, message, is_monthly }) => {
+    const data = await walletApi.donateFromWallet({
+      campaign_id, amount, donor_name, donor_email, message, is_monthly,
+    })
+    showToast(data.message)
+    await loadCampaigns()
+    fetchWalletBalance() // refresh balance after spending
     return data
   }
 
@@ -168,12 +202,14 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       currentUser, campaigns, approvedCampaigns,
       myCampaigns, totalFunds, loading,
-      toast, authOpen, authMode,
+      toast, authOpen, authMode, authRole,
       openAuth, closeAuth, login, register, logout,
       loadCampaigns, loadMyCampaigns,
       createCampaign, updateCampaign, deleteCampaign,
-      donate, showToast,
+      donate, donateFromWallet,   // both donation methods
+      showToast,
       theme, saveTheme, fetchTheme,
+      walletBalance, refreshWallet: fetchWalletBalance,
     }}>
       {children}
     </AppContext.Provider>

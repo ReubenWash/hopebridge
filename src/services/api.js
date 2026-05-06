@@ -81,7 +81,9 @@ export const donationApi = {
   create:         (body) => request('/donations', { method: 'POST', body: JSON.stringify(body) }),
   getCampaignDons:(id)   => request(`/donations/campaign/${id}`),
 
-  // PayPal (feature 10)
+   getMyDonations: () => request('/donations/my'),
+
+  // PayPal
   createPayPalOrder: (body) => request('/donations/paypal/create-order', {
     method: 'POST',
     body: JSON.stringify(body),
@@ -91,12 +93,22 @@ export const donationApi = {
     body: JSON.stringify({ orderID }),
   }),
 
-  // Creator payment methods (feature 10)
+  // Creator payment methods
   getCreatorPaymentMethod: () => request('/creator/payment-method'),
   saveCreatorPaymentMethod: (data) => request('/creator/payment-method', {
     method: 'PUT',
     body: JSON.stringify(data),
   }),
+}
+
+// ── Wallet (for donors) ───────────────────────────────────────────
+export const walletApi = {
+  getBalance: () => request('/wallet/balance'),
+  getTransactions: () => request('/wallet/transactions'),
+  getMyDepositRequests: () => request('/wallet/deposit-requests'),
+  requestDeposit: (body) => request('/wallet/deposit-request', { method: 'POST', body: JSON.stringify(body) }),
+  uploadProof: (requestId, formData) => multipart('POST', `/wallet/deposit-request/${requestId}/proof`, formData),
+  donateFromWallet: (body) => request('/wallet/donate', { method: 'POST', body: JSON.stringify(body) }),
 }
 
 // ── Admin ─────────────────────────────────────────────────────────
@@ -113,23 +125,27 @@ export const adminApi = {
   getDisputes:    ()           => request('/admin/disputes'),
   resolveDispute: (id)         => request(`/admin/disputes/${id}/resolve`, { method: 'PATCH' }),
 
-  // Theme management (feature 2)
+  // Theme management
   getTheme:       ()           => request('/admin/theme'),
   saveTheme:      (theme)      => request('/admin/theme', { method: 'PUT', body: JSON.stringify(theme) }),
 
-  // Firebase Cloud Messaging token (feature 4)
+  // Firebase Cloud Messaging token
   saveFCMToken:   (token)      => request('/admin/fcm-token', { method: 'POST', body: JSON.stringify({ token }) }),
 
-  // Admin settings (theme + integration keys) – feature 6
+  // Admin settings (theme + integration keys)
   getSettings:    ()           => request('/admin/settings'),
   saveSettings:   (data)       => request('/admin/settings', { method: 'PUT', body: JSON.stringify(data) }),
 
-  // Mass Mail sender (feature – SMTP)
+  // Mass Mail sender
   sendMassMail:   (body)       => request('/admin/mass-mail', { method: 'POST', body: JSON.stringify(body) }),
 
   // Content management (hero, banners, impact stats, social links)
   getContent:     ()           => request('/admin/content'),
   saveContent:    (data)       => request('/admin/content', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Deposit requests (admin)
+  getDepositRequests: () => request('/admin/deposit-requests'),
+  updateDepositRequest: (id, data) => request(`/admin/deposit-requests/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 }
 
 // ── Public endpoints (no auth required) ──────────────────────────

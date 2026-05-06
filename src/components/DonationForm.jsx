@@ -6,7 +6,16 @@ const PRESETS = [10, 25, 50, 100, 250]
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || 'sb'   // sandbox default
 
 export default function DonationForm() {
-  const { approvedCampaigns, donate, showToast } = useApp()
+  const { 
+    approvedCampaigns, 
+    donate, 
+    donateFromWallet, 
+    currentUser, 
+    walletBalance, 
+    refreshWallet,
+    showToast 
+  } = useApp()
+  
   const [campaignId, setCampaignId] = useState('')
   const [donorName, setDonorName]   = useState('')
   const [donorEmail, setDonorEmail] = useState('')
@@ -15,6 +24,7 @@ export default function DonationForm() {
   const [message, setMessage]       = useState('')
   const [monthly, setMonthly]       = useState(false)
   const [busy, setBusy]             = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState('external') // 'external' or 'wallet'
 
   // PayPal state
   const [paypalSdkReady, setPaypalSdkReady] = useState(false)
@@ -32,11 +42,12 @@ export default function DonationForm() {
     document.body.appendChild(script)
   }, [])
 
-  // Render PayPal button when SDK ready, campaign selected, and amount > 0
+  // Render PayPal button only for external payment method and when wallet is not selected
   useEffect(() => {
-    if (!paypalSdkReady || !campaignId || !amount || amount <= 0 || !paypalButtonRef.current) return
+    // Only render PayPal if external method is selected (or guest)
+    const shouldRenderPayPal = paypalSdkReady && campaignId && amount > 0 && paypalButtonRef.current && (!currentUser || paymentMethod === 'external')
+    if (!shouldRenderPayPal) return
 
-    // Clear previous button if any
     paypalButtonRef.current.innerHTML = ''
 
     window.paypal.Buttons({
@@ -60,16 +71,23 @@ export default function DonationForm() {
         try {
           await donationApi.capturePayPalOrder(data.orderID)
           showToast('PayPal donation successful – thank you!')
-          // Clear form
-          setDonorName(''); setDonorEmail(''); setAmount(50)
-          setActivePreset(50); setMessage(''); setCampaignId('')
+          clearForm()
         } catch (err) {
           showToast(err.message, true)
         }
       },
       onError: (err) => showToast('PayPal error: ' + err, true),
     }).render(paypalButtonRef.current)
-  }, [paypalSdkReady, campaignId, amount, donorName, donorEmail, message, monthly])
+  }, [paypalSdkReady, campaignId, amount, donorName, donorEmail, message, monthly, currentUser, paymentMethod])
+
+  const clearForm = () => {
+    setDonorName('')
+    setDonorEmail('')
+    setAmount(50)
+    setActivePreset(50)
+    setMessage('')
+    setCampaignId('')
+  }
 
   const handlePreset = (v) => { setActivePreset(v); setAmount(v) }
   const handleCustom = (v) => { setActivePreset(null); setAmount(v) }
@@ -77,22 +95,56 @@ export default function DonationForm() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!campaignId) { showToast('Please select a campaign', true); return }
-    setBusy(true)
-    try {
-      await donate({
-        campaign_id: parseInt(campaignId),
-        donor_name: donorName,
-        donor_email: donorEmail,
-        amount: parseFloat(amount),
-        message,
-        is_monthly: monthly,
-      })
-      setDonorName(''); setDonorEmail(''); setAmount(50)
-      setActivePreset(50); setMessage(''); setCampaignId('')
-    } catch (err) {
-      showToast(err.message, true)
-    } finally {
-      setBusy(false)
+    
+    // For guest or external payment method, use card/PayPal flow (button handles it)
+    if (!currentUser || paymentMethod === 'external') {
+      // The PayPal button or regular donation button will handle it.
+      // Regular card donation (if we had a card form) would go here, but we rely on the button.
+      // Since we have a "Donate Now" button that calls donate() for card (not PayPal), we need to branch.
+      // Actually the current UI has a submit button that calls donate() for card – we should keep that.
+      // For simplicity, we keep the existing card flow via donate() for non-PayPal.
+      // But note: the PayPal button is separate and handles its own flow.
+      // The existing submit button is for card donations (using the backend stripe-like? Actually it's a direct POST).
+      // So if external method is selected, we call the regular donate().
+      setBusy(true)
+      try {
+        await donate({
+          campaign_id: parseInt(campaignId),
+          donor_name: donorName,
+          donor_email: donorEmail,
+          amount: parseFloat(amount),
+          message,
+          is_monthly: monthly,
+        })
+        clearForm()
+      } catch (err) {
+        showToast(err.message, true)
+      } finally {
+        setBusy(false)
+      }
+    } else if (paymentMethod === 'wallet') {
+      // Wallet donation
+      if (walletBalance < amount) {
+        showToast(`Insufficient wallet balance. Available: $${walletBalance.toFixed(2)}`, true)
+        return
+      }
+      setBusy(true)
+      try {
+        await donateFromWallet({
+          campaign_id: parseInt(campaignId),
+          amount: parseFloat(amount),
+          donor_name: donorName || currentUser.name,
+          donor_email: donorEmail || currentUser.email,
+          message,
+          is_monthly: monthly,
+        })
+        clearForm()
+        if (refreshWallet) refreshWallet()
+      } catch (err) {
+        showToast(err.message, true)
+      } finally {
+        setBusy(false)
+      }
     }
   }
 
@@ -114,6 +166,32 @@ export default function DonationForm() {
         <label className="form-label-custom">Email Address *</label>
         <input className="form-ctrl" type="email" placeholder="john@example.com" value={donorEmail} onChange={e => setDonorEmail(e.target.value)} required />
 
+        {/* Payment method selector for logged-in users */}
+        {currentUser && (
+          <div className="payment-method-row" style={{ marginBottom: '20px' }}>
+            <label style={{ marginRight: '20px' }}>
+              <input 
+                type="radio" 
+                name="paymentMethod" 
+                value="external" 
+                checked={paymentMethod === 'external'} 
+                onChange={() => setPaymentMethod('external')} 
+              />
+              Pay with Card / PayPal
+            </label>
+            <label>
+              <input 
+                type="radio" 
+                name="paymentMethod" 
+                value="wallet" 
+                checked={paymentMethod === 'wallet'} 
+                onChange={() => setPaymentMethod('wallet')} 
+              />
+              Pay from Wallet (Balance: ${walletBalance.toFixed(2)})
+            </label>
+          </div>
+        )}
+
         <label className="form-label-custom">Donation Amount (USD)</label>
         <div className="amount-buttons">
           {PRESETS.map(p => (
@@ -130,16 +208,19 @@ export default function DonationForm() {
           <label htmlFor="monthlyCheck" style={{ fontSize: '.9rem', cursor: 'pointer', marginBottom: 0 }}>Make this a monthly recurring donation</label>
         </div>
 
+        {/* Submit button for card/wallet (not for PayPal) */}
         <button type="submit" className="btn-donate-submit" disabled={busy}>
           <i className="fas fa-heart"></i> {busy ? 'Processing...' : 'Donate Now'}
         </button>
       </form>
 
-      {/* PayPal button */}
-      <div style={{ marginTop: '20px' }}>
-        <div ref={paypalButtonRef}></div>
-        {!paypalSdkReady && <p style={{ color: '#777', fontSize: '0.9rem' }}>Loading PayPal...</p>}
-      </div>
+      {/* PayPal button – only shown for external method and when campaign and amount are set */}
+      {(!currentUser || paymentMethod === 'external') && (
+        <div style={{ marginTop: '20px' }}>
+          <div ref={paypalButtonRef}></div>
+          {!paypalSdkReady && <p style={{ color: '#777', fontSize: '0.9rem' }}>Loading PayPal...</p>}
+        </div>
+      )}
     </div>
   )
 }

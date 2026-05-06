@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
-import { adminApi } from '../services/api'
+import { adminApi, campaignApi } from '../services/api'
 
 const safeGet = async (apiCall, fallback) => {
   try { return await apiCall() }
@@ -13,6 +13,7 @@ let fetchInitiated = false
 export default function AdminDashboard() {
   const { currentUser, logout, showToast, loading: sessionLoading } = useApp()
   const navigate = useNavigate()
+  const [authChecked, setAuthChecked] = useState(false)
 
   const [activeTab, setActiveTab] = useState('overview')
   const [stats, setStats] = useState({})
@@ -22,11 +23,7 @@ export default function AdminDashboard() {
   const [donations, setDonations] = useState([])
   const [dataLoading, setDataLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  const [darkMode, setDarkMode] = useState(
-    localStorage.getItem('hb_darkmode') === 'true'
-  )
-
+  const [darkMode, setDarkMode] = useState(localStorage.getItem('hb_darkmode') === 'true')
   const [settings, setSettings] = useState({
     theme: {
       '--primary': '#e8531e',
@@ -41,26 +38,41 @@ export default function AdminDashboard() {
     }
   })
   const [settingsTab, setSettingsTab] = useState('theme')
+  const [socialLinks, setSocialLinks] = useState({
+    facebook: '',
+    twitter: '',
+    instagram: '',
+    youtube: '',
+    linkedin: '',
+  })
 
+  // Wait for session to load, then validate admin
   useEffect(() => {
     if (sessionLoading) return
+
     if (!currentUser) {
-      showToast('Please log in as admin', true)
+      console.log('[AdminDashboard] No user, redirecting to home')
+      showToast('Please log in first', true)
       navigate('/')
       return
     }
     if (currentUser.role !== 'admin') {
-      showToast('Access denied', true)
+      console.log('[AdminDashboard] User role is not admin:', currentUser.role)
+      showToast('Access denied – admin only', true)
       navigate('/')
       return
     }
+    setAuthChecked(true)
+  }, [sessionLoading, currentUser, navigate, showToast])
 
+  // Only fetch data after we've confirmed admin
+  useEffect(() => {
+    if (!authChecked) return
     if (fetchInitiated) return
     fetchInitiated = true
     fetchAll()
-
     return () => { fetchInitiated = false }
-  }, [currentUser, sessionLoading])
+  }, [authChecked])
 
   useEffect(() => {
     document.body.classList.toggle('dark-mode', darkMode)
@@ -70,32 +82,37 @@ export default function AdminDashboard() {
   const fetchAll = async () => {
     setDataLoading(true)
     console.log('[AdminDashboard] fetchAll started')
+    try {
+      const [s, c, u, d, don, sett, contentRes] = await Promise.all([
+        safeGet(() => adminApi.getStats(), { stats: {} }),
+        safeGet(() => adminApi.getCampaigns(), { campaigns: [] }),
+        safeGet(() => adminApi.getUsers(), { users: [] }),
+        safeGet(() => adminApi.getDisputes(), { disputes: [] }),
+        safeGet(() => adminApi.getDonations(), { donations: [] }),
+        safeGet(() => adminApi.getSettings(), { settings: null }),
+        safeGet(() => adminApi.getContent(), { content: null }),
+      ])
 
-    const [s, c, u, d, don, sett] = await Promise.all([
-      safeGet(() => adminApi.getStats(), { stats: {} }),
-      safeGet(() => adminApi.getCampaigns({ status: 'pending' }), { campaigns: [] }),
-      safeGet(() => adminApi.getUsers(), { users: [] }),
-      safeGet(() => adminApi.getDisputes(), { disputes: [] }),
-      safeGet(() => adminApi.getDonations(), { donations: [] }),
-      safeGet(() => adminApi.getSettings(), { settings: null }),
-    ])
-
-    console.log('[AdminDashboard] fetchAll results:', { s, c, u, d, don, sett })
-
-    setStats(s.stats || {})
-    setCampaigns(c.campaigns || [])
-    setUsers(u.users || [])
-    setDisputes(d.disputes || [])
-    setDonations(don.donations || [])
-    if (sett.settings) {
-      // Merge fetched settings with defaults to avoid missing keys
-      setSettings(prev => ({
-        theme: { ...prev.theme, ...(sett.settings.theme || {}) },
-        keys: { ...prev.keys, ...(sett.settings.keys || {}) }
-      }))
+      setStats(s.stats || {})
+      setCampaigns(c.campaigns || [])
+      setUsers(u.users || [])
+      setDisputes(d.disputes || [])
+      setDonations(don.donations || [])
+      if (sett.settings) {
+        setSettings(prev => ({
+          theme: { ...prev.theme, ...(sett.settings.theme || {}) },
+          keys: { ...prev.keys, ...(sett.settings.keys || {}) }
+        }))
+      }
+      if (contentRes.content && contentRes.content.social_links) {
+        setSocialLinks(contentRes.content.social_links)
+      }
+    } catch (err) {
+      console.error('FetchAll error:', err)
+      showToast('Failed to load admin data', true)
+    } finally {
+      setDataLoading(false)
     }
-
-    setDataLoading(false)
   }
 
   const refetchAll = () => {
@@ -104,27 +121,70 @@ export default function AdminDashboard() {
     fetchInitiated = true
   }
 
+  // ── Campaign actions ─────────────────────────────────────────────
   const handleApprove = async (id) => {
-    try { await adminApi.updateCampaign(id, { status: 'approved' }); showToast('Campaign approved!'); refetchAll() }
-    catch (err) { showToast(err.message, true) }
+    try {
+      await adminApi.updateCampaign(id, { status: 'approved' })
+      showToast('Campaign approved!')
+      refetchAll()
+    } catch (err) { showToast(err.message, true) }
   }
+
   const handleReject = async (id) => {
-    try { await adminApi.updateCampaign(id, { status: 'rejected' }); showToast('Campaign rejected'); refetchAll() }
-    catch (err) { showToast(err.message, true) }
+    try {
+      await adminApi.updateCampaign(id, { status: 'rejected' })
+      showToast('Campaign rejected')
+      refetchAll()
+    } catch (err) { showToast(err.message, true) }
   }
+
+  const handleDeleteCampaign = async (id) => {
+    if (!window.confirm('Delete this campaign permanently? This cannot be undone.')) return
+    try {
+      await campaignApi.delete(id)
+      showToast('Campaign deleted successfully')
+      refetchAll()
+    } catch (err) { showToast(err.message, true) }
+  }
+
+  // ── User & dispute handlers ──────────────────────────────────────
   const handleToggleUser = async (id) => {
-    try { const data = await adminApi.toggleUser(id); showToast(data.message); refetchAll() }
-    catch (err) { showToast(err.message, true) }
+    try {
+      const data = await adminApi.toggleUser(id)
+      showToast(data.message)
+      refetchAll()
+    } catch (err) { showToast(err.message, true) }
   }
+
   const handleResolveDispute = async (id) => {
-    try { await adminApi.resolveDispute(id); showToast('Dispute resolved'); refetchAll() }
-    catch (err) { showToast(err.message, true) }
+    try {
+      await adminApi.resolveDispute(id)
+      showToast('Dispute resolved')
+      refetchAll()
+    } catch (err) { showToast(err.message, true) }
   }
+
   const handleLogout = () => { logout(); navigate('/') }
 
   const saveSettings = async () => {
-    try { await adminApi.saveSettings(settings); showToast('Settings saved') }
-    catch (err) { showToast(err.message, true) }
+    try {
+      await adminApi.saveSettings(settings)
+      showToast('Settings saved')
+    } catch (err) { showToast(err.message, true) }
+  }
+
+  const saveSocialLinks = async () => {
+    try {
+      const existing = await adminApi.getContent()
+      const updatedContent = {
+        ...existing.content,
+        social_links: socialLinks,
+      }
+      await adminApi.saveContent(updatedContent)
+      showToast('Social links saved')
+    } catch (err) {
+      showToast(err.message, true)
+    }
   }
 
   const updateTheme = (k, v) => setSettings(p => ({ ...p, theme: { ...p.theme, [k]: v } }))
@@ -136,18 +196,28 @@ export default function AdminDashboard() {
     { key: 'users', label: 'Users', icon: 'fa-users' },
     { key: 'donations', label: 'Donations', icon: 'fa-donate' },
     { key: 'disputes', label: 'Disputes', icon: 'fa-exclamation-triangle' },
+    { key: 'deposits', label: 'Deposits', icon: 'fa-money-bill-wave' },
     { key: 'content', label: 'Content', icon: 'fa-edit' },
     { key: 'massmail', label: 'Mass Mail', icon: 'fa-envelope' },
     { key: 'settings', label: 'Settings', icon: 'fa-cog' },
   ]
 
-  if (sessionLoading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p>Restoring session...</p>
-    </div>
-  )
+  // Loading states
+  if (sessionLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p>Restoring session...</p>
+      </div>
+    )
+  }
 
-  if (!currentUser || currentUser.role !== 'admin') return null
+  if (!authChecked) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p>Validating access...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="dash-layout">
@@ -220,22 +290,39 @@ export default function AdminDashboard() {
 
         {activeTab === 'campaigns' && (
           <div className="tab-card">
-            <h5><i className="fas fa-clock" style={{ color: 'var(--primary)', marginRight: 8 }}></i>Pending Campaigns</h5>
+            <h5><i className="fas fa-flag" style={{ color: 'var(--primary)', marginRight: 8 }}></i>All Campaigns</h5>
             {campaigns.length === 0 ? (
-              <div style={{ color: 'var(--secondary)', padding: 16 }}><i className="fas fa-check-circle"></i> No pending campaigns</div>
+              <div style={{ color: 'var(--secondary)', padding: 16 }}>No campaigns found.</div>
             ) : (
               <table className="admin-table">
-                <thead><tr><th>Title</th><th>Creator</th><th>Goal</th><th>Date</th><th>Actions</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Creator</th>
+                    <th>Goal</th>
+                    <th>Raised</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {campaigns.map(p => (
-                    <tr key={p.id}>
-                      <td>{p.title}</td>
-                      <td>{p.creator_name}</td>
-                      <td>${parseFloat(p.goal).toLocaleString()}</td>
-                      <td>{new Date(p.created_at).toLocaleDateString()}</td>
+                  {campaigns.map(c => (
+                    <tr key={c.id}>
+                      <td>{c.id}</td>
+                      <td>{c.title}</td>
+                      <td>{c.creator_name}</td>
+                      <td>${parseFloat(c.goal).toLocaleString()}</td>
+                      <td>${parseFloat(c.raised || 0).toLocaleString()}</td>
+                      <td><span className={`status-badge ${c.status}`}>{c.status}</span></td>
                       <td>
-                        <button className="small-btn approve" style={{ marginRight: 6 }} onClick={() => handleApprove(p.id)}>Approve</button>
-                        <button className="small-btn reject" onClick={() => handleReject(p.id)}>Reject</button>
+                        {c.status === 'pending' && (
+                          <>
+                            <button className="small-btn approve" style={{ marginRight: 6 }} onClick={() => handleApprove(c.id)}>Approve</button>
+                            <button className="small-btn reject" style={{ marginRight: 6 }} onClick={() => handleReject(c.id)}>Reject</button>
+                          </>
+                        )}
+                        <button className="small-btn reject" onClick={() => handleDeleteCampaign(c.id)} style={{ background: '#dc3545', color: '#fff' }}>Delete</button>
                       </td>
                     </tr>
                   ))}
@@ -249,7 +336,15 @@ export default function AdminDashboard() {
           <div className="tab-card">
             <h5><i className="fas fa-users" style={{ color: 'var(--primary)', marginRight: 8 }}></i>All Users</h5>
             <table className="admin-table">
-              <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
               <tbody>
                 {users.map(u => (
                   <tr key={u.id}>
@@ -275,7 +370,15 @@ export default function AdminDashboard() {
           <div className="tab-card">
             <h5><i className="fas fa-donate" style={{ color: 'var(--primary)', marginRight: 8 }}></i>All Donations</h5>
             <table className="admin-table">
-              <thead><tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Monthly</th><th>Date</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Donor</th>
+                  <th>Campaign</th>
+                  <th>Amount</th>
+                  <th>Monthly</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
               <tbody>
                 {donations.map(d => (
                   <tr key={d.id}>
@@ -295,7 +398,15 @@ export default function AdminDashboard() {
           <div className="tab-card">
             <h5><i className="fas fa-gavel" style={{ color: 'var(--primary)', marginRight: 8 }}></i>Disputes</h5>
             <table className="admin-table">
-              <thead><tr><th>Type</th><th>Description</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Description</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
               <tbody>
                 {disputes.map(d => (
                   <tr key={d.id}>
@@ -312,6 +423,13 @@ export default function AdminDashboard() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {activeTab === 'deposits' && (
+          <div className="tab-card">
+            <h5><i className="fas fa-money-bill-wave" style={{ color: 'var(--primary)', marginRight: 8 }}></i>Deposit Requests</h5>
+            <DepositRequestsManager />
           </div>
         )}
 
@@ -335,6 +453,7 @@ export default function AdminDashboard() {
             <div className="settings-tabs">
               <button className={`role-tab ${settingsTab === 'theme' ? 'active' : ''}`} onClick={() => setSettingsTab('theme')}>Theme Colours</button>
               <button className={`role-tab ${settingsTab === 'keys' ? 'active' : ''}`} onClick={() => setSettingsTab('keys')}>Integration Keys</button>
+              <button className={`role-tab ${settingsTab === 'social' ? 'active' : ''}`} onClick={() => setSettingsTab('social')}>Social Links</button>
             </div>
             {settingsTab === 'theme' && (
               <div className="theme-settings">
@@ -359,6 +478,31 @@ export default function AdminDashboard() {
                   </div>
                 ))}
                 <button className="btn-primary-custom" onClick={saveSettings}>Save Keys</button>
+              </div>
+            )}
+            {settingsTab === 'social' && (
+              <div className="social-links-settings">
+                <div className="auth-field">
+                  <label>Facebook URL</label>
+                  <input type="text" value={socialLinks.facebook} onChange={e => setSocialLinks({...socialLinks, facebook: e.target.value})} placeholder="https://facebook.com/yourpage" />
+                </div>
+                <div className="auth-field">
+                  <label>Twitter URL</label>
+                  <input type="text" value={socialLinks.twitter} onChange={e => setSocialLinks({...socialLinks, twitter: e.target.value})} placeholder="https://twitter.com/yourhandle" />
+                </div>
+                <div className="auth-field">
+                  <label>Instagram URL</label>
+                  <input type="text" value={socialLinks.instagram} onChange={e => setSocialLinks({...socialLinks, instagram: e.target.value})} placeholder="https://instagram.com/yourprofile" />
+                </div>
+                <div className="auth-field">
+                  <label>YouTube URL</label>
+                  <input type="text" value={socialLinks.youtube} onChange={e => setSocialLinks({...socialLinks, youtube: e.target.value})} placeholder="https://youtube.com/c/yourchannel" />
+                </div>
+                <div className="auth-field">
+                  <label>LinkedIn URL</label>
+                  <input type="text" value={socialLinks.linkedin} onChange={e => setSocialLinks({...socialLinks, linkedin: e.target.value})} placeholder="https://linkedin.com/company/yourcompany" />
+                </div>
+                <button className="btn-primary-custom" onClick={saveSocialLinks}>Save Social Links</button>
               </div>
             )}
           </div>
@@ -478,6 +622,81 @@ function ContentEditor() {
         </div>
       ))}
       <button className="btn-primary-custom" onClick={save} style={{ marginTop: 8 }}>Save Content</button>
+    </div>
+  )
+}
+
+// ─── Deposit Requests Manager ───────────────────────────────────────
+function DepositRequestsManager() {
+  const { showToast } = useApp()
+  const [requests, setRequests] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchRequests = async () => {
+    try {
+      const res = await adminApi.getDepositRequests()
+      setRequests(res.requests || [])
+    } catch (err) {
+      showToast(err.message, true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchRequests() }, [])
+
+  const updateRequest = async (id, updates) => {
+    try {
+      await adminApi.updateDepositRequest(id, updates)
+      showToast('Request updated')
+      fetchRequests()
+    } catch (err) {
+      showToast(err.message, true)
+    }
+  }
+
+  if (loading) return <p>Loading deposit requests...</p>
+  if (requests.length === 0) return <p>No deposit requests.</p>
+
+  return (
+    <div>
+      {requests.map(req => (
+        <div key={req.id} style={{ borderBottom: '1px solid #eee', padding: '16px 0' }}>
+          <div><strong>User:</strong> {req.name} ({req.email})</div>
+          <div><strong>Amount:</strong> ${req.amount}</div>
+          <div><strong>Status:</strong> <span className={`status-badge ${req.status}`}>{req.status}</span></div>
+          {req.status === 'pending' && (
+            <div style={{ marginTop: 10 }}>
+              <textarea 
+                placeholder="Payment instructions (bank, mobile money, crypto)" 
+                rows="2" 
+                style={{ width: '100%', padding: '8px' }} 
+                id={`instructions-${req.id}`}
+              />
+              <button 
+                className="small-btn approve" 
+                onClick={() => {
+                  const instructions = document.getElementById(`instructions-${req.id}`).value
+                  updateRequest(req.id, { admin_instructions: instructions, status: 'awaiting_proof' })
+                }}
+              >
+                Provide Instructions
+              </button>
+            </div>
+          )}
+          {req.status === 'awaiting_proof' && req.proof_image_url && (
+            <div style={{ marginTop: 10 }}>
+              <a href={req.proof_image_url} target="_blank" rel="noopener noreferrer">View Proof</a>
+              <div style={{ marginTop: 8 }}>
+                <button className="small-btn approve" style={{ marginRight: 8 }} onClick={() => updateRequest(req.id, { status: 'approved' })}>Approve & Credit</button>
+                <button className="small-btn reject" onClick={() => updateRequest(req.id, { status: 'rejected' })}>Reject</button>
+              </div>
+            </div>
+          )}
+          {req.status === 'approved' && <span style={{ color: 'green' }}>✓ Credited to wallet</span>}
+          {req.status === 'rejected' && <span style={{ color: 'red' }}>✗ Rejected</span>}
+        </div>
+      ))}
     </div>
   )
 }

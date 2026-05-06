@@ -1,14 +1,15 @@
 export default function CauseCard({ campaign, onDonate }) {
   const pct = Math.min((campaign.raised / campaign.goal) * 100, 100)
+  const imageUrl = campaign.image_url || 'https://placehold.co/600x200?text=HopeBridge'
 
   return (
     <div className="cause-card">
-      <div className="card-img-block" style={{ backgroundImage: `url('${campaign.image || 'https://placehold.co/600x200?text=HopeBridge'}')` }}>
+      <div className="card-img-block" style={{ backgroundImage: `url('${imageUrl}')` }}>
         <span className="card-category">{campaign.category || 'Cause'}</span>
       </div>
       <div className="card-content">
         <h3>{campaign.title}</h3>
-        <p>{campaign.description.substring(0, 80)}...</p>
+        <p>{campaign.description ? campaign.description.substring(0, 80) : 'No description available'}...</p>
         <div className="progress-label">
           <span>Raised: ${campaign.raised.toLocaleString()}</span>
           <span>{Math.round(pct)}%</span>
