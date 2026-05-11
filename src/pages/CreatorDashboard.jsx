@@ -111,7 +111,7 @@ const injectStyles = () => {
       .mob-top { display: flex; height: 58px; background: var(--surface); align-items: center; padding: 0 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
       .bnav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 68px; background: var(--surface); border-top: 1px solid var(--border); z-index: 200; }
       .bnav-inner { display: flex; width: 100%; max-width: 500px; margin: 0 auto; }
-      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; }
+      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; cursor: pointer; }
       .bni.active .bni-icon svg { stroke: var(--green); }
       .bni-lbl { font-size: 10px; font-weight: 600; color: var(--txt-3); }
       .fab { display: flex; position: fixed; right: 20px; bottom: 82px; width: 52px; height: 52px; background: var(--green); border-radius: 50%; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.2); z-index: 150; border: none; }
@@ -241,6 +241,11 @@ export default function CreatorDashboard() {
     showToast('Settings saved (demo)');
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   const initials = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   const totalRaised = myCampaigns.reduce((sum, c) => sum + parseFloat(c.raised || 0), 0);
   const activeCampaigns = myCampaigns.filter(c => c.status === 'approved' || c.status === 'active').length;
@@ -295,7 +300,7 @@ export default function CreatorDashboard() {
           </button>
         </nav>
         <div className="sb-footer">
-          <button className="nl" style={{ color: 'var(--red)' }} onClick={logout}>
+          <button className="nl" style={{ color: 'var(--red)' }} onClick={handleLogout}>
             <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             Sign Out
           </button>
@@ -316,15 +321,26 @@ export default function CreatorDashboard() {
             <div className="tb-btn" onClick={() => showToast('Notifications')}>
               <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             </div>
+            {/* Logout button in topbar */}
+            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
+              <svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
             <div className="tb-btn" onClick={() => showToast('Profile')}>
               <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
             </div>
           </div>
         </div>
+
+        {/* Mobile top bar – no hamburger menu, only logo and logout button */}
         <div className="mob-top">
           <div className="mob-logo">HopeBridge</div>
-          <div className="tb-btn" onClick={() => showToast('Menu')}>
-            <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          <div className="tb-actions">
+            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
+              <svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
+            <div className="tb-btn" onClick={() => showToast('Profile')}>
+              <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
+            </div>
           </div>
         </div>
 
@@ -408,7 +424,7 @@ export default function CreatorDashboard() {
                           <td><strong>{c.title}</strong><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>Created {new Date(c.created_at).toLocaleDateString()}</div></td>
                           <td>${c.goal?.toLocaleString()}</td>
                           <td>${c.raised?.toLocaleString()}</td>
-                          <td><div className="pb" style={{ width: 100 }}><div className="pf" style={{ width: `${percent}%` }}></div></div>{Math.round(percent)}%</td>
+                          <td><div className="pb" style={{ width: 100 }}><div className="pf" style={{ width: `${percent}%` }}></div></div>{Math.round(percent)}%</div></td>
                           <td><span className="badge ba">{c.status}</span></td>
                           <td>
                             <button className="db dba" onClick={() => { setSelectedCampaignId(c.id); setProgressModalOpen(true); }}>Update</button>
