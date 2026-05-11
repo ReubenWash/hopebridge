@@ -111,7 +111,7 @@ const injectStyles = () => {
       .mob-top { display: flex; height: 58px; background: var(--surface); align-items: center; padding: 0 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
       .bnav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 68px; background: var(--surface); border-top: 1px solid var(--border); z-index: 200; }
       .bnav-inner { display: flex; width: 100%; max-width: 500px; margin: 0 auto; }
-      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; cursor: pointer; }
+      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; }
       .bni.active .bni-icon svg { stroke: var(--green); }
       .bni-lbl { font-size: 10px; font-weight: 600; color: var(--txt-3); }
       .fab { display: flex; position: fixed; right: 20px; bottom: 82px; width: 52px; height: 52px; background: var(--green); border-radius: 50%; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.2); z-index: 150; border: none; }
@@ -321,7 +321,6 @@ export default function CreatorDashboard() {
             <div className="tb-btn" onClick={() => showToast('Notifications')}>
               <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             </div>
-            {/* Logout button in topbar */}
             <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
               <svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             </button>
@@ -331,7 +330,6 @@ export default function CreatorDashboard() {
           </div>
         </div>
 
-        {/* Mobile top bar – no hamburger menu, only logo and logout button */}
         <div className="mob-top">
           <div className="mob-logo">HopeBridge</div>
           <div className="tb-actions">
@@ -415,7 +413,16 @@ export default function CreatorDashboard() {
             <div className="card">
               <div className="card-b" style={{ padding: 0 }}>
                 <table className="ut">
-                  <thead><tr><th>Campaign</th><th>Goal</th><th>Raised</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>Campaign</th>
+                      <th>Goal</th>
+                      <th>Raised</th>
+                      <th>Progress</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
                   <tbody>
                     {myCampaigns.map(c => {
                       const percent = ((c.raised || 0) / c.goal) * 100;
@@ -424,7 +431,12 @@ export default function CreatorDashboard() {
                           <td><strong>{c.title}</strong><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>Created {new Date(c.created_at).toLocaleDateString()}</div></td>
                           <td>${c.goal?.toLocaleString()}</td>
                           <td>${c.raised?.toLocaleString()}</td>
-                          <td><div className="pb" style={{ width: 100 }}><div className="pf" style={{ width: `${percent}%` }}></div></div>{Math.round(percent)}%</div></td>
+                          <td>
+                            <div className="pb" style={{ width: 100 }}>
+                              <div className="pf" style={{ width: `${percent}%` }}></div>
+                            </div>
+                            {Math.round(percent)}%
+                          </td>
                           <td><span className="badge ba">{c.status}</span></td>
                           <td>
                             <button className="db dba" onClick={() => { setSelectedCampaignId(c.id); setProgressModalOpen(true); }}>Update</button>
@@ -445,7 +457,9 @@ export default function CreatorDashboard() {
               <div className="card-h"><div className="card-t">Donations Received</div></div>
               <div className="card-b" style={{ padding: 0 }}>
                 <table className="ut">
-                  <thead><tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Date</th></tr></thead>
+                  <thead>
+                    <tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Date</th></tr>
+                  </thead>
                   <tbody>
                     {donations.map(d => (
                       <tr key={d.id}>
@@ -542,7 +556,6 @@ export default function CreatorDashboard() {
         </div>
       </nav>
 
-      {/* FAB for mobile */}
       <button className="fab" onClick={() => { setEditCampaign(null); setModalOpen(true); }}>
         <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
@@ -559,12 +572,10 @@ export default function CreatorDashboard() {
         </div>
       </div>
 
-      {/* Campaign Modal (existing component) */}
       {modalOpen && (
         <CampaignModal campaign={editCampaign} onClose={() => { setModalOpen(false); setEditCampaign(null); loadData(); }} />
       )}
 
-      {/* Donations Modal (existing component) */}
       {viewDonations && (
         <DonationsModal campaign={viewDonations} onClose={() => setViewDonations(null)} />
       )}
