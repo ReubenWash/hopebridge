@@ -219,15 +219,15 @@ const injectStyles = () => {
 }
 .bnav-inner {
   display: flex;
-  justify-content: space-between;  /* even spread across full width */
+  justify-content: space-between;
   align-items: center;
   height: 100%;
-  width: 100%;                     /* take full width of parent */
-  max-width: 100%;                /* remove the 600px limit */
-  padding: 0 12px;                /* side padding for breathing room */
+  width: 100%;
+  max-width: 100%;
+  padding: 0 12px;
 }
 .bni {
-  flex: 1;                        /* each button takes equal space */
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -241,7 +241,6 @@ const injectStyles = () => {
   transition: background var(--tr);
   padding: 8px 0;
 }
-/* rest of .bni styles remain the same */
 .bni.active .bni-icon svg {
   stroke: var(--green);
 }
@@ -250,7 +249,7 @@ const injectStyles = () => {
   font-weight: 700;
 }
 .bni-icon svg {
-  width: 40px;   /* slightly larger for easier tapping */
+  width: 40px;
   height: 24px;
   stroke: var(--txt-3);
   stroke-width: 1.8;
@@ -507,7 +506,8 @@ export default function AdminDashboard() {
   });
   const [integrationKeys, setIntegrationKeys] = useState({
     smtp_host: '', smtp_port: '', smtp_user: '', smtp_pass: '',
-    paypal_client_id: '', recaptcha_site_key: '', recaptcha_secret_key: '', firebase_config: '',
+    paypal_client_id: '', paypal_client_secret: '', paypal_mode: 'sandbox',
+    recaptcha_site_key: '', recaptcha_secret_key: '', firebase_config: '',
   });
   const [socialLinks, setSocialLinks] = useState({
     facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '',
@@ -588,7 +588,6 @@ export default function AdminDashboard() {
     setDonations(don.donations || []);
     setDepositRequests(dep.requests || []);
 
-    // ✅ Safe access – prevents "Cannot read property 'balance' of undefined"
     setWalletBalance(wallet?.balance ?? 0);
     setTransactions(tx?.transactions ?? []);
 
@@ -706,7 +705,6 @@ export default function AdminDashboard() {
   const handleSaveContent = async (newContent) => {
     await adminApi.saveContent(newContent);
     setContent(newContent);
-    // Also update socialLinks state
     if (newContent.social_links) setSocialLinks(newContent.social_links);
   };
 
@@ -914,7 +912,6 @@ export default function AdminDashboard() {
                     {depositRequests.length === 0 && <div>No pending deposits</div>}
                   </div>
                 </div>
-                {/* Open Disputes List */}
                 <div className="card">
                   <div className="card-h"><div className="card-t">Open Disputes</div><button className="card-a" onClick={() => setActiveTab('disputes')}>View all →</button></div>
                   <div className="card-b">
@@ -950,11 +947,27 @@ export default function AdminDashboard() {
                 <div className="card-h"><div className="card-t">Transaction History</div><button className="card-a" onClick={() => showToast('Export CSV')}>Export CSV</button></div>
                 <div className="card-b">
                   <table className="txt">
-                    <thead><tr><th>Transaction</th><th>Type</th><th>Amount</th></tr></thead>
+                    <thead>
+                      <tr>
+                        <th>Transaction</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                      </tr>
+                    </thead>
                     <tbody>
                       {transactions.map((tx, idx) => (
                         <tr key={idx}>
-                          <td><div className="txr"><div className={`txi ${tx.type === 'Credit' ? 'si-g' : 'si-r'}`}><svg viewBox="0 0 24 24"><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></svg></div><div><div className="txn">{tx.desc}</div><div className="txd">{tx.date}</div></div></div></td>
+                          <td>
+                            <div className="txr">
+                              <div className={`txi ${tx.type === 'Credit' ? 'si-g' : 'si-r'}`}>
+                                <svg viewBox="0 0 24 24"><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></svg>
+                              </div>
+                              <div>
+                                <div className="txn">{tx.desc}</div>
+                                <div className="txd">{tx.date}</div>
+                              </div>
+                            </div>
+                          </td>
                           <td><span className={`badge ${tx.type === 'Credit' ? 'ba' : 'bx'}`}>{tx.type}</span></td>
                           <td><div className={`txam ${tx.type === 'Credit' ? 'tcc' : 'tcd'}`}>{tx.type === 'Credit' ? '+' : '-'}${tx.amount}</div></td>
                         </tr>
