@@ -30,13 +30,14 @@ export default function Navbar() {
 
   const getDashboardLink = () => {
     if (!currentUser) return null
-    if (currentUser.role === 'creator') return '/creator'
-    if (currentUser.role === 'admin') return '/admin'
+    if (currentUser.role === 'creator') return '/creator-dashboard'
+    if (currentUser.role === 'admin') return '/admin-dashboard'
     if (currentUser.role === 'donor') return '/donor-dashboard'
     return null
   }
 
   const dashboardUrl = getDashboardLink()
+  const isAdmin = currentUser?.role === 'admin'
 
   return (
     <nav className="site-nav">
@@ -64,12 +65,21 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <a onClick={() => navigate('/wallet')} style={{ cursor: 'pointer' }}>
-                <i className="fas fa-wallet"></i> Wallet
-              </a>
-              {dashboardUrl && (
+              {/* 🚫 Hide Wallet and Dashboard for admin users */}
+              {!isAdmin && (
+                <a onClick={() => navigate('/wallet')} style={{ cursor: 'pointer' }}>
+                  <i className="fas fa-wallet"></i> Wallet
+                </a>
+              )}
+              {!isAdmin && dashboardUrl && (
                 <a onClick={() => navigate(dashboardUrl)} style={{ cursor: 'pointer' }}>
                   <i className="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+              )}
+              {/* Optional: Show Admin Panel link only for admins */}
+              {isAdmin && (
+                <a onClick={() => navigate('/admin-dashboard')} style={{ cursor: 'pointer' }}>
+                  <i className="fas fa-crown"></i> Admin Panel
                 </a>
               )}
               <button className="nav-btn nav-btn-outline" onClick={handleLogout}>
@@ -115,12 +125,19 @@ export default function Navbar() {
           </div>
         ) : (
           <div className="mobile-menu-buttons">
-            <a onClick={() => { navigate('/wallet'); setMenuOpen(false); }} style={{ cursor: 'pointer', padding: '10px 0' }}>
-              <i className="fas fa-wallet"></i> Wallet
-            </a>
-            {dashboardUrl && (
+            {!isAdmin && (
+              <a onClick={() => { navigate('/wallet'); setMenuOpen(false); }} style={{ cursor: 'pointer', padding: '10px 0' }}>
+                <i className="fas fa-wallet"></i> Wallet
+              </a>
+            )}
+            {!isAdmin && dashboardUrl && (
               <a onClick={() => { navigate(dashboardUrl); setMenuOpen(false); }} style={{ cursor: 'pointer', padding: '10px 0' }}>
                 <i className="fas fa-tachometer-alt"></i> Dashboard
+              </a>
+            )}
+            {isAdmin && (
+              <a onClick={() => { navigate('/admin-dashboard'); setMenuOpen(false); }} style={{ cursor: 'pointer', padding: '10px 0' }}>
+                <i className="fas fa-crown"></i> Admin Panel
               </a>
             )}
             <button className="nav-btn nav-btn-outline" onClick={handleLogout}>

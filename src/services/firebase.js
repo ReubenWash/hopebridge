@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
-// ⚠️ Replace with your actual Firebase project config
+// 🔁 Replace with your actual Firebase project config
 const firebaseConfig = {
   apiKey: "AIza...",
   authDomain: "your-project.firebaseapp.com",
@@ -11,31 +11,51 @@ const firebaseConfig = {
   appId: "1:123456789:web:abc123"
 };
 
-const app = initializeApp(firebaseConfig);
-export const messaging = getMessaging(app);
+let messaging = null;
+try {
+  const app = initializeApp(firebaseConfig);
+  messaging = getMessaging(app);
+} catch (err) {
+  console.error('Firebase initialization failed:', err);
+}
 
-// Request permission and get the current token
+// ✅ Export messaging (may be null if init failed)
+export { messaging };
+
 export const requestFCMToken = async () => {
+  if (!messaging) {
+    console.warn('Messaging not available – token request skipped');
+    return null;
+  }
+
+  const vapidKey = 'YOUR_VAPID_PUBLIC_KEY'; // from Firebase Console → Cloud Messaging
+  if (!vapidKey || vapidKey === 'YOUR_VAPID_PUBLIC_KEY') {
+    console.warn('Valid VAPID key is required for FCM');
+    return null;
+  }
+
   try {
-    const currentToken = await getToken(messaging, {
-      vapidKey: 'YOUR_VAPID_PUBLIC_KEY' // from Firebase Console → Cloud Messaging
-    });
+    const currentToken = await getToken(messaging, { vapidKey });
     if (currentToken) {
       console.log('FCM Token:', currentToken);
       return currentToken;
     } else {
-      console.log('No registration token available. Request permission to generate one.');
+      console.log('No registration token available.');
       return null;
     }
   } catch (err) {
-    console.error('An error occurred while retrieving token. ', err);
+    // Catch atob & other errors gracefully
+    console.error('An error occurred while retrieving token.', err);
     return null;
   }
 };
 
-// Listen to messages while the app is in the foreground
 export const onMessageListener = () =>
   new Promise((resolve) => {
+    if (!messaging) {
+      console.warn('Messaging not available – cannot listen for messages');
+      return;
+    }
     onMessage(messaging, (payload) => {
       console.log('Foreground message received:', payload);
       resolve(payload);
