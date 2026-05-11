@@ -5,7 +5,7 @@ import Navbar from './components/Navbar'
 import HomePage from './pages/HomePage'
 import CreatorDashboard from './pages/CreatorDashboard'
 import AdminDashboard from './pages/AdminDashboard'
-import DonorDashboard from './pages/DonorDashboard'      // ← new import
+import DonorDashboard from './pages/DonorDashboard'
 import VerifyEmail from './pages/VerifyEmail'
 import AuthModal from './components/AuthModal'
 import Toast from './components/Toast'
@@ -13,21 +13,18 @@ import PWAInstallPrompt from './components/PWAInstallPrompt'
 import ScrollButtons from './components/ScrollButtons'
 import FirebaseMessaging from './components/FirebaseMessaging'
 
-// Error Boundary component to catch errors in child components
+// Error Boundary component (unchanged)
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
     this.state = { hasError: false, error: null }
   }
-
   static getDerivedStateFromError(error) {
     return { hasError: true, error }
   }
-
   componentDidCatch(error, errorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo)
   }
-
   render() {
     if (this.state.hasError) {
       return (
@@ -63,6 +60,27 @@ class ErrorBoundary extends Component {
   }
 }
 
+// Component to redirect authenticated users away from the home page
+function HomeRedirect() {
+  const { currentUser } = useApp()
+  // No user → show normal home page
+  if (!currentUser) return <><Navbar /><HomePage /></>
+  // Logged in – redirect to role‑based dashboard (replace = no back to home)
+  if (currentUser.role === 'admin') return <Navigate to="/admin-dashboard" replace />
+  if (currentUser.role === 'creator') return <Navigate to="/creator-dashboard" replace />
+  if (currentUser.role === 'donor') return <Navigate to="/donor-dashboard" replace />
+  // fallback (should not happen)
+  return <Navigate to="/" replace />
+}
+
+// Protected route: only allow specific roles
+function RoleRoute({ children, allowedRoles }) {
+  const { currentUser } = useApp()
+  if (!currentUser) return <Navigate to="/" replace />
+  if (!allowedRoles.includes(currentUser.role)) return <Navigate to="/" replace />
+  return children
+}
+
 function AppContent() {
   const { toast } = useApp()
   return (
@@ -72,12 +90,40 @@ function AppContent() {
       <FirebaseMessaging />
 
       <Routes>
-        <Route path="/" element={<><Navbar /><HomePage /></>} />
-        <Route path="/creator" element={<CreatorDashboard />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/donor-dashboard" element={<DonorDashboard />} />   {/* ← new route */}
+        {/* Home page – redirects logged‑in users to their dashboard */}
+        <Route path="/" element={<HomeRedirect />} />
+
+        {/* Protected dashboard routes */}
+        <Route 
+          path="/creator-dashboard" 
+          element={
+            <RoleRoute allowedRoles={['creator']}>
+              <CreatorDashboard />
+            </RoleRoute>
+          } 
+        />
+        <Route 
+          path="/admin-dashboard" 
+          element={
+            <RoleRoute allowedRoles={['admin']}>
+              <AdminDashboard />
+            </RoleRoute>
+          } 
+        />
+        <Route 
+          path="/donor-dashboard" 
+          element={
+            <RoleRoute allowedRoles={['donor']}>
+              <DonorDashboard />
+            </RoleRoute>
+          } 
+        />
+
+        {/* Other public routes */}
         <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="*" element={<Navigate to="/" />} />
+        
+        {/* Catch‑all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
       <AuthModal />
