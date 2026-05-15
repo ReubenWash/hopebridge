@@ -1,260 +1,401 @@
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { useApp } from '../context/AppContext'
 import { authApi } from '../services/api'
 
-const RECAPTCHA_SITE_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI' // Google test key
-
 export default function AuthModal() {
-  const { authOpen, authMode: contextMode, authRole: contextRole, closeAuth, login, register, showToast } = useApp()
-  const navigate = useNavigate()
-  
-  const [mode, setMode] = useState('login')
-  const [role, setRole] = useState('donor')
-  const [email, setEmail] = useState('')
+  const { authOpen, authMode, authRole, closeAuth, login, register, showToast, openAuth } = useApp()
+
+  const [mode, setMode]         = useState(authMode)   // 'login' | 'register' | 'verify'
+  const [role, setRole]         = useState(authRole)
+  const [name, setName]         = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [agreed, setAgreed] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const recapRef = useRef(null)
-  const recapToken = useRef('')
-  const [recaptchaReady, setRecaptchaReady] = useState(false)
+  const [code, setCode]         = useState('')
+  const [busy, setBusy]         = useState(false)
+  const [needsVerify, setNeedsVerify] = useState(false)
+  const [verifyEmail, setVerifyEmail] = useState('')
+  const [showPass, setShowPass] = useState(false)
 
-  const [verifyStep, setVerifyStep] = useState(false)
-  const [verificationCode, setVerificationCode] = useState('')
-  const [verifyError, setVerifyError] = useState('')
-  const [verifyBusy, setVerifyBusy] = useState(false)
-  const [registeredEmail, setRegisteredEmail] = useState('')
+  if (!authOpen) return null
 
-  const prefillDemo = (selectedRole) => {
-    setRole(selectedRole)
-    if (selectedRole === 'donor') {
-      setEmail('donor@hopebridge.com')
-      setPassword('donor123')
-    } else {
-      setEmail('emily@hope.org')
-      setPassword('pass123')
-    }
-  }
-
-  // Load reCAPTCHA script once
-  useEffect(() => {
-    if (window.grecaptcha) {
-      setRecaptchaReady(true)
-      return
-    }
-    const script = document.createElement('script')
-    script.src = `https://www.google.com/recaptcha/api.js?render=explicit`
-    script.async = true
-    script.defer = true
-    script.onload = () => setRecaptchaReady(true)
-    document.head.appendChild(script)
-  }, [])
-
-  // Render reCAPTCHA when register mode opens and script is ready
-  useEffect(() => {
-    if (mode === 'register' && recaptchaReady && recapRef.current && window.grecaptcha) {
-      if (recapRef.current.children.length > 0) {
-        try { window.grecaptcha.reset() } catch(e) { console.warn('recaptcha reset error', e) }
-      } else {
-        window.grecaptcha.render(recapRef.current, {
-          sitekey: RECAPTCHA_SITE_KEY,
-          callback: (token) => { recapToken.current = token },
-        })
-      }
-    }
-  }, [mode, recaptchaReady])
-
-  const resetRecaptcha = () => {
-    if (window.grecaptcha && recapRef.current && recapRef.current.children.length > 0) {
-      try {
-        window.grecaptcha.reset()
-      } catch(e) {
-        console.warn('resetRecaptcha error', e)
-      }
-    }
-    recapToken.current = ''
+  const switchMode = (m, r) => {
+    setMode(m)
+    if (r) setRole(r)
+    setName(''); setEmail(''); setPassword(''); setCode('')
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setBusy(true)
     try {
-      if (mode === 'login') {
-        const user = await login(email, password)
+      if (mode === 'register') {
+        const user = await register(name, email, password, role, null)
+        if (role === 'creator') {
+          setVerifyEmail(email)
+          setNeedsVerify(true)
+          setMode('verify')
+        } else {
+          // Donor – auto-verified, just close
+          closeAuth()
+          showToast(`Welcome to HopeBridge, ${user.name}! 🎉`)
+        }
+      } else if (mode === 'login') {
+        await login(email, password)
         closeAuth()
-        if (user.role === 'creator') navigate('/creator')
-        else if (user.role === 'admin') navigate('/admin')
-      } else {
-        if (!agreed) throw new Error('You must agree to the Terms & Privacy Policy.')
-        if (password !== confirm) throw new Error('Passwords do not match.')
-        if (!recapToken.current) throw new Error('Please complete the reCAPTCHA.')
-
-        await register(name, email, password, role, recapToken.current)
-        setRegisteredEmail(email)
-        setVerifyStep(true)
-        resetRecaptcha()
       }
     } catch (err) {
-      showToast(err.message, true)
-      if (mode === 'register') resetRecaptcha()
+      if (err.data?.needsVerification) {
+        setVerifyEmail(email)
+        setNeedsVerify(true)
+        setMode('verify')
+        showToast('Please verify your email first.', true)
+      } else {
+        showToast(err.message, true)
+      }
     } finally {
       setBusy(false)
     }
   }
 
-  const handleVerifyCode = async (e) => {
+  const handleVerify = async (e) => {
     e.preventDefault()
-    setVerifyError('')
-    if (!verificationCode || verificationCode.length !== 6) {
-      setVerifyError('Please enter the 6-digit code.')
-      return
-    }
-    setVerifyBusy(true)
+    setBusy(true)
     try {
-      await authApi.verifyCode({ email: registeredEmail, code: verificationCode })
-      showToast('Email verified! Welcome aboard.')
-      closeAuth()
+      await authApi.verifyCode({ email: verifyEmail, code })
+      showToast('Email verified! You can now log in.')
+      setMode('login')
+      setNeedsVerify(false)
+      setCode('')
+      setEmail(verifyEmail)
     } catch (err) {
-      setVerifyError(err.message)
+      showToast(err.message, true)
     } finally {
-      setVerifyBusy(false)
+      setBusy(false)
     }
   }
 
-  useEffect(() => {
-    if (!authOpen) {
-      setVerifyStep(false)
-      setVerificationCode('')
-      setVerifyError('')
-      setMode('login')
-      setRole('donor')
-      setEmail('')
-      setPassword('')
-      setName('')
-      setConfirm('')
-      setAgreed(false)
-      resetRecaptcha()
+  const handleResendCode = async () => {
+    try {
+      await authApi.resendCode(verifyEmail)
+      showToast('Verification code resent!')
+    } catch (err) {
+      showToast(err.message, true)
     }
-  }, [authOpen])
+  }
 
-  useEffect(() => {
-    if (authOpen) {
-      setMode(contextMode === 'register' ? 'register' : 'login')
-      if (contextRole) setRole(contextRole)
-    }
-  }, [authOpen, contextMode, contextRole])
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 14px',
+    border: '2px solid #e9ecef',
+    borderRadius: 8,
+    fontFamily: 'inherit',
+    fontSize: '0.95rem',
+    transition: '0.2s',
+    outline: 'none',
+    boxSizing: 'border-box',
+    marginBottom: 14,
+    color: '#1a1a2e',
+    background: '#fff',
+  }
 
-  if (!authOpen) return null
+  const btnStyle = {
+    width: '100%',
+    background: 'linear-gradient(135deg,#e8531e,#f47c50)',
+    color: '#fff',
+    border: 'none',
+    padding: '13px',
+    borderRadius: 8,
+    fontWeight: 700,
+    fontSize: '1rem',
+    cursor: busy ? 'not-allowed' : 'pointer',
+    fontFamily: 'inherit',
+    opacity: busy ? 0.7 : 1,
+    transition: '0.2s',
+    marginTop: 4,
+  }
 
   return (
-    <div className="auth-overlay" onClick={e => e.target === e.currentTarget && closeAuth()}>
-      <div className="auth-box">
-        <button className="auth-close" onClick={closeAuth}><i className="fas fa-times"></i></button>
+    <div
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(0,0,0,0.65)',
+        zIndex: 600,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20,
+        backdropFilter: 'blur(4px)',
+      }}
+      onClick={e => e.target === e.currentTarget && closeAuth()}
+    >
+      <div style={{
+        background: '#fff',
+        borderRadius: 18,
+        padding: '36px 32px',
+        width: '100%',
+        maxWidth: 440,
+        maxHeight: '92vh',
+        overflowY: 'auto',
+        position: 'relative',
+        boxShadow: '0 30px 80px rgba(0,0,0,0.22)',
+        fontFamily: "'DM Sans',sans-serif",
+      }}>
+        {/* Close */}
+        <button onClick={closeAuth} style={{
+          position: 'absolute', top: 16, right: 18,
+          background: '#f3f4f6', border: 'none', borderRadius: '50%',
+          width: 32, height: 32, cursor: 'pointer', fontSize: 16, color: '#6b7280',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>×</button>
 
-        {!verifyStep ? (
+        {/* Logo */}
+        <div style={{ textAlign: 'center', marginBottom: 22 }}>
+          <div style={{ fontSize: '2.2rem', color: '#e8531e' }}>❤</div>
+          <div style={{ fontFamily: 'Raleway,sans-serif', fontSize: '1.5rem', fontWeight: 900, color: '#1a1a2e' }}>
+            HopeBridge
+          </div>
+        </div>
+
+        {/* ── VERIFY EMAIL ── */}
+        {mode === 'verify' && (
           <>
-            <div className="auth-icon-big"><i className="fas fa-hand-holding-heart"></i></div>
-            <h2>{mode === 'login' ? 'Welcome Back' : 'Join HopeBridge'}</h2>
-            <p style={{ color: 'var(--text-light)', fontSize: '.9rem', marginBottom: '20px' }}>
-              {mode === 'login' ? 'Sign in to continue' : 'Choose how you want to participate'}
+            <h2 style={{ fontSize: '1.3rem', color: '#1a1a2e', marginBottom: 6, textAlign: 'center' }}>
+              Verify Your Email
+            </h2>
+            <p style={{ fontSize: '0.88rem', color: '#6b7280', textAlign: 'center', marginBottom: 20 }}>
+              We sent a 6-digit code to <strong>{verifyEmail}</strong>
             </p>
+            <form onSubmit={handleVerify}>
+              <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
+                Verification Code
+              </label>
+              <input
+                type="text"
+                maxLength={6}
+                value={code}
+                onChange={e => setCode(e.target.value.replace(/\D/g,''))}
+                placeholder="000000"
+                required
+                style={{
+                  ...inputStyle,
+                  textAlign: 'center',
+                  letterSpacing: 10,
+                  fontSize: '1.6rem',
+                  fontWeight: 700,
+                }}
+              />
+              <button type="submit" style={btnStyle} disabled={busy}>
+                {busy ? 'Verifying...' : 'Verify Email'}
+              </button>
+            </form>
+            <div style={{ textAlign: 'center', marginTop: 14, fontSize: '0.88rem', color: '#6b7280' }}>
+              Didn't receive it?{' '}
+              <span
+                onClick={handleResendCode}
+                style={{ color: '#e8531e', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Resend code
+              </span>
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 10, fontSize: '0.85rem' }}>
+              <span
+                onClick={() => setMode('login')}
+                style={{ color: '#6b7280', cursor: 'pointer' }}
+              >
+                ← Back to login
+              </span>
+            </div>
+          </>
+        )}
 
-            {mode === 'register' && (
-              <div className="role-tabs">
-                <button className={`role-tab ${role === 'donor' ? 'active' : ''}`} onClick={() => setRole('donor')}>
-                  Donor (Wallet)
-                </button>
-                <button className={`role-tab ${role === 'creator' ? 'active' : ''}`} onClick={() => setRole('creator')}>
-                  Campaign Creator
+        {/* ── LOGIN ── */}
+        {mode === 'login' && (
+          <>
+            <h2 style={{ fontSize: '1.4rem', color: '#1a1a2e', marginBottom: 6, textAlign: 'center' }}>
+              Welcome Back
+            </h2>
+            <p style={{ fontSize: '0.88rem', color: '#6b7280', textAlign: 'center', marginBottom: 22 }}>
+              Sign in to your account
+            </p>
+            <form onSubmit={handleSubmit}>
+              <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                style={inputStyle}
+              />
+              <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
+                Password
+              </label>
+              <div style={{ position: 'relative', marginBottom: 14 }}>
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  style={{ ...inputStyle, marginBottom: 0, paddingRight: 44 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(s => !s)}
+                  style={{
+                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16,
+                  }}
+                >
+                  {showPass ? '🙈' : '👁'}
                 </button>
               </div>
-            )}
+              <button type="submit" style={btnStyle} disabled={busy}>
+                {busy ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
 
-            {mode === 'login' && (
-              <>
-                <div className="auth-hint" style={{ cursor: 'pointer' }} onClick={() => prefillDemo('donor')}>
-                  <strong>Demo Donor:</strong> donor@hopebridge.com / donor123
-                </div>
-                <div className="auth-hint" style={{ cursor: 'pointer', marginTop: 8 }} onClick={() => prefillDemo('creator')}>
-                  <strong>Demo Creator:</strong> emily@hope.org / pass123
-                </div>
-                <div className="auth-hint" style={{ marginTop: 8, opacity: 0.7 }}>
-                  <strong>Admin:</strong> use your credentials
-                </div>
-              </>
-            )}
+            {/* Demo credentials */}
+            <div style={{
+              background: '#fff5f0', border: '1px solid #fed7aa', borderRadius: 10,
+              padding: '10px 14px', fontSize: '0.78rem', color: '#92400e', marginTop: 14,
+            }}>
+              <strong>Demo:</strong> donor@demo.com / donor123 &nbsp;|&nbsp; creator@demo.com / demo123
+            </div>
 
-            {mode === 'register' && role === 'creator' && (
-              <div className="auth-hint" style={{ cursor: 'pointer' }} onClick={() => prefillDemo('creator')}>
-                <strong>Demo Creator:</strong> emily@hope.org / pass123
+            <div style={{ textAlign: 'center', marginTop: 16, fontSize: '0.88rem', color: '#6b7280' }}>
+              No account?{' '}
+              <span
+                onClick={() => switchMode('register', 'donor')}
+                style={{ color: '#e8531e', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Create one free
+              </span>
+            </div>
+            <div style={{ textAlign: 'center', marginTop: 8, fontSize: '0.85rem' }}>
+              <span
+                onClick={() => switchMode('register', 'creator')}
+                style={{ color: '#27a96c', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Start a campaign →
+              </span>
+            </div>
+          </>
+        )}
+
+        {/* ── REGISTER ── */}
+        {mode === 'register' && (
+          <>
+            <h2 style={{ fontSize: '1.3rem', color: '#1a1a2e', marginBottom: 6, textAlign: 'center' }}>
+              Create Account
+            </h2>
+
+            {/* Role selector */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20, marginTop: 6 }}>
+              {[
+                { r: 'donor',   label: '❤ Donor',   sub: 'Give to causes' },
+                { r: 'creator', label: '🚀 Creator', sub: 'Run campaigns' },
+              ].map(({ r, label, sub }) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRole(r)}
+                  style={{
+                    flex: 1,
+                    border: `2px solid ${role === r ? (r === 'donor' ? '#e8531e' : '#27a96c') : '#e5e7eb'}`,
+                    borderRadius: 12,
+                    padding: '12px 8px',
+                    cursor: 'pointer',
+                    background: role === r ? (r === 'donor' ? '#fff5f0' : '#f0fdf4') : '#fff',
+                    transition: '0.15s',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: role === r ? (r === 'donor' ? '#e8531e' : '#27a96c') : '#374151' }}>
+                    {label}
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: 2 }}>{sub}</div>
+                </button>
+              ))}
+            </div>
+
+            {role === 'donor' && (
+              <div style={{
+                background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10,
+                padding: '10px 14px', fontSize: '0.82rem', color: '#1e40af', marginBottom: 16,
+              }}>
+                ✅ Donor accounts are instantly activated — no email verification needed!
               </div>
             )}
 
             <form onSubmit={handleSubmit}>
-              {mode === 'register' && (
-                <div className="auth-field">
-                  <label>Full Name</label>
-                  <input type="text" value={name} onChange={e => setName(e.target.value)} required />
-                </div>
-              )}
-              <div className="auth-field">
-                <label>Email</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-              </div>
-              <div className="auth-field">
-                <label>Password</label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+              <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
+                Full Name
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Your name"
+                required
+                style={inputStyle}
+              />
+              <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                style={inputStyle}
+              />
+              <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
+                Password
+              </label>
+              <div style={{ position: 'relative', marginBottom: 14 }}>
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Min 6 characters"
+                  required
+                  minLength={6}
+                  style={{ ...inputStyle, marginBottom: 0, paddingRight: 44 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(s => !s)}
+                  style={{
+                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16,
+                  }}
+                >
+                  {showPass ? '🙈' : '👁'}
+                </button>
               </div>
 
-              {mode === 'register' && (
-                <>
-                  <div className="auth-field">
-                    <label>Confirm Password</label>
-                    <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required />
-                  </div>
-                  <label className="terms-check" style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '12px 0', fontSize: '.85rem' }}>
-                    <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
-                    I agree to the <span style={{ color: 'var(--primary)', fontWeight: 600, cursor: 'pointer' }}>Terms</span> & <span style={{ color: 'var(--primary)', fontWeight: 600, cursor: 'pointer' }}>Privacy Policy</span>
-                  </label>
-                  <div className="recaptcha-wrapper" style={{ margin: '14px 0' }}>
-                    <div ref={recapRef} id="recaptcha-container"></div>
-                    <p style={{ fontSize: '.72rem', color: 'var(--text-light)', marginTop: '6px' }}>
-                      This site is protected by reCAPTCHA and the Google <a href="https://policies.google.com/privacy" target="_blank">Privacy Policy</a> and <a href="https://policies.google.com/terms" target="_blank">Terms of Service</a> apply.
-                    </p>
-                  </div>
-                </>
-              )}
-
-              <button type="submit" className="auth-submit-btn" disabled={busy}>
-                {busy ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create My Account'}
+              <button type="submit" style={{
+                ...btnStyle,
+                background: role === 'creator'
+                  ? 'linear-gradient(135deg,#27a96c,#059669)'
+                  : 'linear-gradient(135deg,#e8531e,#f47c50)',
+              }} disabled={busy}>
+                {busy ? 'Creating...' : role === 'donor' ? '❤ Join as Donor' : '🚀 Start Campaigning'}
               </button>
             </form>
 
-            <div className="auth-toggle">
-              {mode === 'login'
-                ? <span onClick={() => setMode('register')}>Don't have an account? Register</span>
-                : <span onClick={() => setMode('login')}>Already have an account? Sign In</span>}
+            <div style={{ textAlign: 'center', marginTop: 16, fontSize: '0.88rem', color: '#6b7280' }}>
+              Already have an account?{' '}
+              <span
+                onClick={() => switchMode('login')}
+                style={{ color: '#e8531e', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Sign in
+              </span>
             </div>
           </>
-        ) : (
-          <div className="verify-code-step">
-            <div className="auth-icon-big"><i className="fas fa-envelope-open-text"></i></div>
-            <h3>Check Your Email</h3>
-            <p style={{ color: 'var(--text-light)', fontSize: '.9rem', marginBottom: '20px' }}>
-              A 6‑digit code has been sent to <strong>{registeredEmail}</strong>.
-            </p>
-            <form onSubmit={handleVerifyCode}>
-              <div className="auth-field">
-                <label>Verification Code</label>
-                <input type="text" value={verificationCode} onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" maxLength={6} style={{ fontSize: '2rem', textAlign: 'center', letterSpacing: '.5rem', fontWeight: 700 }} required autoFocus />
-              </div>
-              {verifyError && <div className="auth-hint" style={{ color: '#c0392b', marginBottom: 12 }}>{verifyError}</div>}
-              <button type="submit" className="auth-submit-btn" disabled={verifyBusy}>{verifyBusy ? 'Verifying...' : 'Verify Email'}</button>
-            </form>
-            <button className="btn-outline-custom" style={{ marginTop: 12, width: '100%' }} onClick={() => { setVerifyStep(false); setVerificationCode(''); setVerifyError(''); }}>← Go Back</button>
-          </div>
         )}
       </div>
     </div>

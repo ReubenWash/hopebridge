@@ -3,52 +3,40 @@ import { Component } from 'react'
 import { AppProvider, useApp } from './context/AppContext'
 import Navbar from './components/Navbar'
 import HomePage from './pages/HomePage'
+import DonorDashboard from './pages/DonorDashboard'
 import CreatorDashboard from './pages/CreatorDashboard'
 import AdminDashboard from './pages/AdminDashboard'
-import DonorDashboard from './pages/DonorDashboard'
 import VerifyEmail from './pages/VerifyEmail'
 import AuthModal from './components/AuthModal'
 import Toast from './components/Toast'
+import WalletFloating from './components/WalletFloating'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import ScrollButtons from './components/ScrollButtons'
-import FirebaseMessaging from './components/FirebaseMessaging'
 
-// Error Boundary component (unchanged)
+// Error Boundary
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
-    this.state = { hasError: false, error: null }
+    this.state = { hasError: false }
   }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error }
-  }
-  componentDidCatch(error, errorInfo) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo)
-  }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch(error, info) { console.error('ErrorBoundary:', error, info) }
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ 
-          minHeight: '100vh', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          flexDirection: 'column',
-          padding: '20px',
-          textAlign: 'center'
+        <div style={{
+          minHeight: '100vh', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', flexDirection: 'column', padding: 20, textAlign: 'center',
         }}>
-          <h2>Something went wrong</h2>
-          <p>Please refresh the page or contact support if the issue persists.</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            style={{ 
-              marginTop: '20px', 
-              padding: '10px 20px',
-              background: 'var(--primary)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer'
+          <h2 style={{ marginBottom: 12 }}>Something went wrong</h2>
+          <p style={{ color: '#6b7280', marginBottom: 20 }}>
+            Please refresh the page or contact support.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '10px 24px', background: '#e8531e', color: '#fff',
+              border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700,
             }}
           >
             Refresh Page
@@ -60,73 +48,83 @@ class ErrorBoundary extends Component {
   }
 }
 
-// Component to redirect authenticated users away from the home page
-function HomeRedirect() {
+// Home page – redirects logged-in users based on role
+// Donors stay on the landing/home page (DonorDashboard IS the home page for them)
+function HomeRoute() {
   const { currentUser } = useApp()
-  // No user → show normal home page
   if (!currentUser) return <><Navbar /><HomePage /></>
-  // Logged in – redirect to role‑based dashboard (replace = no back to home)
-  if (currentUser.role === 'admin') return <Navigate to="/admin-dashboard" replace />
+  if (currentUser.role === 'admin')   return <Navigate to="/admin-dashboard"   replace />
   if (currentUser.role === 'creator') return <Navigate to="/creator-dashboard" replace />
-  if (currentUser.role === 'donor') return <Navigate to="/donor-dashboard" replace />
-  // fallback (should not happen)
-  return <Navigate to="/" replace />
+  // Donors see the DonorDashboard which IS the landing page with Navbar
+  return <><Navbar /><DonorDashboard /></>
 }
 
-// Protected route: only allow specific roles
+// Protected route
 function RoleRoute({ children, allowedRoles }) {
-  const { currentUser } = useApp()
+  const { currentUser, loading } = useApp()
+  if (loading) return <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>Loading…</div>
   if (!currentUser) return <Navigate to="/" replace />
   if (!allowedRoles.includes(currentUser.role)) return <Navigate to="/" replace />
   return children
 }
 
 function AppContent() {
-  const { toast } = useApp()
+  const { toast, currentUser } = useApp()
+
   return (
     <>
       <PWAInstallPrompt />
       <ScrollButtons />
-      <FirebaseMessaging />
 
       <Routes>
-        {/* Home page – redirects logged‑in users to their dashboard */}
-        <Route path="/" element={<HomeRedirect />} />
+        {/* Home / Donor landing */}
+        <Route path="/" element={<HomeRoute />} />
 
-        {/* Protected dashboard routes */}
-        <Route 
-          path="/creator-dashboard" 
+        {/* Donor explicit dashboard (same component) */}
+        <Route
+          path="/donor-dashboard"
+          element={
+            <RoleRoute allowedRoles={['donor']}>
+              <Navbar />
+              <DonorDashboard />
+            </RoleRoute>
+          }
+        />
+
+        {/* Creator dashboard */}
+        <Route
+          path="/creator-dashboard"
           element={
             <RoleRoute allowedRoles={['creator']}>
               <CreatorDashboard />
             </RoleRoute>
-          } 
+          }
         />
-        <Route 
-          path="/admin-dashboard" 
+
+        {/* Admin dashboard */}
+        <Route
+          path="/admin-dashboard"
           element={
             <RoleRoute allowedRoles={['admin']}>
               <AdminDashboard />
             </RoleRoute>
-          } 
-        />
-        <Route 
-          path="/donor-dashboard" 
-          element={
-            <RoleRoute allowedRoles={['donor']}>
-              <DonorDashboard />
-            </RoleRoute>
-          } 
+          }
         />
 
-        {/* Other public routes */}
+        {/* Email verification */}
         <Route path="/verify-email" element={<VerifyEmail />} />
-        
-        {/* Catch‑all */}
+
+        {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
+      {/* Auth Modal – global */}
       <AuthModal />
+
+      {/* Wallet floating button – only for logged-in non-admin users */}
+      {currentUser && currentUser.role !== 'admin' && <WalletFloating />}
+
+      {/* Toast notifications */}
       {toast && <Toast msg={toast.msg} error={toast.error} />}
     </>
   )

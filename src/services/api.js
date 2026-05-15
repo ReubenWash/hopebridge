@@ -1,6 +1,4 @@
 // src/services/api.js
-// All API calls to the HopeBridge backend
-
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
 // ── Token helpers ─────────────────────────────────────────────────
@@ -21,12 +19,15 @@ async function request(path, options = {}) {
   const data = await res.json()
 
   if (!res.ok) {
-    throw new Error(data?.error || `Request failed: ${res.status}`)
+    const err = new Error(data?.error || `Request failed: ${res.status}`)
+    err.status = res.status
+    err.data = data
+    throw err
   }
   return data
 }
 
-// Multipart request (for file uploads)
+// Multipart (file uploads)
 async function multipart(method, path, formData) {
   const token = getToken()
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -35,31 +36,30 @@ async function multipart(method, path, formData) {
     body: formData,
   })
   const data = await res.json()
-  if (!res.ok) throw new Error(data?.error || `Request failed: ${res.status}`)
+  if (!res.ok) {
+    const err = new Error(data?.error || `Request failed: ${res.status}`)
+    err.status = res.status
+    err.data = data
+    throw err
+  }
   return data
 }
 
 // ── Auth ─────────────────────────────────────────────────────────
 export const authApi = {
-  register: (body) => {
-    if (!body.recaptchaToken) {
-      throw new Error('reCAPTCHA token is required')
-    }
-    return request('/auth/register', { method: 'POST', body: JSON.stringify(body) })
-  },
-  login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
-  me:    ()    => request('/auth/me'),
+  register: (body) => request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
+  login:    (body) => request('/auth/login',    { method: 'POST', body: JSON.stringify(body) }),
+  me:       ()     => request('/auth/me'),
+  updateMe: (body) => request('/auth/me', { method: 'PATCH', body: JSON.stringify(body) }),
 
-  // Email verification (token-based, still available for backward compatibility)
   verifyEmail: (token) => request('/auth/verify-email', {
-    method: 'POST',
-    body: JSON.stringify({ token })
+    method: 'POST', body: JSON.stringify({ token }),
   }),
-
-  // New 6-digit code verification
   verifyCode: (body) => request('/auth/verify-code', {
-    method: 'POST',
-    body: JSON.stringify(body)   // { email, code }
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  resendCode: (email) => request('/auth/resend-code', {
+    method: 'POST', body: JSON.stringify({ email }),
   }),
 }
 
@@ -70,85 +70,105 @@ export const campaignApi = {
     return request(`/campaigns${qs ? `?${qs}` : ''}`)
   },
   getMy:   () => request('/campaigns/my'),
-  create:  (formData) => multipart('POST',  '/campaigns',     formData),
+  getById: (id) => request(`/campaigns/${id}`),
+  create:  (formData) => multipart('POST',  '/campaigns',      formData),
   update:  (id, formData) => multipart('PATCH', `/campaigns/${id}`, formData),
   delete:  (id) => request(`/campaigns/${id}`, { method: 'DELETE' }),
 }
 
 // ── Donations ─────────────────────────────────────────────────────
 export const donationApi = {
-  // Existing
-  create:         (body) => request('/donations', { method: 'POST', body: JSON.stringify(body) }),
-  getCampaignDons:(id)   => request(`/donations/campaign/${id}`),
+  getMyDonations:  () => request('/donations/my'),
+  getCampaignDons: (id) => request(`/donations/campaign/${id}`),
 
-   getMyDonations: () => request('/donations/my'),
-
-  // PayPal
+  // PayPal – works without auth (guest donations)
   createPayPalOrder: (body) => request('/donations/paypal/create-order', {
-    method: 'POST',
-    body: JSON.stringify(body),
+    method: 'POST', body: JSON.stringify(body),
   }),
   capturePayPalOrder: (orderID) => request('/donations/paypal/capture-order', {
-    method: 'POST',
-    body: JSON.stringify({ orderID }),
+    method: 'POST', body: JSON.stringify({ orderID }),
   }),
 
   // Creator payment methods
-  getCreatorPaymentMethod: () => request('/creator/payment-method'),
-  saveCreatorPaymentMethod: (data) => request('/creator/payment-method', {
-    method: 'PUT',
-    body: JSON.stringify(data),
+  getCreatorPaymentMethod:  () => request('/donations/creator/payment-method'),
+  saveCreatorPaymentMethod: (data) => request('/donations/creator/payment-method', {
+    method: 'PUT', body: JSON.stringify(data),
   }),
 }
 
-// ── Wallet (for donors) ───────────────────────────────────────────
+// ── Wallet ────────────────────────────────────────────────────────
 export const walletApi = {
-  getBalance: () => request('/wallet/balance'),
-  getTransactions: () => request('/wallet/transactions'),
-  getMyDepositRequests: () => request('/wallet/deposit-requests'),
-  requestDeposit: (body) => request('/wallet/deposit-request', { method: 'POST', body: JSON.stringify(body) }),
-  uploadProof: (requestId, formData) => multipart('POST', `/wallet/deposit-request/${requestId}/proof`, formData),
-  donateFromWallet: (body) => request('/wallet/donate', { method: 'POST', body: JSON.stringify(body) }),
+  getBalance:          () => request('/wallet/balance'),
+  getTransactions:     () => request('/wallet/transactions'),
+  getSummary:          () => request('/wallet/summary'),
+  getMyDepositRequests:() => request('/wallet/deposit-requests'),
+
+  requestDeposit: (body) => request('/wallet/deposit-request', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  uploadProof: (requestId, formData) =>
+    multipart('POST', `/wallet/deposit-request/${requestId}/proof`, formData),
+
+  donateFromWallet: (body) => request('/wallet/donate', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+
+  requestWithdrawal: (body) => request('/wallet/withdrawal', {
+    method: 'POST', body: JSON.stringify(body),
+  }),
+  getMyWithdrawals: () => request('/wallet/withdrawals'),
 }
 
 // ── Admin ─────────────────────────────────────────────────────────
 export const adminApi = {
-  getStats:       ()           => request('/admin/stats'),
-  getUsers:       ()           => request('/admin/users'),
-  toggleUser:     (id)         => request(`/admin/users/${id}/toggle`, { method: 'PATCH' }),
-  getCampaigns:   (params)     => {
+  getStats:       () => request('/admin/stats'),
+  getUsers:       () => request('/admin/users'),
+  toggleUser:     (id) => request(`/admin/users/${id}/toggle`, { method: 'PATCH' }),
+
+  getCampaigns:   (params) => {
     const qs = new URLSearchParams(params || {}).toString()
     return request(`/admin/campaigns${qs ? `?${qs}` : ''}`)
   },
-  updateCampaign: (id, body)   => request(`/admin/campaigns/${id}/status`, { method: 'PATCH', body: JSON.stringify(body) }),
-  getDonations:   ()           => request('/admin/donations'),
-  getDisputes:    ()           => request('/admin/disputes'),
-  resolveDispute: (id)         => request(`/admin/disputes/${id}/resolve`, { method: 'PATCH' }),
+  updateCampaign: (id, body) => request(`/admin/campaigns/${id}/status`, {
+    method: 'PATCH', body: JSON.stringify(body),
+  }),
 
-  // Theme management
-  getTheme:       ()           => request('/admin/theme'),
-  saveTheme:      (theme)      => request('/admin/theme', { method: 'PUT', body: JSON.stringify(theme) }),
+  getDonations:   () => request('/admin/donations'),
+  getDisputes:    () => request('/admin/disputes'),
+  resolveDispute: (id) => request(`/admin/disputes/${id}/resolve`, { method: 'PATCH' }),
 
-  // Firebase Cloud Messaging token
-  saveFCMToken:   (token)      => request('/admin/fcm-token', { method: 'POST', body: JSON.stringify({ token }) }),
+  getTheme:  () => request('/admin/theme'),
+  saveTheme: (theme) => request('/admin/theme', { method: 'PUT', body: JSON.stringify(theme) }),
 
-  // Admin settings (theme + integration keys)
-  getSettings:    ()           => request('/admin/settings'),
-  saveSettings:   (data)       => request('/admin/settings', { method: 'PUT', body: JSON.stringify(data) }),
+  saveFCMToken: (token) => request('/admin/fcm-token', {
+    method: 'POST', body: JSON.stringify({ token }),
+  }),
 
-  // Mass Mail sender
-  sendMassMail:   (body)       => request('/admin/mass-mail', { method: 'POST', body: JSON.stringify(body) }),
+  getSettings:  () => request('/admin/settings'),
+  saveSettings: (data) => request('/admin/settings', { method: 'PUT', body: JSON.stringify(data) }),
 
-  // Content management (hero, banners, impact stats, social links)
-  getContent:     ()           => request('/admin/content'),
-  saveContent:    (data)       => request('/admin/content', { method: 'PUT', body: JSON.stringify(data) }),
+  sendMassMail: (body) => request('/admin/mass-mail', { method: 'POST', body: JSON.stringify(body) }),
 
-  // Deposit requests (admin)
-  getDepositRequests: () => request('/admin/deposit-requests'),
-  updateDepositRequest: (id, data) => request(`/admin/deposit-requests/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  getContent:  () => request('/admin/content'),
+  saveContent: (data) => request('/admin/content', { method: 'PUT', body: JSON.stringify(data) }),
+
+  // Deposit requests
+  getDepositRequests:   () => request('/admin/deposit-requests'),
+  updateDepositRequest: (id, data) => request(`/admin/deposit-requests/${id}`, {
+    method: 'PUT', body: JSON.stringify(data),
+  }),
+
+  // Withdrawal requests
+  getWithdrawalRequests: () => request('/admin/withdrawal-requests'),
+  approveWithdrawal: (id) => request(`/admin/withdrawal-requests/${id}/approve`, {
+    method: 'PUT',
+  }),
+  rejectWithdrawal: (id, reason) => request(`/admin/withdrawal-requests/${id}/reject`, {
+    method: 'PUT', body: JSON.stringify({ reason }),
+  }),
 }
 
-// ── Public endpoints (no auth required) ──────────────────────────
+// ── Public ────────────────────────────────────────────────────────
 export const publicApi = {
   getSettings: () => request('/settings/public'),
 }

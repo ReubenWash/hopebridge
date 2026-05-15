@@ -7,70 +7,56 @@ import {
 const AppContext = createContext(null)
 
 export function AppProvider({ children }) {
-  const [currentUser, setCurrentUser] = useState(null)
-  const [campaigns, setCampaigns]     = useState([])
-  const [myCampaigns, setMyCampaigns] = useState([])
-  const [toast, setToast]             = useState(null)
-  const [authOpen, setAuthOpen]       = useState(false)
-  const [authMode, setAuthMode]       = useState('login')   // 'login' or 'register'
-  const [authRole, setAuthRole]       = useState('donor')   // 'donor' or 'creator'
-  const [loading, setLoading]         = useState(true)
-  const [theme, setTheme]             = useState({})
+  const [currentUser, setCurrentUser]   = useState(null)
+  const [campaigns, setCampaigns]       = useState([])
+  const [myCampaigns, setMyCampaigns]   = useState([])
+  const [toast, setToast]               = useState(null)
+  const [authOpen, setAuthOpen]         = useState(false)
+  const [authMode, setAuthMode]         = useState('login')
+  const [authRole, setAuthRole]         = useState('donor')
+  const [loading, setLoading]           = useState(true)
+  const [theme, setTheme]               = useState({})
   const [walletBalance, setWalletBalance] = useState(0)
 
-  // Prevents double /auth/me call in React StrictMode
   const sessionRestored = useRef(false)
 
   const showToast = useCallback((msg, error = false) => {
     setToast({ msg, error })
-    setTimeout(() => setToast(null), 3500)
+    setTimeout(() => setToast(null), 3800)
   }, [])
 
-  // Fetch wallet balance for logged‑in user
   const fetchWalletBalance = useCallback(async () => {
-    if (!currentUser) return
     try {
       const data = await walletApi.getBalance()
-      setWalletBalance(data.balance)
+      setWalletBalance(parseFloat(data.balance) || 0)
     } catch (err) {
       console.warn('Wallet fetch failed:', err.message)
     }
-  }, [currentUser])
+  }, [])
 
-  // Restore session on page load
+  // Restore session
   useEffect(() => {
     if (sessionRestored.current) return
     sessionRestored.current = true
 
     const token = getToken()
-    if (!token) {
-      console.log('[AppContext] No token found, skipping session restore')
-      setLoading(false)
-      return
-    }
+    if (!token) { setLoading(false); return }
 
-    console.log('[AppContext] Token found, calling /auth/me...')
     authApi.me()
       .then(data => {
-        console.log('[AppContext] /auth/me success:', data)
         const user = data.user ?? data
         setCurrentUser(user)
-        if (user) fetchWalletBalance()
       })
-      .catch((err) => {
-        console.warn('[AppContext] /auth/me failed:', err.message)
-        clearToken()
-      })
+      .catch(() => clearToken())
       .finally(() => setLoading(false))
-  }, [fetchWalletBalance])
+  }, [])
 
-  // Refresh wallet when currentUser changes (login/logout)
   useEffect(() => {
     if (currentUser) fetchWalletBalance()
     else setWalletBalance(0)
   }, [currentUser, fetchWalletBalance])
 
-  // Theme (admin only)
+  // Theme helpers
   const applyTheme = useCallback((themeObj) => {
     const root = document.documentElement
     Object.entries(themeObj).forEach(([key, value]) => {
@@ -92,7 +78,6 @@ export function AppProvider({ children }) {
     showToast('Theme updated')
   }
 
-  // Only fetch theme for admin
   useEffect(() => {
     if (currentUser?.role === 'admin') fetchTheme()
   }, [currentUser, fetchTheme])
@@ -103,14 +88,18 @@ export function AppProvider({ children }) {
       const data = await campaignApi.getAll(params)
       setCampaigns(data.campaigns || [])
       return data
-    } catch (err) { showToast(err.message, true) }
+    } catch (err) {
+      showToast(err.message, true)
+    }
   }, [showToast])
 
   const loadMyCampaigns = useCallback(async () => {
     try {
       const data = await campaignApi.getMy()
       setMyCampaigns(data.campaigns || [])
-    } catch (err) { showToast(err.message, true) }
+    } catch (err) {
+      showToast(err.message, true)
+    }
   }, [showToast])
 
   // Auth
@@ -122,7 +111,6 @@ export function AppProvider({ children }) {
   const closeAuth = () => setAuthOpen(false)
 
   const register = async (name, email, password, role, recaptchaToken) => {
-    // role is either 'donor' or 'creator' – backend will accept it
     const data = await authApi.register({ name, email, password, role, recaptchaToken })
     saveToken(data.token)
     setCurrentUser(data.user)
@@ -146,22 +134,14 @@ export function AppProvider({ children }) {
     showToast('Logged out successfully')
   }
 
-  // Donations (guest or card/PayPal)
-  const donate = async ({ campaign_id, donor_name, donor_email, amount, message, is_monthly }) => {
-    const data = await donationApi.create({ campaign_id, donor_name, donor_email, amount, message, is_monthly })
-    showToast(data.message)
-    await loadCampaigns()
-    return data
-  }
-
-  // Wallet donation (logged‑in user)
+  // Wallet donation
   const donateFromWallet = async ({ campaign_id, amount, donor_name, donor_email, message, is_monthly }) => {
     const data = await walletApi.donateFromWallet({
       campaign_id, amount, donor_name, donor_email, message, is_monthly,
     })
     showToast(data.message)
     await loadCampaigns()
-    fetchWalletBalance() // refresh balance after spending
+    fetchWalletBalance()
     return data
   }
 
@@ -206,7 +186,7 @@ export function AppProvider({ children }) {
       openAuth, closeAuth, login, register, logout,
       loadCampaigns, loadMyCampaigns,
       createCampaign, updateCampaign, deleteCampaign,
-      donate, donateFromWallet,   // both donation methods
+      donateFromWallet,
       showToast,
       theme, saveTheme, fetchTheme,
       walletBalance, refreshWallet: fetchWalletBalance,
