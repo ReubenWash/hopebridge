@@ -933,11 +933,15 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          
+          {/* Campaigns */}
+          <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
+            <div className="sh"><div className="sht">Campaign Management</div></div>
+            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut" style={{ width: '100%' }}><thead><tr><th style={{ paddingLeft: 20 }}>Campaign</th><th>Creator</th><th>Goal</th><th>Progress</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{campaigns.map(c => (<tr key={c.id}><td style={{ paddingLeft: 20 }}><div style={{ fontWeight: 600 }}>{c.title}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{c.creator_name}</div></td><td>${c.goal.toLocaleString()}</td><td><div style={{ width: 80 }}><div className="pb"><div className="pf" style={{ width: `${((c.raised) / c.goal) * 100}%` }}></div></div><div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 2 }}>{Math.round(((c.raised) / c.goal) * 100)}%</div></div></td><td><span className={`badge ${c.status === 'active' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td><td style={{ paddingRight: 20 }}><div style={{ display: 'flex', gap: 6 }}>{c.status !== 'active' && <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>Approve</button>}<button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}>Delete</button></div></td></tr>))}</tbody></table></div></div>
+          </div>
 
           {/* Users */}
           <div className={`ps ${activeTab === 'users' ? 'active' : ''}`}>
-            <div className="sh"><div className="sht">User Management</div><button className="btn btn-g" onClick={() => showToast('Invite user feature')}>+ Invite User</button></div>
+            <div className="sh"><div className="sht">User Management</div></div>
             <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th style={{ paddingLeft: 20 }}>User</th><th>Role</th><th>Joined</th><th>Wallet</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{users.map(u => (<tr key={u.id}><td style={{ paddingLeft: 20 }}><div className="uc"><div className={`uav avg`}>{u.name?.charAt(0)}</div><div><div style={{ fontWeight: 600 }}>{u.name}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{u.email}</div></div></div></td><td><span className="badge br">{u.role}</span></td><td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td><td style={{ fontWeight: 600 }}>${u.wallet_balance.toFixed(2)}</td><td><span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span></td><td style={{ paddingRight: 20 }}><button className="db dbv" onClick={() => handleToggleUser(u.id)}>{u.is_active ? 'Suspend' : 'Restore'}</button></td></tr>))}</tbody></table></div></div>
           </div>
 
