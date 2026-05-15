@@ -711,7 +711,7 @@ export default function WalletFloating() {
             borderTop:'1px solid #f3f4f6',
             fontSize: 11, color:'#d1d5db', textAlign:'center',
           }}>
-            🔒 Secured by HopeBridge Escrow
+            🔒🔒 Secured by HopeBridge Escrow
           </div>
         </div>
       )}

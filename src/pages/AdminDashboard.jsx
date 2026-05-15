@@ -12,6 +12,12 @@ const safeGet = async (apiCall, fallback) => {
   }
 };
 
+// ---------- Helper: safely convert to number ----------
+const toNumber = (val, fallback = 0) => {
+  const num = parseFloat(val);
+  return isNaN(num) ? fallback : num;
+};
+
 // ---------- Global style injection (once) ----------
 let stylesInjected = false;
 const injectStyles = () => {
@@ -452,7 +458,7 @@ function DepositRequestsManager({ requests, onApprove, onReject, onProvideInstru
       {requests.map(req => (
         <div key={req.id} style={{ borderBottom: '1px solid var(--border)', padding: '16px 0' }}>
           <div><strong>User:</strong> {req.userName || req.name} ({req.email})</div>
-          <div><strong>Amount:</strong> ${req.amount}</div>
+          <div><strong>Amount:</strong> ${toNumber(req.amount).toFixed(2)}</div>
           <div><strong>Status:</strong> <span className={`badge ${req.status === 'pending' ? 'bp' : req.status === 'approved' ? 'ba' : 'bx'}`}>{req.status}</span></div>
           {req.status === 'pending' && (
             <div style={{ marginTop: 10 }}>
@@ -564,52 +570,91 @@ export default function AdminDashboard() {
     setAuthChecked(true);
   }, [sessionLoading, currentUser, navigate, showToast]);
 
-  // Fetch all data
- const fetchAll = async () => {
-  setDataLoading(true);
-  try {
-    const [s, c, u, d, don, dep, wallet, tx, sett, cont] = await Promise.all([
-      safeGet(() => adminApi.getStats(), { stats: {} }),
-      safeGet(() => adminApi.getCampaigns(), { campaigns: [] }),
-      safeGet(() => adminApi.getUsers(), { users: [] }),
-      safeGet(() => adminApi.getDisputes(), { disputes: [] }),
-      safeGet(() => adminApi.getDonations(), { donations: [] }),
-      safeGet(() => adminApi.getDepositRequests?.(), { requests: [] }),
-      safeGet(() => adminApi.getWalletBalance?.(), { balance: 0 }),
-      safeGet(() => adminApi.getTransactions?.(), { transactions: [] }),
-      safeGet(() => adminApi.getSettings(), { settings: null }),
-      safeGet(() => adminApi.getContent(), { content: null }),
-    ]);
+  // Fetch all data with number conversion
+  const fetchAll = async () => {
+    setDataLoading(true);
+    try {
+      const [s, c, u, d, don, dep, wallet, tx, sett, cont] = await Promise.all([
+        safeGet(() => adminApi.getStats(), { stats: {} }),
+        safeGet(() => adminApi.getCampaigns(), { campaigns: [] }),
+        safeGet(() => adminApi.getUsers(), { users: [] }),
+        safeGet(() => adminApi.getDisputes(), { disputes: [] }),
+        safeGet(() => adminApi.getDonations(), { donations: [] }),
+        safeGet(() => adminApi.getDepositRequests?.(), { requests: [] }),
+        safeGet(() => adminApi.getWalletBalance?.(), { balance: 0 }),
+        safeGet(() => adminApi.getTransactions?.(), { transactions: [] }),
+        safeGet(() => adminApi.getSettings(), { settings: null }),
+        safeGet(() => adminApi.getContent(), { content: null }),
+      ]);
 
-    setStats(s.stats || {});
-    setCampaigns(c.campaigns || []);
-    setUsers(u.users || []);
-    setDisputes(d.disputes || []);
-    setDonations(don.donations || []);
-    setDepositRequests(dep.requests || []);
+      // Convert stats numbers
+      const parsedStats = { ...(s.stats || {}) };
+      ['total_raised', 'total_campaigns', 'pending_campaigns', 'total_users', 'open_disputes'].forEach(key => {
+        if (parsedStats[key] !== undefined) parsedStats[key] = toNumber(parsedStats[key]);
+      });
+      setStats(parsedStats);
 
-    setWalletBalance(wallet?.balance ?? 0);
-    setTransactions(tx?.transactions ?? []);
-
-    if (sett?.settings) {
-      if (sett.settings.theme) setThemeSettings(prev => ({ ...prev, ...sett.settings.theme }));
-      if (sett.settings.keys) setIntegrationKeys(prev => ({ ...prev, ...sett.settings.keys }));
-    }
-    if (cont?.content) {
-      setContent(prev => ({
-        ...prev,
-        ...cont.content,
-        social_links: { ...prev.social_links, ...(cont.content.social_links || {}) }
+      // Convert campaigns goal & raised
+      const parsedCampaigns = (c.campaigns || []).map(camp => ({
+        ...camp,
+        goal: toNumber(camp.goal),
+        raised: toNumber(camp.raised)
       }));
-      if (cont.content.social_links) setSocialLinks(cont.content.social_links);
+      setCampaigns(parsedCampaigns);
+
+      // Convert users wallet_balance
+      const parsedUsers = (u.users || []).map(user => ({
+        ...user,
+        wallet_balance: toNumber(user.wallet_balance)
+      }));
+      setUsers(parsedUsers);
+
+      // Convert donations amount
+      const parsedDonations = (don.donations || []).map(d => ({
+        ...d,
+        amount: toNumber(d.amount)
+      }));
+      setDonations(parsedDonations);
+
+      // Convert deposit requests amount
+      const parsedDeposits = (dep.requests || []).map(req => ({
+        ...req,
+        amount: toNumber(req.amount)
+      }));
+      setDepositRequests(parsedDeposits);
+
+      // Convert wallet balance
+      const parsedWalletBalance = toNumber(wallet?.balance);
+      setWalletBalance(parsedWalletBalance);
+
+      // Convert transactions amount
+      const parsedTransactions = (tx.transactions || []).map(t => ({
+        ...t,
+        amount: toNumber(t.amount)
+      }));
+      setTransactions(parsedTransactions);
+
+      // Settings and content (no numbers there)
+      if (sett?.settings) {
+        if (sett.settings.theme) setThemeSettings(prev => ({ ...prev, ...sett.settings.theme }));
+        if (sett.settings.keys) setIntegrationKeys(prev => ({ ...prev, ...sett.settings.keys }));
+      }
+      if (cont?.content) {
+        setContent(prev => ({
+          ...prev,
+          ...cont.content,
+          social_links: { ...prev.social_links, ...(cont.content.social_links || {}) }
+        }));
+        if (cont.content.social_links) setSocialLinks(cont.content.social_links);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to load admin data', true);
+    } finally {
+      setDataLoading(false);
     }
-  } catch (err) {
-    console.error(err);
-    showToast('Failed to load admin data', true);
-  } finally {
-    setDataLoading(false);
-  }
-};
+  };
+
   useEffect(() => {
     if (authChecked) fetchAll();
   }, [authChecked]);
@@ -659,8 +704,8 @@ export default function AdminDashboard() {
   const handleApproveDeposit = async (id, amount) => {
     try {
       await adminApi.updateDepositRequest?.(id, { status: 'approved' });
-      setWalletBalance(prev => prev + amount);
-      showToast(`Deposit $${amount} approved`);
+      setWalletBalance(prev => prev + toNumber(amount));
+      showToast(`Deposit $${toNumber(amount).toFixed(2)} approved`);
       fetchAll();
     } catch (err) { showToast(err.message, true); }
   };
@@ -682,14 +727,14 @@ export default function AdminDashboard() {
   };
 
   const handleSubmitDeposit = async () => {
-    const amt = parseFloat(depositAmount);
-    if (!amt || amt <= 0) {
+    const amt = toNumber(depositAmount);
+    if (amt <= 0) {
       showToast('Enter a valid amount', true);
       return;
     }
     try {
       await adminApi.createDepositRequest?.({ amount: amt, method: depositMethod });
-      showToast(`Deposit request for $${amt} submitted`);
+      showToast(`Deposit request for $${amt.toFixed(2)} submitted`);
       setModalOpen(false);
       setDepositAmount('');
       fetchAll();
@@ -737,7 +782,8 @@ export default function AdminDashboard() {
     return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading admin panel...</div>;
   }
 
-  const totalRaised = campaigns.reduce((sum, c) => sum + (c.raised || 0), 0);
+  // All values are now guaranteed numbers
+  const totalRaised = campaigns.reduce((sum, c) => sum + c.raised, 0);
   const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
   const pendingCampaigns = campaigns.filter(c => c.status === 'pending' || c.status === 'review').length;
   const donorsCount = users.filter(u => u.role === 'donor').length;
@@ -885,8 +931,8 @@ export default function AdminDashboard() {
                       <div className="ct" style={{ background: '#E1F5EE' }}>🌱</div>
                       <div className="ci">
                         <div className="cn">{c.title}</div>
-                        <div className="cm">Goal: ${c.goal?.toLocaleString()} · {c.creator_name}</div>
-                        <div className="pb"><div className="pf" style={{ width: `${((c.raised || 0) / c.goal) * 100}%` }}></div></div>
+                        <div className="cm">Goal: ${c.goal.toLocaleString()} · {c.creator_name}</div>
+                        <div className="pb"><div className="pf" style={{ width: `${((c.raised) / c.goal) * 100}%` }}></div></div>
                       </div>
                       <span className="badge bp">{c.status}</span>
                     </div>
@@ -905,7 +951,7 @@ export default function AdminDashboard() {
                     {depositRequests.slice(0, 3).map(req => (
                       <div key={req.id} className="di">
                         <div className="uav avb" style={{ width: 32, height: 32, fontSize: 11 }}>{req.userName?.[0] || 'U'}</div>
-                        <div className="di-info"><div className="di-user">{req.userName}</div><div className="di-amt">${req.amount} · {req.method}</div></div>
+                        <div className="di-info"><div className="di-user">{req.userName}</div><div className="di-amt">${req.amount.toFixed(2)} · {req.method}</div></div>
                         <div className="di-acts"><button className="db dba" onClick={() => handleApproveDeposit(req.id, req.amount)}>OK</button><button className="db dbr" onClick={() => handleRejectDeposit(req.id)}>✕</button></div>
                       </div>
                     ))}
@@ -969,7 +1015,7 @@ export default function AdminDashboard() {
                             </div>
                           </td>
                           <td><span className={`badge ${tx.type === 'Credit' ? 'ba' : 'bx'}`}>{tx.type}</span></td>
-                          <td><div className={`txam ${tx.type === 'Credit' ? 'tcc' : 'tcd'}`}>{tx.type === 'Credit' ? '+' : '-'}${tx.amount}</div></td>
+                          <td><div className={`txam ${tx.type === 'Credit' ? 'tcc' : 'tcd'}`}>{tx.type === 'Credit' ? '+' : '-'}${tx.amount.toFixed(2)}</div></td>
                         </tr>
                       ))}
                     </tbody>
@@ -994,19 +1040,19 @@ export default function AdminDashboard() {
           {/* Campaigns */}
           <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
             <div className="sh"><div className="sht">Campaign Management</div><button className="btn btn-g" onClick={() => { const name = prompt('Campaign name'); const creator = prompt('Creator name'); const goal = parseFloat(prompt('Goal amount')); if (name && creator && goal) { /* API call to create campaign */ showToast('Campaign creation API needed'); } }}>+ New Campaign</button></div>
-            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut" style={{ width: '100%' }}><thead><tr><th style={{ paddingLeft: 20 }}>Campaign</th><th>Creator</th><th>Goal</th><th>Progress</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{campaigns.map(c => (<tr key={c.id}><td style={{ paddingLeft: 20 }}><div style={{ fontWeight: 600 }}>{c.title}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{c.creator_name}</div></td><td>${c.goal?.toLocaleString()}</td><td><div style={{ width: 80 }}><div className="pb"><div className="pf" style={{ width: `${((c.raised || 0) / c.goal) * 100}%` }}></div></div><div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 2 }}>{Math.round(((c.raised || 0) / c.goal) * 100)}%</div></div></td><td><span className={`badge ${c.status === 'active' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td><td style={{ paddingRight: 20 }}><div style={{ display: 'flex', gap: 6 }}>{c.status !== 'active' && <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>Approve</button>}<button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}>Delete</button></div></td></tr>))}</tbody></table></div></div>
+            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut" style={{ width: '100%' }}><thead><tr><th style={{ paddingLeft: 20 }}>Campaign</th><th>Creator</th><th>Goal</th><th>Progress</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{campaigns.map(c => (<tr key={c.id}><td style={{ paddingLeft: 20 }}><div style={{ fontWeight: 600 }}>{c.title}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{c.creator_name}</div></td><td>${c.goal.toLocaleString()}</td><td><div style={{ width: 80 }}><div className="pb"><div className="pf" style={{ width: `${((c.raised) / c.goal) * 100}%` }}></div></div><div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 2 }}>{Math.round(((c.raised) / c.goal) * 100)}%</div></div></td><td><span className={`badge ${c.status === 'active' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td><td style={{ paddingRight: 20 }}><div style={{ display: 'flex', gap: 6 }}>{c.status !== 'active' && <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>Approve</button>}<button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}>Delete</button></div></td></tr>))}</tbody></table></div></div>
           </div>
 
           {/* Users */}
           <div className={`ps ${activeTab === 'users' ? 'active' : ''}`}>
             <div className="sh"><div className="sht">User Management</div><button className="btn btn-g" onClick={() => showToast('Invite user feature')}>+ Invite User</button></div>
-            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th style={{ paddingLeft: 20 }}>User</th><th>Role</th><th>Joined</th><th>Wallet</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{users.map(u => (<tr key={u.id}><td style={{ paddingLeft: 20 }}><div className="uc"><div className={`uav avg`}>{u.name?.charAt(0)}</div><div><div style={{ fontWeight: 600 }}>{u.name}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{u.email}</div></div></div></td><td><span className="badge br">{u.role}</span></td><td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td><td style={{ fontWeight: 600 }}>${u.wallet_balance || 0}</td><td><span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span></td><td style={{ paddingRight: 20 }}><button className="db dbv" onClick={() => handleToggleUser(u.id)}>{u.is_active ? 'Suspend' : 'Restore'}</button></td></tr>))}</tbody></table></div></div>
+            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th style={{ paddingLeft: 20 }}>User</th><th>Role</th><th>Joined</th><th>Wallet</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{users.map(u => (<tr key={u.id}><td style={{ paddingLeft: 20 }}><div className="uc"><div className={`uav avg`}>{u.name?.charAt(0)}</div><div><div style={{ fontWeight: 600 }}>{u.name}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{u.email}</div></div></div></td><td><span className="badge br">{u.role}</span></td><td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td><td style={{ fontWeight: 600 }}>${u.wallet_balance.toFixed(2)}</td><td><span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span></td><td style={{ paddingRight: 20 }}><button className="db dbv" onClick={() => handleToggleUser(u.id)}>{u.is_active ? 'Suspend' : 'Restore'}</button></td></tr>))}</tbody></table></div></div>
           </div>
 
           {/* Donations */}
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
             <div className="sh"><div className="sht">Recent Donations</div></div>
-            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Monthly</th><th>Date</th></tr></thead><tbody>{donations.map(d => (<tr key={d.id}><td>{d.donor_name}</td><td>{d.campaign_title}</td><td>${d.amount?.toLocaleString()}</td><td>{d.is_monthly ? '✅' : '—'}</td><td>{new Date(d.created_at).toLocaleDateString()}</td></tr>))}</tbody></table></div></div>
+            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Monthly</th><th>Date</th></tr></thead><tbody>{donations.map(d => (<tr key={d.id}><td>{d.donor_name}</td><td>{d.campaign_title}</td><td>${d.amount.toLocaleString()}</td><td>{d.is_monthly ? '✅' : '—'}</td><td>{new Date(d.created_at).toLocaleDateString()}</td></tr>))}</tbody></table></div></div>
           </div>
 
           {/* Deposits */}
@@ -1055,7 +1101,7 @@ export default function AdminDashboard() {
           {/* Reports */}
           <div className={`ps ${activeTab === 'reports' ? 'active' : ''}`}>
             <div className="stats-grid"><div className="sc"><div className="sv">${(totalRaised / 1000).toFixed(0)}k</div><div className="sl">Total raised</div></div><div className="sc"><div className="sv">{activeCampaigns}</div><div className="sl">Active projects</div></div></div>
-            <div className="card"><div className="card-h"><div className="card-t">Platform Summary</div></div><div className="card-b"><pre style={{ fontFamily: 'monospace', background: 'var(--surface-2)', padding: 12, borderRadius: 12 }}>{`HopeBridge Metrics\n- Total donations: $${totalRaised}\n- Avg donation: $${donations.length ? (totalRaised / donations.length).toFixed(2) : 0}\n- Pending approvals: ${pendingCampaigns}\n- Active users: ${users.filter(u => u.is_active).length}`}</pre></div></div>
+            <div className="card"><div className="card-h"><div className="card-t">Platform Summary</div></div><div className="card-b"><pre style={{ fontFamily: 'monospace', background: 'var(--surface-2)', padding: 12, borderRadius: 12 }}>{`HopeBridge Metrics\n- Total donations: $${totalRaised.toFixed(2)}\n- Avg donation: $${donations.length ? (totalRaised / donations.length).toFixed(2) : 0}\n- Pending approvals: ${pendingCampaigns}\n- Active users: ${users.filter(u => u.is_active).length}`}</pre></div></div>
           </div>
 
           {/* Settings */}
