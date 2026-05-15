@@ -440,7 +440,6 @@ function ContentEditor({ content, onSave, showToast }) {
 // ---------- Component: DepositRequestsManager ----------
 function DepositRequestsManager({ requests, onApprove, onReject, onProvideInstructions, showToast }) {
   const [instructionsText, setInstructionsText] = useState({});
-  const [selectedRequest, setSelectedRequest] = useState(null);
 
   const handleProvide = (id) => {
     const instructions = instructionsText[id];
@@ -495,6 +494,33 @@ function DepositRequestsManager({ requests, onApprove, onReject, onProvideInstru
   );
 }
 
+// ---------- Component: WithdrawalRequestsManager ----------
+function WithdrawalRequestsManager({ requests, onApprove, onReject, showToast }) {
+  if (requests.length === 0) return <div>No withdrawal requests.</div>;
+
+  return (
+    <div>
+      {requests.map(req => (
+        <div key={req.id} style={{ borderBottom: '1px solid var(--border)', padding: '16px 0' }}>
+          <div><strong>User:</strong> {req.name} ({req.email})</div>
+          <div><strong>Amount:</strong> ${toNumber(req.amount).toFixed(2)}</div>
+          <div><strong>Method:</strong> {req.payment_method}</div>
+          <div><strong>Details:</strong> {req.payment_details}</div>
+          <div><strong>Status:</strong> <span className={`badge ${req.status === 'pending' ? 'bp' : req.status === 'approved' ? 'ba' : 'bx'}`}>{req.status}</span></div>
+          {req.status === 'pending' && (
+            <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+              <button className="db dba" onClick={() => onApprove(req.id)}>Approve & Process</button>
+              <button className="db dbr" onClick={() => onReject(req.id)}>Reject</button>
+            </div>
+          )}
+          {req.status === 'approved' && <span style={{ color: 'var(--green)' }}>✓ Approved – funds deducted from wallet</span>}
+          {req.status === 'rejected' && <span style={{ color: 'var(--red)' }}>✗ Rejected</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ---------- Main AdminDashboard ----------
 export default function AdminDashboard() {
   injectStyles();
@@ -512,22 +538,26 @@ export default function AdminDashboard() {
     '--secondary': '#27a96c',
     '--dark': '#1a1a2e',
   });
+  
+  // Updated integration keys - removed PayPal/Firebase, added Cloudinary
   const [integrationKeys, setIntegrationKeys] = useState({
     smtp_host: '', smtp_port: '', smtp_user: '', smtp_pass: '',
-    paypal_client_id: '', paypal_client_secret: '', paypal_mode: 'sandbox',
-    recaptcha_site_key: '', recaptcha_secret_key: '', firebase_config: '',
+    cloudinary_cloud_name: '', cloudinary_api_key: '', cloudinary_api_secret: '',
+    recaptcha_site_key: '', recaptcha_secret_key: '',
   });
+  
   const [socialLinks, setSocialLinks] = useState({
     facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '',
   });
 
-  // Data states - all connected to backend
+  // Data states
   const [stats, setStats] = useState({ total_raised: 0, total_campaigns: 0, pending_campaigns: 0, total_users: 0, open_disputes: 0 });
   const [campaigns, setCampaigns] = useState([]);
   const [users, setUsers] = useState([]);
   const [disputes, setDisputes] = useState([]);
   const [donations, setDonations] = useState([]);
   const [depositRequests, setDepositRequests] = useState([]);
+  const [withdrawalRequests, setWithdrawalRequests] = useState([]);
   const [content, setContent] = useState({
     hero_title: 'Together We Can',
     hero_subtitle: 'Support the causes you care about and make a real difference.',
@@ -570,17 +600,18 @@ export default function AdminDashboard() {
     setAuthChecked(true);
   }, [sessionLoading, currentUser, navigate, showToast]);
 
-  // Fetch all data from backend
+  // Fetch all data
   const fetchAll = async () => {
     setDataLoading(true);
     try {
-      const [s, c, u, d, don, dep, sett, cont] = await Promise.all([
+      const [s, c, u, d, don, dep, withdraw, sett, cont] = await Promise.all([
         safeGet(() => adminApi.getStats(), { stats: {} }),
         safeGet(() => adminApi.getCampaigns(), { campaigns: [] }),
         safeGet(() => adminApi.getUsers(), { users: [] }),
         safeGet(() => adminApi.getDisputes(), { disputes: [] }),
         safeGet(() => adminApi.getDonations(), { donations: [] }),
         safeGet(() => adminApi.getDepositRequests?.(), { requests: [] }),
+        safeGet(() => adminApi.getWithdrawalRequests?.(), { withdrawals: [] }),
         safeGet(() => adminApi.getSettings(), { settings: null }),
         safeGet(() => adminApi.getContent(), { content: null }),
       ]);
@@ -592,7 +623,7 @@ export default function AdminDashboard() {
       });
       setStats(parsedStats);
 
-      // Convert campaigns goal & raised
+      // Convert campaigns
       const parsedCampaigns = (c.campaigns || []).map(camp => ({
         ...camp,
         goal: toNumber(camp.goal),
@@ -600,26 +631,33 @@ export default function AdminDashboard() {
       }));
       setCampaigns(parsedCampaigns);
 
-      // Convert users wallet_balance
+      // Convert users
       const parsedUsers = (u.users || []).map(user => ({
         ...user,
         wallet_balance: toNumber(user.wallet_balance)
       }));
       setUsers(parsedUsers);
 
-      // Convert donations amount
+      // Convert donations
       const parsedDonations = (don.donations || []).map(d => ({
         ...d,
         amount: toNumber(d.amount)
       }));
       setDonations(parsedDonations);
 
-      // Convert deposit requests amount
+      // Convert deposit requests
       const parsedDeposits = (dep.requests || []).map(req => ({
         ...req,
         amount: toNumber(req.amount)
       }));
       setDepositRequests(parsedDeposits);
+
+      // Convert withdrawal requests
+      const parsedWithdrawals = (withdraw.withdrawals || []).map(w => ({
+        ...w,
+        amount: toNumber(w.amount)
+      }));
+      setWithdrawalRequests(parsedWithdrawals);
 
       // Settings and content
       if (sett?.settings) {
@@ -646,7 +684,7 @@ export default function AdminDashboard() {
     if (authChecked) fetchAll();
   }, [authChecked]);
 
-  // Campaign handlers
+  // Handlers
   const handleApproveCampaign = async (id) => {
     try {
       await adminApi.updateCampaign(id, { status: 'approved' });
@@ -672,7 +710,6 @@ export default function AdminDashboard() {
     } catch (err) { showToast(err.message, true); }
   };
 
-  // User handler
   const handleToggleUser = async (id) => {
     try {
       await adminApi.toggleUser(id);
@@ -681,7 +718,6 @@ export default function AdminDashboard() {
     } catch (err) { showToast(err.message, true); }
   };
 
-  // Dispute handler
   const handleResolveDispute = async (id) => {
     try {
       await adminApi.resolveDispute(id);
@@ -690,15 +726,12 @@ export default function AdminDashboard() {
     } catch (err) { showToast(err.message, true); }
   };
 
-  // Deposit handlers - with duplicate prevention
   const handleApproveDeposit = async (id, amount) => {
     try {
       await adminApi.updateDepositRequest?.(id, { status: 'approved' });
-      showToast(`Deposit $${toNumber(amount).toFixed(2)} approved and credited to wallet`);
+      showToast(`Deposit $${toNumber(amount).toFixed(2)} approved`);
       fetchAll();
-    } catch (err) { 
-      showToast(err.message, true); 
-    }
+    } catch (err) { showToast(err.message, true); }
   };
 
   const handleRejectDeposit = async (id) => {
@@ -706,25 +739,45 @@ export default function AdminDashboard() {
       await adminApi.updateDepositRequest?.(id, { status: 'rejected' });
       showToast('Deposit rejected');
       fetchAll();
+    } catch (err) { showToast(err.message, true); }
+  };
+
+  const handleProvideInstructions = async (id, instructions) => {
+    try {
+      await adminApi.updateDepositRequest?.(id, { 
+        admin_instructions: instructions, 
+        status: 'instructions_sent' 
+      });
+      showToast('Instructions sent. Waiting for donor to upload proof.');
+      fetchAll();
     } catch (err) { 
       showToast(err.message, true); 
     }
   };
 
- const handleProvideInstructions = async (id, instructions) => {
-  try {
-    await adminApi.updateDepositRequest?.(id, { 
-      admin_instructions: instructions, 
-      status: 'instructions_sent'  // ✅ Correct status
-    });
-    showToast('Instructions sent. Waiting for donor to upload proof.');
-    fetchAll();
-  } catch (err) { 
-    showToast(err.message, true); 
-  }
-};
+  // Withdrawal handlers
+  const handleApproveWithdrawal = async (id) => {
+    try {
+      await adminApi.approveWithdrawal(id);
+      showToast('Withdrawal approved and wallet debited');
+      fetchAll();
+    } catch (err) { 
+      showToast(err.message, true); 
+    }
+  };
 
-  // Content handlers
+  const handleRejectWithdrawal = async (id) => {
+    const reason = prompt('Reason for rejection:', 'Insufficient funds or invalid details');
+    if (!reason) return;
+    try {
+      await adminApi.rejectWithdrawal(id, reason);
+      showToast('Withdrawal rejected');
+      fetchAll();
+    } catch (err) { 
+      showToast(err.message, true); 
+    }
+  };
+
   const handleSaveContent = async (newContent) => {
     try {
       await adminApi.saveContent(newContent);
@@ -765,15 +818,16 @@ export default function AdminDashboard() {
     return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading admin panel...</div>;
   }
 
-  // Computed values from fetched data
+  // Computed values
   const totalRaised = campaigns.reduce((sum, c) => sum + c.raised, 0);
   const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'approved').length;
   const pendingCampaigns = campaigns.filter(c => c.status === 'pending' || c.status === 'review').length;
   const donorsCount = users.filter(u => u.role === 'donor').length;
   const creatorsCount = users.filter(u => u.role === 'creator').length;
   const openDisputesCount = disputes.filter(d => d.status !== 'resolved').length;
+  const pendingWithdrawals = withdrawalRequests.filter(w => w.status === 'pending').length;
 
-  const tabs = ['overview', 'campaigns', 'users', 'donations', 'deposits', 'massmail', 'content', 'settings'];
+  const tabs = ['overview', 'campaigns', 'users', 'donations', 'deposits', 'withdrawals', 'massmail', 'content', 'settings'];
 
   return (
     <div className="shell">
@@ -803,11 +857,13 @@ export default function AdminDashboard() {
             </button>
           ))}
           <div className="nav-sec">Finance</div>
-          {['donations', 'deposits'].map(tab => (
+          {['donations', 'deposits', 'withdrawals'].map(tab => (
             <button key={tab} className={`nl ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
               {tab === 'donations' && <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>}
               {tab === 'deposits' && <svg viewBox="0 0 24 24"><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>}
+              {tab === 'withdrawals' && <svg viewBox="0 0 24 24"><polyline points="7,1 3,5 7,9"/><path d="M21 11V9a4 4 0 0 0-4-4H3"/><polyline points="17,23 21,19 17,15"/><path d="M3 13v2a4 4 0 0 0 4 4h14"/></svg>}
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'withdrawals' && pendingWithdrawals > 0 && <span className="nb am">{pendingWithdrawals}</span>}
             </button>
           ))}
           <div className="nav-sec">Admin</div>
@@ -815,7 +871,7 @@ export default function AdminDashboard() {
             <button key={tab} className={`nl ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
               {tab === 'massmail' && <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}
               {tab === 'content' && <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>}
-              {tab === 'settings' && <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>}
+              {tab === 'settings' && <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>}
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
@@ -836,7 +892,7 @@ export default function AdminDashboard() {
         <div className="topbar">
           <div className="tb-title">{tabs.find(t => t === activeTab)?.charAt(0).toUpperCase() + activeTab.slice(1)}</div>
           <div className="tb-actions">
-            <div className="tb-btn" onClick={() => showToast('Search coming soon')}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+            <div className="tb-btn" onClick={() => showToast('Search feature coming')}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
             <div className="tb-btn" onClick={() => showToast('Notifications')} style={{ position: 'relative' }}><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div className="ndot"></div></div>
             <div className="tb-btn" style={{ overflow: 'hidden', padding: 0 }}><div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12, color: '#fff' }}>SA</div></div>
           </div>
@@ -881,14 +937,16 @@ export default function AdminDashboard() {
 
             <div className="sh"><div className="sht">Quick Actions</div></div>
             <div className="qg">
-              {['campaigns', 'users', 'massmail', 'content', 'settings'].map(tab => (
+              {['campaigns', 'users', 'deposits', 'withdrawals', 'massmail', 'content', 'settings'].map(tab => (
                 <button key={tab} className="qb" onClick={() => setActiveTab(tab)}>
                   <div className="qi">
                     {tab === 'campaigns' && <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>}
                     {tab === 'users' && <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>}
+                    {tab === 'deposits' && <svg viewBox="0 0 24 24"><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>}
+                    {tab === 'withdrawals' && <svg viewBox="0 0 24 24"><polyline points="7,1 3,5 7,9"/><path d="M21 11V9a4 4 0 0 0-4-4H3"/><polyline points="17,23 21,19 17,15"/><path d="M3 13v2a4 4 0 0 0 4 4h14"/></svg>}
                     {tab === 'massmail' && <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}
                     {tab === 'content' && <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>}
-                    {tab === 'settings' && <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>}
+                    {tab === 'settings' && <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>}
                   </div>
                   <span className="ql">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
                 </button>
@@ -927,20 +985,13 @@ export default function AdminDashboard() {
                         <div className="uav avb" style={{ width: 32, height: 32, fontSize: 11 }}>{req.userName?.[0] || 'U'}</div>
                         <div className="di-info"><div className="di-user">{req.userName}</div><div className="di-amt">${req.amount.toFixed(2)}</div></div>
                         <div className="di-acts">
-                          {req.status === 'pending' && (
-                            <>
-                              <button className="db dba" onClick={() => setActiveTab('deposits')}>Manage</button>
-                              <button className="db dbr" onClick={() => handleRejectDeposit(req.id)}>Reject</button>
-                            </>
-                          )}
+                          {req.status === 'pending' && <button className="db dba" onClick={() => setActiveTab('deposits')}>Manage</button>}
+                          {req.status === 'instructions_sent' && <span style={{ color: 'var(--blue)' }}>Awaiting proof</span>}
                           {req.status === 'awaiting_proof' && (
                             <>
                               <button className="db dba" onClick={() => handleApproveDeposit(req.id, req.amount)}>Approve</button>
                               <button className="db dbr" onClick={() => handleRejectDeposit(req.id)}>Reject</button>
                             </>
-                          )}
-                          {req.status === 'instructions_sent' && (
-                            <span style={{ color: 'var(--blue)' }}>Awaiting proof</span>
                           )}
                         </div>
                       </div>
@@ -949,16 +1000,19 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="card">
-                  <div className="card-h"><div className="card-t">Open Disputes</div><button className="card-a" onClick={() => showToast('Disputes management coming soon')}>View all →</button></div>
+                  <div className="card-h"><div className="card-t">Withdrawal Queue</div><button className="card-a" onClick={() => setActiveTab('withdrawals')}>Manage →</button></div>
                   <div className="card-b">
-                    {disputes.filter(d => d.status !== 'resolved').slice(0, 3).map(d => (
-                      <div key={d.id} className="di">
-                        <div className="uav avr" style={{ width: 32, height: 32 }}>!</div>
-                        <div className="di-info"><div className="di-user">{d.user_name || 'User'}</div><div className="di-amt">{d.description || d.reason}</div></div>
-                        <div className="di-acts"><button className="db dba" onClick={() => handleResolveDispute(d.id)}>Resolve</button></div>
+                    {withdrawalRequests.filter(w => w.status === 'pending').slice(0, 3).map(req => (
+                      <div key={req.id} className="di">
+                        <div className="uav ava" style={{ width: 32, height: 32, fontSize: 11 }}>{req.name?.[0] || 'U'}</div>
+                        <div className="di-info"><div className="di-user">{req.name}</div><div className="di-amt">${req.amount.toFixed(2)}</div></div>
+                        <div className="di-acts">
+                          <button className="db dba" onClick={() => handleApproveWithdrawal(req.id)}>Approve</button>
+                          <button className="db dbr" onClick={() => handleRejectWithdrawal(req.id)}>Reject</button>
+                        </div>
                       </div>
                     ))}
-                    {openDisputesCount === 0 && <div>No open disputes</div>}
+                    {pendingWithdrawals === 0 && <div>No pending withdrawal requests</div>}
                   </div>
                 </div>
               </div>
@@ -968,7 +1022,7 @@ export default function AdminDashboard() {
           {/* Campaigns Tab */}
           <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
             <div className="sh"><div className="sht">Campaign Management</div></div>
-            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut" style={{ width: '100%' }}><thead><tr><th style={{ paddingLeft: 20 }}>Campaign</th><th>Creator</th><th>Goal</th><th>Progress</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{campaigns.map(c => (<tr key={c.id}><td style={{ paddingLeft: 20 }}><div style={{ fontWeight: 600 }}>{c.title}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{c.creator_name}</div></td><td>${c.goal.toLocaleString()}</td><td><div style={{ width: 80 }}><div className="pb"><div className="pf" style={{ width: `${((c.raised) / c.goal) * 100}%` }}></div></div><div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 2 }}>{Math.round(((c.raised) / c.goal) * 100)}%</div></div></td><td><span className={`badge ${c.status === 'active' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td><td style={{ paddingRight: 20 }}><div style={{ display: 'flex', gap: 6 }}>{c.status === 'pending' && <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>Approve</button>}<button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}>Delete</button></div></td></tr>))}</tbody></table></div></div>
+            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut" style={{ width: '100%' }}><thead><tr><th style={{ paddingLeft: 20 }}>Campaign</th><th>Creator</th><th>Goal</th><th>Progress</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{campaigns.map(c => (<tr key={c.id}><td style={{ paddingLeft: 20 }}><div style={{ fontWeight: 600 }}>{c.title}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{c.creator_name}</div></td><td>${c.goal.toLocaleString()}</td><td><div className="pb" style={{ width: 80 }}><div className="pf" style={{ width: `${((c.raised) / c.goal) * 100}%` }}></div></div>{Math.round(((c.raised) / c.goal) * 100)}%</td><td><span className={`badge ${c.status === 'active' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td><td style={{ paddingRight: 20 }}><div style={{ display: 'flex', gap: 6 }}>{c.status === 'pending' && <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>Approve</button>}<button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}>Delete</button></div></td></tr>))}</tbody></table></div></div>
           </div>
 
           {/* Users Tab */}
@@ -992,6 +1046,19 @@ export default function AdminDashboard() {
                 onApprove={handleApproveDeposit}
                 onReject={handleRejectDeposit}
                 onProvideInstructions={handleProvideInstructions}
+                showToast={showToast}
+              />
+            </div></div>
+          </div>
+
+          {/* Withdrawals Tab */}
+          <div className={`ps ${activeTab === 'withdrawals' ? 'active' : ''}`}>
+            <div className="sh"><div className="sht">Withdrawal Requests</div></div>
+            <div className="card"><div className="card-b">
+              <WithdrawalRequestsManager
+                requests={withdrawalRequests}
+                onApprove={handleApproveWithdrawal}
+                onReject={handleRejectWithdrawal}
                 showToast={showToast}
               />
             </div></div>
@@ -1035,12 +1102,48 @@ export default function AdminDashboard() {
               )}
               {settingsTab === 'keys' && (
                 <div className="keys-settings">
-                  {Object.entries(integrationKeys).map(([key, value]) => (
-                    <div className="auth-field" key={key}>
-                      <label className="fl">{key.replace(/_/g, ' ').toUpperCase()}</label>
-                      <input type="text" className="fi" value={value || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, [key]: e.target.value }))} placeholder={`Enter ${key}`} />
-                    </div>
-                  ))}
+                  <h5 style={{ marginBottom: 12 }}>SMTP Settings (Email)</h5>
+                  <div className="auth-field">
+                    <label className="fl">SMTP Host</label>
+                    <input type="text" className="fi" value={integrationKeys.smtp_host || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, smtp_host: e.target.value }))} placeholder="smtp.gmail.com" />
+                  </div>
+                  <div className="auth-field">
+                    <label className="fl">SMTP Port</label>
+                    <input type="text" className="fi" value={integrationKeys.smtp_port || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, smtp_port: e.target.value }))} placeholder="587" />
+                  </div>
+                  <div className="auth-field">
+                    <label className="fl">SMTP User</label>
+                    <input type="text" className="fi" value={integrationKeys.smtp_user || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, smtp_user: e.target.value }))} placeholder="your-email@gmail.com" />
+                  </div>
+                  <div className="auth-field">
+                    <label className="fl">SMTP Password</label>
+                    <input type="password" className="fi" value={integrationKeys.smtp_pass || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, smtp_pass: e.target.value }))} placeholder="app-specific password" />
+                  </div>
+
+                  <h5 style={{ marginTop: 20, marginBottom: 12 }}>Cloudinary (Image Storage)</h5>
+                  <div className="auth-field">
+                    <label className="fl">Cloud Name</label>
+                    <input type="text" className="fi" value={integrationKeys.cloudinary_cloud_name || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, cloudinary_cloud_name: e.target.value }))} placeholder="your-cloud-name" />
+                  </div>
+                  <div className="auth-field">
+                    <label className="fl">API Key</label>
+                    <input type="text" className="fi" value={integrationKeys.cloudinary_api_key || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, cloudinary_api_key: e.target.value }))} placeholder="123456789" />
+                  </div>
+                  <div className="auth-field">
+                    <label className="fl">API Secret</label>
+                    <input type="password" className="fi" value={integrationKeys.cloudinary_api_secret || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, cloudinary_api_secret: e.target.value }))} placeholder="your-api-secret" />
+                  </div>
+
+                  <h5 style={{ marginTop: 20, marginBottom: 12 }}>reCAPTCHA (Optional)</h5>
+                  <div className="auth-field">
+                    <label className="fl">Site Key</label>
+                    <input type="text" className="fi" value={integrationKeys.recaptcha_site_key || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, recaptcha_site_key: e.target.value }))} placeholder="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" />
+                  </div>
+                  <div className="auth-field">
+                    <label className="fl">Secret Key</label>
+                    <input type="password" className="fi" value={integrationKeys.recaptcha_secret_key || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, recaptcha_secret_key: e.target.value }))} placeholder="6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe" />
+                  </div>
+
                   <button className="btn btn-g" onClick={handleSaveSettings}>Save Keys</button>
                 </div>
               )}
@@ -1063,19 +1166,52 @@ export default function AdminDashboard() {
       {/* Mobile FAB */}
       <button className="fab" onClick={() => setActiveTab('campaigns')}><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
-      {/* Bottom Nav */}
-      <nav className="bnav"><div className="bnav-inner">
-        {['overview', 'campaigns', 'users'].map(tab => (
-          <button key={tab} className={`bni ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
-            <div className="bni-icon">
-              {tab === 'overview' && <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>}
-              {tab === 'campaigns' && <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>}
-              {tab === 'users' && <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>}
-            </div>
-            <span className="bni-lbl">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
-          </button>
-        ))}
-      </div></nav>
+      {/* Bottom Nav - Mobile Only */}
+      <nav className="bnav">
+        <div className="bnav-inner">
+          {['overview', 'campaigns', 'deposits', 'withdrawals'].map(tab => (
+            <button 
+              key={tab} 
+              className={`bni ${activeTab === tab ? 'active' : ''}`} 
+              onClick={() => setActiveTab(tab)}
+            >
+              <div className="bni-icon">
+                {tab === 'overview' && (
+                  <svg viewBox="0 0 24 24" width="24" height="24">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                  </svg>
+                )}
+                {tab === 'campaigns' && (
+                  <svg viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9,22 9,12 15,12 15,22"/>
+                  </svg>
+                )}
+                {tab === 'deposits' && (
+                  <svg viewBox="0 0 24 24" width="24" height="24">
+                    <polyline points="17,1 21,5 17,9"/>
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                    <polyline points="7,23 3,19 7,15"/>
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                  </svg>
+                )}
+                {tab === 'withdrawals' && (
+                  <svg viewBox="0 0 24 24" width="24" height="24">
+                    <polyline points="7,1 3,5 7,9"/>
+                    <path d="M21 11V9a4 4 0 0 0-4-4H3"/>
+                    <polyline points="17,23 21,19 17,15"/>
+                    <path d="M3 13v2a4 4 0 0 0 4 4h14"/>
+                  </svg>
+                )}
+              </div>
+              <span className="bni-lbl">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
 
       <div id="toast" className="toast" style={{ display: 'none' }}></div>
     </div>
