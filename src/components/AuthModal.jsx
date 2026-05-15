@@ -223,7 +223,7 @@ export default function AuthModal() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder=""
                 required
                 style={inputStyle}
               />
@@ -235,7 +235,7 @@ export default function AuthModal() {
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder=""
                   required
                   style={{ ...inputStyle, marginBottom: 0, paddingRight: 44 }}
                 />
@@ -247,7 +247,7 @@ export default function AuthModal() {
                     background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16,
                   }}
                 >
-                  {showPass ? '🙈' : '👁'}
+                  
                 </button>
               </div>
               <button type="submit" style={btnStyle} disabled={busy}>
@@ -255,13 +255,7 @@ export default function AuthModal() {
               </button>
             </form>
 
-            {/* Demo credentials */}
-            <div style={{
-              background: '#fff5f0', border: '1px solid #fed7aa', borderRadius: 10,
-              padding: '10px 14px', fontSize: '0.78rem', color: '#92400e', marginTop: 14,
-            }}>
-              <strong>Demo:</strong> donor@demo.com / donor123 &nbsp;|&nbsp; creator@demo.com / demo123
-            </div>
+            
 
             <div style={{ textAlign: 'center', marginTop: 16, fontSize: '0.88rem', color: '#6b7280' }}>
               No account?{' '}
@@ -293,8 +287,8 @@ export default function AuthModal() {
             {/* Role selector */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 20, marginTop: 6 }}>
               {[
-                { r: 'donor',   label: '❤ Donor',   sub: 'Give to causes' },
-                { r: 'creator', label: '🚀 Creator', sub: 'Run campaigns' },
+                { r: 'donor',   label: ' Donor',   sub: 'Give to causes' },
+                { r: 'creator', label: 'Creator', sub: 'Run campaigns' },
               ].map(({ r, label, sub }) => (
                 <button
                   key={r}
@@ -324,7 +318,7 @@ export default function AuthModal() {
                 background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10,
                 padding: '10px 14px', fontSize: '0.82rem', color: '#1e40af', marginBottom: 16,
               }}>
-                ✅ Donor accounts are instantly activated — no email verification needed!
+              
               </div>
             )}
 
@@ -336,7 +330,7 @@ export default function AuthModal() {
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="Your name"
+                placeholder=""
                 required
                 style={inputStyle}
               />
@@ -347,7 +341,7 @@ export default function AuthModal() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder=""
                 required
                 style={inputStyle}
               />
@@ -359,7 +353,7 @@ export default function AuthModal() {
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="Min 6 characters"
+                  placeholder=""
                   required
                   minLength={6}
                   style={{ ...inputStyle, marginBottom: 0, paddingRight: 44 }}
@@ -372,7 +366,7 @@ export default function AuthModal() {
                     background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16,
                   }}
                 >
-                  {showPass ? '🙈' : '👁'}
+                  
                 </button>
               </div>
 

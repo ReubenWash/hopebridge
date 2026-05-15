@@ -88,7 +88,7 @@ export default function DonationForm() {
       <h3>Make a Donation from Wallet</h3>
       {!currentUser && (
         <div style={{ background: '#fff5f0', padding: 12, borderRadius: 8, marginBottom: 16 }}>
-          ⚡ Please <strong>log in</strong> to donate from your wallet.
+           Please <strong>log in</strong> to donate from your wallet.
         </div>
       )}
 

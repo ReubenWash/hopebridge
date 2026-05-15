@@ -236,7 +236,7 @@ export default function HomePage() {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© 2025 HopeBridge — Nonprofit. All Rights Reserved.</p>
+          <p>© 2026 HopeBridge — Nonprofit. All Rights Reserved.</p>
           <p>Made with <span style={{ color: 'var(--primary)' }}>❤</span> for a better world</p>
         </div>
       </footer>
