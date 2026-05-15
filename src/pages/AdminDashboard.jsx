@@ -711,18 +711,18 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleProvideInstructions = async (id, instructions) => {
-    try {
-      await adminApi.updateDepositRequest?.(id, { 
-        admin_instructions: instructions, 
-        status: 'instructions_sent' 
-      });
-      showToast('Instructions sent. Waiting for donor to upload proof.');
-      fetchAll();
-    } catch (err) { 
-      showToast(err.message, true); 
-    }
-  };
+ const handleProvideInstructions = async (id, instructions) => {
+  try {
+    await adminApi.updateDepositRequest?.(id, { 
+      admin_instructions: instructions, 
+      status: 'instructions_sent'  // ✅ Correct status
+    });
+    showToast('Instructions sent. Waiting for donor to upload proof.');
+    fetchAll();
+  } catch (err) { 
+    showToast(err.message, true); 
+  }
+};
 
   // Content handlers
   const handleSaveContent = async (newContent) => {
