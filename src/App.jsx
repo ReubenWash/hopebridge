@@ -11,7 +11,6 @@ import AuthModal from './components/AuthModal'
 import Toast from './components/Toast'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 
-
 // Error Boundary
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -47,18 +46,22 @@ class ErrorBoundary extends Component {
   }
 }
 
-// Home page – redirects logged-in users based on role
-// Donors stay on the landing/home page (DonorDashboard IS the home page for them)
+// Home page – shows Navbar + HomePage for guests, redirects logged-in users
 function HomeRoute() {
   const { currentUser } = useApp()
+  
+  // Not logged in – show landing page with Navbar
   if (!currentUser) return <><Navbar /><HomePage /></>
-  if (currentUser.role === 'admin')   return <Navigate to="/admin-dashboard"   replace />
+  
+  // Logged in – redirect to role-specific dashboard (no Navbar on dashboards)
+  if (currentUser.role === 'admin')   return <Navigate to="/admin-dashboard" replace />
   if (currentUser.role === 'creator') return <Navigate to="/creator-dashboard" replace />
-  // Donors see the DonorDashboard which IS the landing page with Navbar
-  return <><Navbar /><DonorDashboard /></>
+  if (currentUser.role === 'donor')   return <Navigate to="/donor-dashboard" replace />
+  
+  return <><Navbar /><HomePage /></>
 }
 
-// Protected route
+// Protected route wrapper
 function RoleRoute({ children, allowedRoles }) {
   const { currentUser, loading } = useApp()
   if (loading) return <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>Loading…</div>
@@ -68,29 +71,27 @@ function RoleRoute({ children, allowedRoles }) {
 }
 
 function AppContent() {
-  const { toast, currentUser } = useApp()
+  const { toast } = useApp()
 
   return (
     <>
       <PWAInstallPrompt />
-      
 
       <Routes>
-        {/* Home / Donor landing */}
+        {/* Home / Landing Page - with Navbar */}
         <Route path="/" element={<HomeRoute />} />
 
-        {/* Donor explicit dashboard (same component) */}
+        {/* Donor Dashboard - no Navbar (it has its own sidebar) */}
         <Route
           path="/donor-dashboard"
           element={
             <RoleRoute allowedRoles={['donor']}>
-              <Navbar />
               <DonorDashboard />
             </RoleRoute>
           }
         />
 
-        {/* Creator dashboard */}
+        {/* Creator Dashboard - no Navbar (it has its own sidebar) */}
         <Route
           path="/creator-dashboard"
           element={
@@ -100,7 +101,7 @@ function AppContent() {
           }
         />
 
-        {/* Admin dashboard */}
+        {/* Admin Dashboard - no Navbar (it has its own sidebar) */}
         <Route
           path="/admin-dashboard"
           element={
@@ -113,7 +114,7 @@ function AppContent() {
         {/* Email verification */}
         <Route path="/verify-email" element={<VerifyEmail />} />
 
-        {/* Catch-all */}
+        {/* Catch-all redirect to home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 

@@ -120,7 +120,7 @@ const injectStyles = () => {
     .ba{background:var(--green-l);color:var(--green-d)}
     .br{background:var(--blue-l);color:#185FA5}
     .bx{background:var(--red-l);color:var(--red)}
-    .qg{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px}
+    .qg{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
     .qb{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform var(--tr),box-shadow var(--tr);font-family:var(--fb);border:none}
     .qb:hover{transform:translateY(-2px);box-shadow:var(--sh-md);background:var(--surface)}
     .qb:active{transform:scale(0.96)}
@@ -440,6 +440,7 @@ function ContentEditor({ content, onSave, showToast }) {
 // ---------- Component: DepositRequestsManager ----------
 function DepositRequestsManager({ requests, onApprove, onReject, onProvideInstructions, showToast }) {
   const [instructionsText, setInstructionsText] = useState({});
+  const [selectedRequest, setSelectedRequest] = useState(null);
 
   const handleProvide = (id) => {
     const instructions = instructionsText[id];
@@ -469,7 +470,12 @@ function DepositRequestsManager({ requests, onApprove, onReject, onProvideInstru
                 value={instructionsText[req.id] || ''}
                 onChange={e => setInstructionsText(prev => ({ ...prev, [req.id]: e.target.value }))}
               />
-              <button className="db dba" onClick={() => handleProvide(req.id)}>Provide Instructions</button>
+              <button className="db dba" onClick={() => handleProvide(req.id)}>Send Instructions</button>
+            </div>
+          )}
+          {req.status === 'instructions_sent' && (
+            <div style={{ marginTop: 10, color: 'var(--blue)' }}>
+              ⏳ Waiting for donor to upload payment proof...
             </div>
           )}
           {req.status === 'awaiting_proof' && req.proof_image_url && (
@@ -499,7 +505,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [dataLoading, setDataLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(localStorage.getItem('hb_darkmode') === 'true');
-  const [settingsTab, setSettingsTab] = useState('theme'); // theme, keys, social
+  const [settingsTab, setSettingsTab] = useState('theme');
   const [themeSettings, setThemeSettings] = useState({
     '--primary': '#e8531e',
     '--primary-dark': '#c4400f',
@@ -515,7 +521,7 @@ export default function AdminDashboard() {
     facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '',
   });
 
-  // Data states
+  // Data states - all connected to backend
   const [stats, setStats] = useState({ total_raised: 0, total_campaigns: 0, pending_campaigns: 0, total_users: 0, open_disputes: 0 });
   const [campaigns, setCampaigns] = useState([]);
   const [users, setUsers] = useState([]);
@@ -564,7 +570,7 @@ export default function AdminDashboard() {
     setAuthChecked(true);
   }, [sessionLoading, currentUser, navigate, showToast]);
 
-  // Fetch all data with number conversion
+  // Fetch all data from backend
   const fetchAll = async () => {
     setDataLoading(true);
     try {
@@ -615,7 +621,7 @@ export default function AdminDashboard() {
       }));
       setDepositRequests(parsedDeposits);
 
-      // Settings and content (no numbers there)
+      // Settings and content
       if (sett?.settings) {
         if (sett.settings.theme) setThemeSettings(prev => ({ ...prev, ...sett.settings.theme }));
         if (sett.settings.keys) setIntegrationKeys(prev => ({ ...prev, ...sett.settings.keys }));
@@ -640,7 +646,7 @@ export default function AdminDashboard() {
     if (authChecked) fetchAll();
   }, [authChecked]);
 
-  // Handlers
+  // Campaign handlers
   const handleApproveCampaign = async (id) => {
     try {
       await adminApi.updateCampaign(id, { status: 'approved' });
@@ -666,6 +672,7 @@ export default function AdminDashboard() {
     } catch (err) { showToast(err.message, true); }
   };
 
+  // User handler
   const handleToggleUser = async (id) => {
     try {
       await adminApi.toggleUser(id);
@@ -674,6 +681,7 @@ export default function AdminDashboard() {
     } catch (err) { showToast(err.message, true); }
   };
 
+  // Dispute handler
   const handleResolveDispute = async (id) => {
     try {
       await adminApi.resolveDispute(id);
@@ -682,12 +690,15 @@ export default function AdminDashboard() {
     } catch (err) { showToast(err.message, true); }
   };
 
+  // Deposit handlers - with duplicate prevention
   const handleApproveDeposit = async (id, amount) => {
     try {
       await adminApi.updateDepositRequest?.(id, { status: 'approved' });
-      showToast(`Deposit $${toNumber(amount).toFixed(2)} approved`);
+      showToast(`Deposit $${toNumber(amount).toFixed(2)} approved and credited to wallet`);
       fetchAll();
-    } catch (err) { showToast(err.message, true); }
+    } catch (err) { 
+      showToast(err.message, true); 
+    }
   };
 
   const handleRejectDeposit = async (id) => {
@@ -695,25 +706,34 @@ export default function AdminDashboard() {
       await adminApi.updateDepositRequest?.(id, { status: 'rejected' });
       showToast('Deposit rejected');
       fetchAll();
-    } catch (err) { showToast(err.message, true); }
+    } catch (err) { 
+      showToast(err.message, true); 
+    }
   };
 
   const handleProvideInstructions = async (id, instructions) => {
     try {
-      await adminApi.updateDepositRequest?.(id, { admin_instructions: instructions, status: 'awaiting_proof' });
-      showToast('Instructions provided, waiting for proof');
+      await adminApi.updateDepositRequest?.(id, { 
+        admin_instructions: instructions, 
+        status: 'instructions_sent' 
+      });
+      showToast('Instructions sent. Waiting for donor to upload proof.');
       fetchAll();
-    } catch (err) { showToast(err.message, true); }
+    } catch (err) { 
+      showToast(err.message, true); 
+    }
   };
 
-  const handleSendMassMail = async (data) => {
-    // Called from MassMailForm, already handles API
-  };
-
+  // Content handlers
   const handleSaveContent = async (newContent) => {
-    await adminApi.saveContent(newContent);
-    setContent(newContent);
-    if (newContent.social_links) setSocialLinks(newContent.social_links);
+    try {
+      await adminApi.saveContent(newContent);
+      setContent(newContent);
+      if (newContent.social_links) setSocialLinks(newContent.social_links);
+      showToast('Content updated');
+    } catch (err) {
+      showToast(err.message, true);
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -745,13 +765,12 @@ export default function AdminDashboard() {
     return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading admin panel...</div>;
   }
 
-  // All values are now guaranteed numbers
+  // Computed values from fetched data
   const totalRaised = campaigns.reduce((sum, c) => sum + c.raised, 0);
-  const activeCampaigns = campaigns.filter(c => c.status === 'active').length;
+  const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'approved').length;
   const pendingCampaigns = campaigns.filter(c => c.status === 'pending' || c.status === 'review').length;
   const donorsCount = users.filter(u => u.role === 'donor').length;
   const creatorsCount = users.filter(u => u.role === 'creator').length;
-  const pendingDepositsSum = depositRequests.reduce((sum, r) => sum + r.amount, 0);
   const openDisputesCount = disputes.filter(d => d.status !== 'resolved').length;
 
   const tabs = ['overview', 'campaigns', 'users', 'donations', 'deposits', 'massmail', 'content', 'settings'];
@@ -817,7 +836,7 @@ export default function AdminDashboard() {
         <div className="topbar">
           <div className="tb-title">{tabs.find(t => t === activeTab)?.charAt(0).toUpperCase() + activeTab.slice(1)}</div>
           <div className="tb-actions">
-            <div className="tb-btn" onClick={() => showToast('Search feature coming')}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+            <div className="tb-btn" onClick={() => showToast('Search coming soon')}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
             <div className="tb-btn" onClick={() => showToast('Notifications')} style={{ position: 'relative' }}><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div className="ndot"></div></div>
             <div className="tb-btn" style={{ overflow: 'hidden', padding: 0 }}><div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12, color: '#fff' }}>SA</div></div>
           </div>
@@ -831,14 +850,14 @@ export default function AdminDashboard() {
         <div className="page">
           {dataLoading && <div style={{ padding: '8px 16px', background: 'var(--green)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>Loading data...</div>}
 
-          {/* Overview */}
+          {/* Overview Tab */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
             <div className="ov-hero">
               <div className="hero-row">
                 <div>
                   <div className="hero-g">Good morning, Administrator</div>
                   <div className="hero-t">HopeBridge<br /><em>Admin Console</em></div>
-                  <div className="hero-s">{pendingCampaigns} campaigns awaiting review today</div>
+                  <div className="hero-s">{pendingCampaigns} campaigns awaiting review</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>Platform Status</div>
@@ -854,10 +873,10 @@ export default function AdminDashboard() {
             </div>
 
             <div className="stats-grid">
-              <div className="sc"><div className="si si-g"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg></div><div className="sv">{stats.total_users || users.length}</div><div className="sl">Total Users</div><div className="sd dup">↑ 12% this month</div></div>
-              <div className="sc"><div className="si si-b"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></div><div className="sv">{activeCampaigns}</div><div className="sl">Active Campaigns</div><div className="sd dup">↑ {pendingCampaigns} pending</div></div>
-              <div className="sc"><div className="si si-a"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg></div><div className="sv">${(totalRaised / 1000).toFixed(0)}k</div><div className="sl">Total Raised</div><div className="sd dup">↑ $8.2k this week</div></div>
-              <div className="sc"><div className="si si-r"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div className="sv">{openDisputesCount}</div><div className="sl">Open Disputes</div><div className="sd ddn">↑ 1 new today</div></div>
+              <div className="sc"><div className="si si-g"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg></div><div className="sv">{stats.total_users || users.length}</div><div className="sl">Total Users</div></div>
+              <div className="sc"><div className="si si-b"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></div><div className="sv">{activeCampaigns}</div><div className="sl">Active Campaigns</div></div>
+              <div className="sc"><div className="si si-a"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg></div><div className="sv">${(totalRaised / 1000).toFixed(0)}k</div><div className="sl">Total Raised</div></div>
+              <div className="sc"><div className="si si-r"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div className="sv">{openDisputesCount}</div><div className="sl">Open Disputes</div></div>
             </div>
 
             <div className="sh"><div className="sht">Quick Actions</div></div>
@@ -884,7 +903,7 @@ export default function AdminDashboard() {
               <div className="card">
                 <div className="card-h"><div className="card-t">Pending Approvals</div><button className="card-a" onClick={() => setActiveTab('campaigns')}>View all →</button></div>
                 <div className="card-b">
-                  {campaigns.filter(c => c.status === 'pending' || c.status === 'review').map(c => (
+                  {campaigns.filter(c => c.status === 'pending' || c.status === 'review').slice(0, 3).map(c => (
                     <div key={c.id} className="cr">
                       <div className="ct" style={{ background: '#E1F5EE' }}>🌱</div>
                       <div className="ci">
@@ -893,6 +912,7 @@ export default function AdminDashboard() {
                         <div className="pb"><div className="pf" style={{ width: `${((c.raised) / c.goal) * 100}%` }}></div></div>
                       </div>
                       <span className="badge bp">{c.status}</span>
+                      <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>Approve</button>
                     </div>
                   ))}
                   {pendingCampaigns === 0 && <div>No pending campaigns</div>}
@@ -900,24 +920,36 @@ export default function AdminDashboard() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div className="card">
-                  <div className="card-h"><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><div className="pulse-w"><div className="pb2"></div><div className="pb2"></div><div className="pb2"></div><div className="pb2"></div><div className="pb2"></div></div><div className="card-t">System Health</div></div></div>
-                  <div className="card-b"><div className="hpills"><div className="mp"><div className="mpl">Server</div><div className="mpv ok">Online</div></div><div className="mp"><div className="mpl">DB</div><div className="mpv stable">Stable</div></div><div className="mp"><div className="mpl">Latency</div><div className="mpv norm">35ms</div></div></div></div>
-                </div>
-                <div className="card">
                   <div className="card-h"><div className="card-t">Deposit Queue</div><button className="card-a" onClick={() => setActiveTab('deposits')}>Manage →</button></div>
                   <div className="card-b">
                     {depositRequests.slice(0, 3).map(req => (
                       <div key={req.id} className="di">
                         <div className="uav avb" style={{ width: 32, height: 32, fontSize: 11 }}>{req.userName?.[0] || 'U'}</div>
-                        <div className="di-info"><div className="di-user">{req.userName}</div><div className="di-amt">${req.amount.toFixed(2)} · {req.method}</div></div>
-                        <div className="di-acts"><button className="db dba" onClick={() => handleApproveDeposit(req.id, req.amount)}>OK</button><button className="db dbr" onClick={() => handleRejectDeposit(req.id)}>✕</button></div>
+                        <div className="di-info"><div className="di-user">{req.userName}</div><div className="di-amt">${req.amount.toFixed(2)}</div></div>
+                        <div className="di-acts">
+                          {req.status === 'pending' && (
+                            <>
+                              <button className="db dba" onClick={() => setActiveTab('deposits')}>Manage</button>
+                              <button className="db dbr" onClick={() => handleRejectDeposit(req.id)}>Reject</button>
+                            </>
+                          )}
+                          {req.status === 'awaiting_proof' && (
+                            <>
+                              <button className="db dba" onClick={() => handleApproveDeposit(req.id, req.amount)}>Approve</button>
+                              <button className="db dbr" onClick={() => handleRejectDeposit(req.id)}>Reject</button>
+                            </>
+                          )}
+                          {req.status === 'instructions_sent' && (
+                            <span style={{ color: 'var(--blue)' }}>Awaiting proof</span>
+                          )}
+                        </div>
                       </div>
                     ))}
-                    {depositRequests.length === 0 && <div>No pending deposits</div>}
+                    {depositRequests.length === 0 && <div>No deposit requests</div>}
                   </div>
                 </div>
                 <div className="card">
-                  <div className="card-h"><div className="card-t">Open Disputes</div><button className="card-a" onClick={() => setActiveTab('disputes')}>View all →</button></div>
+                  <div className="card-h"><div className="card-t">Open Disputes</div><button className="card-a" onClick={() => showToast('Disputes management coming soon')}>View all →</button></div>
                   <div className="card-b">
                     {disputes.filter(d => d.status !== 'resolved').slice(0, 3).map(d => (
                       <div key={d.id} className="di">
@@ -933,25 +965,25 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Campaigns */}
+          {/* Campaigns Tab */}
           <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
             <div className="sh"><div className="sht">Campaign Management</div></div>
-            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut" style={{ width: '100%' }}><thead><tr><th style={{ paddingLeft: 20 }}>Campaign</th><th>Creator</th><th>Goal</th><th>Progress</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{campaigns.map(c => (<tr key={c.id}><td style={{ paddingLeft: 20 }}><div style={{ fontWeight: 600 }}>{c.title}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{c.creator_name}</div></td><td>${c.goal.toLocaleString()}</td><td><div style={{ width: 80 }}><div className="pb"><div className="pf" style={{ width: `${((c.raised) / c.goal) * 100}%` }}></div></div><div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 2 }}>{Math.round(((c.raised) / c.goal) * 100)}%</div></div></td><td><span className={`badge ${c.status === 'active' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td><td style={{ paddingRight: 20 }}><div style={{ display: 'flex', gap: 6 }}>{c.status !== 'active' && <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>Approve</button>}<button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}>Delete</button></div></td></tr>))}</tbody></table></div></div>
+            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut" style={{ width: '100%' }}><thead><tr><th style={{ paddingLeft: 20 }}>Campaign</th><th>Creator</th><th>Goal</th><th>Progress</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{campaigns.map(c => (<tr key={c.id}><td style={{ paddingLeft: 20 }}><div style={{ fontWeight: 600 }}>{c.title}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{c.creator_name}</div></td><td>${c.goal.toLocaleString()}</td><td><div style={{ width: 80 }}><div className="pb"><div className="pf" style={{ width: `${((c.raised) / c.goal) * 100}%` }}></div></div><div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 2 }}>{Math.round(((c.raised) / c.goal) * 100)}%</div></div></td><td><span className={`badge ${c.status === 'active' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td><td style={{ paddingRight: 20 }}><div style={{ display: 'flex', gap: 6 }}>{c.status === 'pending' && <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>Approve</button>}<button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}>Delete</button></div></td></tr>))}</tbody></table></div></div>
           </div>
 
-          {/* Users */}
+          {/* Users Tab */}
           <div className={`ps ${activeTab === 'users' ? 'active' : ''}`}>
             <div className="sh"><div className="sht">User Management</div></div>
             <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th style={{ paddingLeft: 20 }}>User</th><th>Role</th><th>Joined</th><th>Wallet</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{users.map(u => (<tr key={u.id}><td style={{ paddingLeft: 20 }}><div className="uc"><div className={`uav avg`}>{u.name?.charAt(0)}</div><div><div style={{ fontWeight: 600 }}>{u.name}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{u.email}</div></div></div></td><td><span className="badge br">{u.role}</span></td><td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td><td style={{ fontWeight: 600 }}>${u.wallet_balance.toFixed(2)}</td><td><span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span></td><td style={{ paddingRight: 20 }}><button className="db dbv" onClick={() => handleToggleUser(u.id)}>{u.is_active ? 'Suspend' : 'Restore'}</button></td></tr>))}</tbody></table></div></div>
           </div>
 
-          {/* Donations */}
+          {/* Donations Tab */}
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
-            <div className="sh"><div className="sht">Recent Donations</div></div>
+            <div className="sh"><div className="sht">All Donations</div></div>
             <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Monthly</th><th>Date</th></tr></thead><tbody>{donations.map(d => (<tr key={d.id}><td>{d.donor_name}</td><td>{d.campaign_title}</td><td>${d.amount.toLocaleString()}</td><td>{d.is_monthly ? '✅' : '—'}</td><td>{new Date(d.created_at).toLocaleDateString()}</td></tr>))}</tbody></table></div></div>
           </div>
 
-          {/* Deposits */}
+          {/* Deposits Tab */}
           <div className={`ps ${activeTab === 'deposits' ? 'active' : ''}`}>
             <div className="sh"><div className="sht">Deposit Requests</div></div>
             <div className="card"><div className="card-b">
@@ -965,21 +997,21 @@ export default function AdminDashboard() {
             </div></div>
           </div>
 
-          {/* Mass Mail */}
+          {/* Mass Mail Tab */}
           <div className={`ps ${activeTab === 'massmail' ? 'active' : ''}`}>
             <div className="card"><div className="card-h"><div className="card-t">Broadcast Email</div></div><div className="card-b">
-              <MassMailForm onSend={handleSendMassMail} showToast={showToast} />
+              <MassMailForm onSend={() => {}} showToast={showToast} />
             </div></div>
           </div>
 
-          {/* Content */}
+          {/* Content Tab */}
           <div className={`ps ${activeTab === 'content' ? 'active' : ''}`}>
             <div className="card"><div className="card-h"><div className="card-t">Platform Content</div></div><div className="card-b">
               <ContentEditor content={content} onSave={handleSaveContent} showToast={showToast} />
             </div></div>
           </div>
 
-          {/* Settings */}
+          {/* Settings Tab */}
           <div className={`ps ${activeTab === 'settings' ? 'active' : ''}`}>
             <div className="card"><div className="card-h"><div className="card-t">System Settings</div></div><div className="card-b">
               <div className="settings-tabs">

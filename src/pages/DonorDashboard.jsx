@@ -26,19 +26,6 @@ const statusLabel = (s) => ({
   rejected: 'Rejected',
 }[s] || s);
 
-const txIcon = (type) => ({
-  deposit: '⬆',
-  donation_out: '❤',
-  refund_in: '↩',
-  withdrawal_out: '⬇',
-  escrow_hold: '🔒',
-  escrow_release: '🔓',
-  escrow_refund: '↩',
-}[type] || '•');
-
-const txColor = (type) =>
-  ['deposit', 'refund_in', 'escrow_release', 'escrow_refund'].includes(type) ? '#10b981' : '#ef4444';
-
 // ---------- Global Style Injection (once) ----------
 let stylesInjected = false;
 const injectStyles = () => {
@@ -87,12 +74,13 @@ const injectStyles = () => {
     .ps { display: none; }
     .ps.active { display: block; }
     .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
-    .sc { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--sh-sm); position: relative; overflow: hidden; }
+    .sc { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--sh-sm); cursor: pointer; transition: transform 0.2s; }
+    .sc:hover { transform: translateY(-2px); }
     .sc .si { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--green-l); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
     .sc .si svg { stroke: var(--green-d); width: 18px; height: 18px; }
     .sv { font-family: var(--fd); font-size: 32px; line-height: 1; }
     .sl { font-size: 12px; color: var(--txt-2); margin-top: 4px; }
-    .sd { font-size: 11px; font-weight: 700; margin-top: 8px; }
+    .sd { font-size: 11px; font-weight: 700; margin-top: 8px; color: var(--green); }
     .card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--sh-sm); overflow: hidden; margin-bottom: 24px; }
     .card-h { display: flex; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
     .card-t { font-family: var(--fd); font-size: 17px; }
@@ -120,9 +108,6 @@ const injectStyles = () => {
     .btn { padding: 10px 18px; border-radius: var(--r-sm); font-weight: 600; border: none; cursor: pointer; }
     .btn-g { background: var(--green); color: #fff; }
     .btn-gh { background: var(--surface-2); border: 1px solid var(--border); }
-    .modal-bd { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .25s; }
-    .modal-bd.open { opacity: 1; pointer-events: all; }
-    .modal { background: var(--surface); border-radius: var(--r-xl); padding: 28px; width: 90%; max-width: 420px; }
     .fi { width: 100%; padding: 10px 12px; border: 1px solid var(--border-2); border-radius: var(--r-sm); margin-bottom: 16px; font-family: var(--fb); }
     .fl { font-size: 12px; font-weight: 700; color: var(--txt-2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; display: block; }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(17,19,24,0.93); color: #fff; padding: 10px 24px; border-radius: 40px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; pointer-events: none; }
@@ -150,7 +135,7 @@ const injectStyles = () => {
 export default function DonorDashboard() {
   injectStyles();
 
-  const { currentUser, logout, showToast, walletBalance, refreshWallet } = useApp();
+  const { currentUser, logout, showToast, walletBalance, refreshWallet, loadCampaigns } = useApp();
   const navigate = useNavigate();
 
   // UI state
@@ -216,7 +201,7 @@ export default function DonorDashboard() {
 
   // Poll pending deposit request (every 3 seconds)
   useEffect(() => {
-    const pending = depositRequests.find(r => ['pending','instructions_sent','awaiting_proof'].includes(r.status));
+    const pending = depositRequests.find(r => ['pending', 'instructions_sent', 'awaiting_proof'].includes(r.status));
     if (!pending) {
       if (depositPollInterval.current) clearInterval(depositPollInterval.current);
       return;
@@ -225,15 +210,9 @@ export default function DonorDashboard() {
     let lastStatus = pending.status;
     depositPollInterval.current = setInterval(async () => {
       try {
-        // Ensure backend endpoint exists: GET /wallet/deposit-requests/:id
-        if (!walletApi.getDepositRequestById) {
-          console.warn('getDepositRequestById not implemented in API');
-          return;
-        }
         const res = await walletApi.getDepositRequestById(pending.id);
         const updated = res.request;
         if (updated.status !== lastStatus) {
-          // Notify user of status change
           if (updated.status === 'instructions_sent') {
             showToast(`Payment instructions for deposit #${pending.id} are now available.`);
           } else if (updated.status === 'approved') {
@@ -257,7 +236,7 @@ export default function DonorDashboard() {
     return () => clearInterval(depositPollInterval.current);
   }, [depositRequests, refreshWallet, showToast]);
 
-  // Poll withdrawal requests (every 5 seconds) – optional but nice
+  // Poll withdrawal requests (every 5 seconds)
   useEffect(() => {
     const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending');
     if (pendingWithdrawals.length === 0) return;
@@ -266,7 +245,6 @@ export default function DonorDashboard() {
       try {
         const res = await walletApi.getMyWithdrawals();
         const newWithdrawals = res.withdrawals || [];
-        // Detect status changes
         newWithdrawals.forEach(w => {
           const old = withdrawals.find(ow => ow.id === w.id);
           if (old && old.status !== w.status) {
@@ -287,7 +265,7 @@ export default function DonorDashboard() {
       loadData();
     }, 10000);
     return () => clearInterval(walletRefreshInterval.current);
-  }, []);
+  }, [refreshWallet]);
 
   // Initial load on mount
   useEffect(() => {
@@ -313,7 +291,7 @@ export default function DonorDashboard() {
   };
 
   const handleUploadProof = async () => {
-    const pending = depositRequests.find(r => ['pending','instructions_sent'].includes(r.status));
+    const pending = depositRequests.find(r => ['pending', 'instructions_sent'].includes(r.status));
     if (!pending || !proofFile) return;
     setProofUploading(true);
     try {
@@ -360,8 +338,16 @@ export default function DonorDashboard() {
     navigate('/');
   };
 
+  const handleBrowseCampaigns = () => {
+    window.location.href = '/#causes';
+  };
+
+  const handleDonateNow = (campaignId) => {
+    window.location.href = '/#donate';
+  };
+
   const initials = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  const pendingDeposit = depositRequests.find(r => ['pending','instructions_sent','awaiting_proof'].includes(r.status));
+  const pendingDeposit = depositRequests.find(r => ['pending', 'instructions_sent', 'awaiting_proof'].includes(r.status));
 
   // ----- Render -----
   return (
@@ -395,11 +381,11 @@ export default function DonorDashboard() {
           <button className={`nl ${activeTab === 'wallet' ? 'active' : ''}`} onClick={() => setActiveTab('wallet')}>
             <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
             Wallet
-            {depositRequests.some(r => ['pending','instructions_sent'].includes(r.status)) && <span className="nb">!</span>}
+            {depositRequests.some(r => ['pending', 'instructions_sent'].includes(r.status)) && <span className="nb">!</span>}
           </button>
           <div className="nav-sec">Account</div>
           <button className={`nl ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             Settings
           </button>
         </nav>
@@ -420,7 +406,7 @@ export default function DonorDashboard() {
             {activeTab === 'settings' && 'Settings'}
           </div>
           <div className="tb-actions">
-            <div className="tb-btn" onClick={() => showToast('Notifications')}>
+            <div className="tb-btn" onClick={() => showToast('Notifications coming soon')}>
               <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             </div>
             <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
@@ -450,25 +436,58 @@ export default function DonorDashboard() {
           {/* ========== OVERVIEW TAB ========== */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
             <div className="stats-grid">
-              <div className="sc"><div className="si"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div><div className="sv">${walletBalance.toLocaleString()}</div><div className="sl">Wallet Balance</div></div>
-              <div className="sc"><div className="si"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg></div><div className="sv">${totalDonated.toLocaleString()}</div><div className="sl">Total Donated</div></div>
-              <div className="sc"><div className="si"><svg viewBox="0 0 24 24"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg></div><div className="sv">{donations.length}</div><div className="sl">Donations Made</div></div>
-              <div className="sc"><div className="si"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div><div className="sv">{approvedCampaigns.length}</div><div className="sl">Active Campaigns</div></div>
+              <div className="sc" onClick={() => setActiveTab('wallet')}>
+                <div className="si"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+                <div className="sv">${walletBalance.toLocaleString()}</div>
+                <div className="sl">Wallet Balance</div>
+                <div className="sd">Click to manage →</div>
+              </div>
+              <div className="sc" onClick={() => setActiveTab('donations')}>
+                <div className="si"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg></div>
+                <div className="sv">${totalDonated.toLocaleString()}</div>
+                <div className="sl">Total Donated</div>
+                <div className="sd">Click to view →</div>
+              </div>
+              <div className="sc" onClick={() => setActiveTab('donations')}>
+                <div className="si"><svg viewBox="0 0 24 24"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg></div>
+                <div className="sv">{donations.length}</div>
+                <div className="sl">Donations Made</div>
+                <div className="sd">Click to view →</div>
+              </div>
+              <div className="sc" onClick={handleBrowseCampaigns}>
+                <div className="si"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div>
+                <div className="sv">{approvedCampaigns.length}</div>
+                <div className="sl">Active Campaigns</div>
+                <div className="sd">Click to browse →</div>
+              </div>
             </div>
             <div className="card">
               <div className="card-h"><div className="card-t">Recent Donations</div><button className="card-a" onClick={() => setActiveTab('donations')}>View all →</button></div>
               <div className="card-b">
                 {donations.slice(0, 5).map(d => (
-                  <div key={d.id} className="cr"><div className="ci"><div className="cn">{d.campaign_title || `Campaign #${d.campaign_id}`}</div><div className="cm">{new Date(d.created_at).toLocaleDateString()}</div></div><div className="badge ba">+${toNumber(d.amount).toFixed(2)}</div></div>
+                  <div key={d.id} className="cr">
+                    <div className="ci">
+                      <div className="cn">{d.campaign_title || `Campaign #${d.campaign_id}`}</div>
+                      <div className="cm">{new Date(d.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <div className="badge ba">+${toNumber(d.amount).toFixed(2)}</div>
+                  </div>
                 ))}
                 {donations.length === 0 && <div className="cr">No donations yet</div>}
               </div>
             </div>
             <div className="card">
-              <div className="card-h"><div className="card-t">Support a Campaign</div><button className="card-a" onClick={() => window.location.href = '/#causes'}>Browse all →</button></div>
+              <div className="card-h"><div className="card-t">Support a Campaign</div><button className="card-a" onClick={handleBrowseCampaigns}>Browse all →</button></div>
               <div className="card-b">
                 {approvedCampaigns.slice(0, 3).map(c => (
-                  <div key={c.id} className="cr"><div className="ci"><div className="cn">{c.title}</div><div className="cm">${toNumber(c.raised).toLocaleString()} raised of ${toNumber(c.goal).toLocaleString()}</div><div className="pb"><div className="pf" style={{ width: `${(toNumber(c.raised) / toNumber(c.goal)) * 100}%` }}></div></div></div><button className="db dba" onClick={() => window.location.href = '/#donate'}>Donate</button></div>
+                  <div key={c.id} className="cr">
+                    <div className="ci">
+                      <div className="cn">{c.title}</div>
+                      <div className="cm">${toNumber(c.raised).toLocaleString()} raised of ${toNumber(c.goal).toLocaleString()}</div>
+                      <div className="pb"><div className="pf" style={{ width: `${(toNumber(c.raised) / toNumber(c.goal)) * 100}%` }}></div></div>
+                    </div>
+                    <button className="db dba" onClick={handleBrowseCampaigns}>Donate</button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -480,10 +499,17 @@ export default function DonorDashboard() {
               <div className="card-h"><div className="card-t">All Donations</div></div>
               <div className="card-b" style={{ padding: 0 }}>
                 <table className="ut">
-                  <thead><tr><th>Campaign</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
+                  <thead>
+                    <tr><th>Campaign</th><th>Amount</th><th>Date</th><th>Status</th></tr>
+                  </thead>
                   <tbody>
                     {donations.map(d => (
-                      <tr key={d.id}><td>{d.campaign_title || `Campaign #${d.campaign_id}`}</td><td>${toNumber(d.amount).toFixed(2)}</td><td>{new Date(d.created_at).toLocaleDateString()}</td><td><span className="badge ba">{d.escrow_status || 'held'}</span></td></tr>
+                      <tr key={d.id}>
+                        <td>{d.campaign_title || `Campaign #${d.campaign_id}`}</td>
+                        <td>${toNumber(d.amount).toFixed(2)}</td>
+                        <td>{new Date(d.created_at).toLocaleDateString()}</td>
+                        <td><span className="badge ba">{d.escrow_status || 'held'}</span></td>
+                      </tr>
                     ))}
                     {donations.length === 0 && <tr><td colSpan="4">No donations yet</td></tr>}
                   </tbody>
@@ -500,25 +526,25 @@ export default function DonorDashboard() {
               <div className="card-b">
                 {pendingDeposit ? (
                   <div>
-                    <div style={{ background:'#eff6ff', borderRadius:12, padding:16, marginBottom:16 }}>
+                    <div style={{ background: '#eff6ff', borderRadius: 12, padding: 16, marginBottom: 16 }}>
                       <div><strong>Pending Deposit #{pendingDeposit.id}</strong> – ${pendingDeposit.amount}</div>
                       <div>Status: <span style={{ color: statusColor(pendingDeposit.status) }}>{statusLabel(pendingDeposit.status)}</span></div>
                       {pendingDeposit.admin_instructions && (
-                        <div style={{ marginTop:12, background:'#dbeafe', padding:12, borderRadius:8 }}>
+                        <div style={{ marginTop: 12, background: '#dbeafe', padding: 12, borderRadius: 8 }}>
                           <strong>Instructions:</strong><br/>{pendingDeposit.admin_instructions}
                         </div>
                       )}
                     </div>
                     {(pendingDeposit.status === 'pending' || pendingDeposit.status === 'instructions_sent') && !pendingDeposit.proof_image_url && (
                       <>
-                        <input type="file" ref={proofInputRef} accept="image/*" style={{ display:'none' }} onChange={e => setProofFile(e.target.files[0])} />
+                        <input type="file" ref={proofInputRef} accept="image/*" style={{ display: 'none' }} onChange={e => setProofFile(e.target.files[0])} />
                         {proofFile ? (
                           <div><span>📄 {proofFile.name}</span> <button className="db dbr" onClick={() => setProofFile(null)}>Remove</button></div>
                         ) : (
                           <button className="db dba" onClick={() => proofInputRef.current?.click()}>Select Proof Image</button>
                         )}
                         {proofFile && (
-                          <button className="btn btn-g" onClick={handleUploadProof} disabled={proofUploading} style={{ marginTop:12 }}>{proofUploading ? 'Uploading...' : 'Upload Proof'}</button>
+                          <button className="btn btn-g" onClick={handleUploadProof} disabled={proofUploading} style={{ marginTop: 12 }}>{proofUploading ? 'Uploading...' : 'Upload Proof'}</button>
                         )}
                       </>
                     )}
@@ -528,9 +554,9 @@ export default function DonorDashboard() {
                   <form onSubmit={handleRequestDeposit}>
                     <label className="fl">Amount (USD)</label>
                     <input type="number" min="1" step="0.01" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} required className="fi" placeholder="Min $1" />
-                    <div style={{ display:'flex', gap:8, marginBottom:12 }}>
-                      {[20,50,100,200,500].map(a => (
-                        <button key={a} type="button" onClick={() => setDepositAmount(a)} style={{ padding:'6px 12px', background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6 }}>${a}</button>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                      {[20, 50, 100, 200, 500].map(a => (
+                        <button key={a} type="button" onClick={() => setDepositAmount(a)} style={{ padding: '6px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6 }}>${a}</button>
                       ))}
                     </div>
                     <button type="submit" className="btn btn-g" disabled={depositLoading}>{depositLoading ? 'Submitting...' : 'Request Deposit'}</button>
@@ -543,7 +569,7 @@ export default function DonorDashboard() {
             <div className="card">
               <div className="card-h"><div className="card-t">Withdraw Funds</div></div>
               <div className="card-b">
-                <div style={{ marginBottom:12, background:'#fef9c3', padding:12, borderRadius:8 }}>Available: <strong>${walletBalance.toFixed(2)}</strong></div>
+                <div style={{ marginBottom: 12, background: '#fef9c3', padding: 12, borderRadius: 8 }}>Available: <strong>${walletBalance.toFixed(2)}</strong></div>
                 <form onSubmit={handleWithdraw}>
                   <label className="fl">Amount (USD)</label>
                   <input type="number" min="1" step="0.01" max={walletBalance} value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} required className="fi" />
@@ -568,7 +594,9 @@ export default function DonorDashboard() {
                   <div>No transactions yet</div>
                 ) : (
                   <table className="ut">
-                    <thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead>
+                    <thead>
+                      <tr><th>Date</th><th>Description</th><th>Amount</th></tr>
+                    </thead>
                     <tbody>
                       {transactions.slice(0, 10).map(tx => (
                         <tr key={tx.id}>
