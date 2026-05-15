@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { walletApi, campaignApi, donationApi } from '../services/api';
-import CauseCard from '../components/CauseCard';
+import DonationForm from '../components/DonationForm';
 
 // ---------- Helper Functions ----------
 const toNumber = (val, fallback = 0) => {
@@ -135,7 +135,7 @@ const injectStyles = () => {
 export default function DonorDashboard() {
   injectStyles();
 
-  const { currentUser, logout, showToast, walletBalance, refreshWallet, loadCampaigns } = useApp();
+  const { currentUser, logout, showToast, walletBalance, refreshWallet } = useApp();
   const navigate = useNavigate();
 
   // UI state
@@ -339,15 +339,14 @@ export default function DonorDashboard() {
   };
 
   const handleBrowseCampaigns = () => {
-    window.location.href = '/#causes';
-  };
-
-  const handleDonateNow = (campaignId) => {
-    window.location.href = '/#donate';
+    setActiveTab('donate');
   };
 
   const initials = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   const pendingDeposit = depositRequests.find(r => ['pending', 'instructions_sent', 'awaiting_proof'].includes(r.status));
+
+  // Tabs array - added 'donate' tab
+  const tabs = ['overview', 'donations', 'donate', 'wallet', 'settings'];
 
   // ----- Render -----
   return (
@@ -377,6 +376,10 @@ export default function DonorDashboard() {
             <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>
             My Donations
           </button>
+          <button className={`nl ${activeTab === 'donate' ? 'active' : ''}`} onClick={() => setActiveTab('donate')}>
+            <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>
+            Donate Now
+          </button>
           <div className="nav-sec">Finance</div>
           <button className={`nl ${activeTab === 'wallet' ? 'active' : ''}`} onClick={() => setActiveTab('wallet')}>
             <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
@@ -402,6 +405,7 @@ export default function DonorDashboard() {
           <div className="tb-title">
             {activeTab === 'overview' && 'Dashboard'}
             {activeTab === 'donations' && 'My Donations'}
+            {activeTab === 'donate' && 'Make a Donation'}
             {activeTab === 'wallet' && 'Wallet'}
             {activeTab === 'settings' && 'Settings'}
           </div>
@@ -458,7 +462,7 @@ export default function DonorDashboard() {
                 <div className="si"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div>
                 <div className="sv">{approvedCampaigns.length}</div>
                 <div className="sl">Active Campaigns</div>
-                <div className="sd">Click to browse →</div>
+                <div className="sd">Click to donate →</div>
               </div>
             </div>
             <div className="card">
@@ -514,6 +518,16 @@ export default function DonorDashboard() {
                     {donations.length === 0 && <tr><td colSpan="4">No donations yet</td></tr>}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+
+          {/* ========== DONATE TAB ========== */}
+          <div className={`ps ${activeTab === 'donate' ? 'active' : ''}`}>
+            <div className="card">
+              <div className="card-h"><div className="card-t">Make a Donation</div></div>
+              <div className="card-b">
+                <DonationForm />
               </div>
             </div>
           </div>
@@ -631,11 +645,12 @@ export default function DonorDashboard() {
       {/* Mobile Bottom Nav */}
       <nav className="bnav">
         <div className="bnav-inner">
-          {['overview', 'donations', 'wallet'].map(tab => (
+          {['overview', 'donations', 'donate', 'wallet'].map(tab => (
             <button key={tab} className={`bni ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
               <div className="bni-icon">
                 {tab === 'overview' && <svg width="20" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>}
                 {tab === 'donations' && <svg width="20" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>}
+                {tab === 'donate' && <svg width="20" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>}
                 {tab === 'wallet' && <svg width="20" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>}
               </div>
               <span className="bni-lbl">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
