@@ -76,20 +76,12 @@ export const campaignApi = {
   delete:  (id) => request(`/campaigns/${id}`, { method: 'DELETE' }),
 }
 
-// ── Donations ─────────────────────────────────────────────────────
+// ── Donations (wallet‑only, no PayPal) ────────────────────────────
 export const donationApi = {
   getMyDonations:  () => request('/donations/my'),
   getCampaignDons: (id) => request(`/donations/campaign/${id}`),
 
-  // PayPal – works without auth (guest donations)
-  createPayPalOrder: (body) => request('/donations/paypal/create-order', {
-    method: 'POST', body: JSON.stringify(body),
-  }),
-  capturePayPalOrder: (orderID) => request('/donations/paypal/capture-order', {
-    method: 'POST', body: JSON.stringify({ orderID }),
-  }),
-
-  // Creator payment methods
+  // Creator payment methods (for withdrawals)
   getCreatorPaymentMethod:  () => request('/donations/creator/payment-method'),
   saveCreatorPaymentMethod: (data) => request('/donations/creator/payment-method', {
     method: 'PUT', body: JSON.stringify(data),
@@ -102,6 +94,7 @@ export const walletApi = {
   getTransactions:     () => request('/wallet/transactions'),
   getSummary:          () => request('/wallet/summary'),
   getMyDepositRequests:() => request('/wallet/deposit-requests'),
+  getDepositRequestById: (id) => request(`/wallet/deposit-requests/${id}`),
 
   requestDeposit: (body) => request('/wallet/deposit-request', {
     method: 'POST', body: JSON.stringify(body),

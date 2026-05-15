@@ -9,9 +9,8 @@ import AdminDashboard from './pages/AdminDashboard'
 import VerifyEmail from './pages/VerifyEmail'
 import AuthModal from './components/AuthModal'
 import Toast from './components/Toast'
-import WalletFloating from './components/WalletFloating'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
-import ScrollButtons from './components/ScrollButtons'
+
 
 // Error Boundary
 class ErrorBoundary extends Component {
@@ -74,7 +73,7 @@ function AppContent() {
   return (
     <>
       <PWAInstallPrompt />
-      <ScrollButtons />
+      
 
       <Routes>
         {/* Home / Donor landing */}
@@ -120,9 +119,6 @@ function AppContent() {
 
       {/* Auth Modal – global */}
       <AuthModal />
-
-      {/* Wallet floating button – only for logged-in non-admin users */}
-      {currentUser && currentUser.role !== 'admin' && <WalletFloating />}
 
       {/* Toast notifications */}
       {toast && <Toast msg={toast.msg} error={toast.error} />}

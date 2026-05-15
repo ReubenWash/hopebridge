@@ -1,558 +1,625 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useApp } from '../context/AppContext'
-import { donationApi } from '../services/api'
-import DonationForm from '../components/DonationForm'
-import CauseCard from '../components/CauseCard'
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
+import { walletApi, campaignApi, donationApi } from '../services/api';
+import CauseCard from '../components/CauseCard';
 
+// ---------- Helper Functions ----------
+const toNumber = (val, fallback = 0) => {
+  const num = parseFloat(val);
+  return isNaN(num) ? fallback : num;
+};
+
+const statusColor = (s) => ({
+  pending: '#f59e0b',
+  instructions_sent: '#3b82f6',
+  awaiting_proof: '#8b5cf6',
+  approved: '#10b981',
+  rejected: '#ef4444',
+}[s] || '#6b7280');
+
+const statusLabel = (s) => ({
+  pending: 'Pending',
+  instructions_sent: 'Instructions Sent ✉',
+  awaiting_proof: 'Proof Uploaded',
+  approved: 'Approved ✓',
+  rejected: 'Rejected',
+}[s] || s);
+
+const txIcon = (type) => ({
+  deposit: '⬆',
+  donation_out: '❤',
+  refund_in: '↩',
+  withdrawal_out: '⬇',
+  escrow_hold: '🔒',
+  escrow_release: '🔓',
+  escrow_refund: '↩',
+}[type] || '•');
+
+const txColor = (type) =>
+  ['deposit', 'refund_in', 'escrow_release', 'escrow_refund'].includes(type) ? '#10b981' : '#ef4444';
+
+// ---------- Global Style Injection (once) ----------
+let stylesInjected = false;
+const injectStyles = () => {
+  if (stylesInjected) return;
+  stylesInjected = true;
+  const styleEl = document.createElement('style');
+  styleEl.textContent = `
+    :root {
+      --green: #1D9E75; --green-d: #0F6E56; --green-dd: #085041; --green-l: #E1F5EE; --green-m: #9FE1CB;
+      --red: #E24B4A; --red-l: #FCEBEB; --amber: #EF9F27; --amber-l: #FAEEDA; --blue: #378ADD; --blue-l: #E6F1FB;
+      --bg: #EEF1F5; --surface: #FFFFFF; --surface-2: #F6F8FA; --border: rgba(0,0,0,0.07); --border-2: rgba(0,0,0,0.13);
+      --txt: #111318; --txt-2: #5A6272; --txt-3: #9AA3B2;
+      --sidebar-w: 260px; --topbar-h: 64px; --bottom-nav: 68px;
+      --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 26px;
+      --sh-sm: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+      --fd: 'Instrument Serif', Georgia, serif; --fb: 'DM Sans', sans-serif; --tr: 0.2s ease;
+    }
+    body { font-family: var(--fb); background: var(--bg); color: var(--txt); min-height: 100vh; }
+    .shell { display: flex; min-height: 100vh; }
+    .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; z-index: 200; overflow-y: auto; }
+    .sb-logo { padding: 22px 20px 14px; border-bottom: 1px solid var(--border); }
+    .logo-mark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-icon { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--green); display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 20px; height: 20px; stroke: #fff; stroke-width: 2; fill: none; }
+    .logo-text { font-family: var(--fd); font-size: 19px; color: var(--txt); }
+    .logo-sub { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); }
+    .sb-user { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .user-av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--green-d)); display: flex; align-items: center; justify-content: center; font-weight: 600; color: #fff; }
+    .user-name { font-weight: 600; font-size: 14px; }
+    .user-badge { font-size: 11px; color: var(--txt-3); background: var(--green-l); padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 4px; }
+    .sb-nav { flex: 1; padding: 10px; }
+    .nav-sec { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); padding: 10px 10px 4px; }
+    .nl { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--r-sm); cursor: pointer; border: none; background: none; width: 100%; text-align: left; color: var(--txt-2); font-size: 13.5px; font-weight: 500; transition: all var(--tr); }
+    .nl:hover { background: var(--bg); color: var(--txt); }
+    .nl.active { background: var(--green-l); color: var(--green-d); font-weight: 600; }
+    .nl svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; }
+    .nb { margin-left: auto; font-size: 10px; font-weight: 700; background: var(--amber); color: #fff; padding: 2px 7px; border-radius: 20px; }
+    .sb-footer { padding: 12px 10px; border-top: 1px solid var(--border); }
+    .main { flex: 1; margin-left: var(--sidebar-w); }
+    .topbar { height: var(--topbar-h); background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 28px; gap: 16px; position: sticky; top: 0; z-index: 100; }
+    .tb-title { font-family: var(--fd); font-size: 22px; flex: 1; }
+    .tb-actions { display: flex; gap: 10px; }
+    .tb-btn { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background var(--tr); }
+    .tb-btn svg { width: 18px; height: 18px; stroke: var(--txt-2); }
+    .page { padding: 28px; }
+    .ps { display: none; }
+    .ps.active { display: block; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .sc { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--sh-sm); position: relative; overflow: hidden; }
+    .sc .si { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--green-l); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+    .sc .si svg { stroke: var(--green-d); width: 18px; height: 18px; }
+    .sv { font-family: var(--fd); font-size: 32px; line-height: 1; }
+    .sl { font-size: 12px; color: var(--txt-2); margin-top: 4px; }
+    .sd { font-size: 11px; font-weight: 700; margin-top: 8px; }
+    .card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--sh-sm); overflow: hidden; margin-bottom: 24px; }
+    .card-h { display: flex; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+    .card-t { font-family: var(--fd); font-size: 17px; }
+    .card-a { font-size: 12px; font-weight: 600; color: var(--green); background: none; border: none; cursor: pointer; }
+    .card-b { padding: 16px 20px; }
+    .badge { font-size: 10px; font-weight: 700; padding: 4px 9px; border-radius: 20px; display: inline-block; }
+    .ba { background: var(--green-l); color: var(--green-d); }
+    .bp { background: var(--amber-l); color: #854F0B; }
+    .br { background: var(--blue-l); color: #185FA5; }
+    .bx { background: var(--red-l); color: var(--red); }
+    .cr { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .cr:last-child { border-bottom: none; }
+    .ci { flex: 1; }
+    .cn { font-weight: 600; font-size: 14px; }
+    .cm { font-size: 11px; color: var(--txt-3); margin-top: 2px; }
+    .pb { height: 4px; background: var(--bg); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+    .pf { height: 100%; background: var(--green); border-radius: 2px; }
+    .ut { width: 100%; border-collapse: collapse; }
+    .ut th { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--txt-3); text-align: left; padding: 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+    .ut td { padding: 14px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .db { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; transition: opacity var(--tr); }
+    .dba { background: var(--green-l); color: var(--green-d); }
+    .dbr { background: var(--red-l); color: var(--red); }
+    .dbv { background: var(--blue-l); color: #185FA5; }
+    .btn { padding: 10px 18px; border-radius: var(--r-sm); font-weight: 600; border: none; cursor: pointer; }
+    .btn-g { background: var(--green); color: #fff; }
+    .btn-gh { background: var(--surface-2); border: 1px solid var(--border); }
+    .modal-bd { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .25s; }
+    .modal-bd.open { opacity: 1; pointer-events: all; }
+    .modal { background: var(--surface); border-radius: var(--r-xl); padding: 28px; width: 90%; max-width: 420px; }
+    .fi { width: 100%; padding: 10px 12px; border: 1px solid var(--border-2); border-radius: var(--r-sm); margin-bottom: 16px; font-family: var(--fb); }
+    .fl { font-size: 12px; font-weight: 700; color: var(--txt-2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; display: block; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(17,19,24,0.93); color: #fff; padding: 10px 24px; border-radius: 40px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+    .mob-top, .bnav, .fab { display: none; }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .topbar { display: none; }
+      .mob-top { display: flex; height: 58px; background: var(--surface); align-items: center; padding: 0 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
+      .bnav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 68px; background: var(--surface); border-top: 1px solid var(--border); z-index: 200; }
+      .bnav-inner { display: flex; width: 100%; max-width: 500px; margin: 0 auto; }
+      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; }
+      .bni.active .bni-icon svg { stroke: var(--green); }
+      .bni-lbl { font-size: 10px; font-weight: 600; color: var(--txt-3); }
+      .fab { display: flex; position: fixed; right: 20px; bottom: 82px; width: 52px; height: 52px; background: var(--green); border-radius: 50%; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.2); z-index: 150; border: none; }
+      .page { padding: 16px; padding-bottom: 90px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+  `;
+  document.head.appendChild(styleEl);
+};
+
+// ---------- Main Component ----------
 export default function DonorDashboard() {
-  const {
-    currentUser, approvedCampaigns, loadCampaigns,
-    openAuth, totalFunds, walletBalance,
-  } = useApp()
-  const navigate = useNavigate()
+  injectStyles();
 
-  const [donations, setDonations] = useState([])
-  const [loadingDons, setLoadingDons] = useState(false)
-  const [activeTab, setActiveTab] = useState('home')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('')
+  const { currentUser, logout, showToast, walletBalance, refreshWallet } = useApp();
+  const navigate = useNavigate();
 
-  const CATEGORIES = ['Education','Water','Health','Environment','Food','Shelter','General']
+  // UI state
+  const [activeTab, setActiveTab] = useState('overview');
+  const [loadingData, setLoadingData] = useState(true);
 
+  // Data state
+  const [donations, setDonations] = useState([]);
+  const [totalDonated, setTotalDonated] = useState(0);
+  const [depositRequests, setDepositRequests] = useState([]);
+  const [withdrawals, setWithdrawals] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [approvedCampaigns, setApprovedCampaigns] = useState([]);
+
+  // Deposit form
+  const [depositAmount, setDepositAmount] = useState('');
+  const [depositLoading, setDepositLoading] = useState(false);
+  const [proofFile, setProofFile] = useState(null);
+  const [proofUploading, setProofUploading] = useState(false);
+  const proofInputRef = useRef();
+
+  // Withdraw form
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawMethod, setWithdrawMethod] = useState('bank');
+  const [withdrawDetails, setWithdrawDetails] = useState('');
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
+
+  // Polling refs
+  const depositPollInterval = useRef(null);
+  const walletRefreshInterval = useRef(null);
+
+  // Auth guard
   useEffect(() => {
-    loadCampaigns()
-  }, [])
+    if (!currentUser) navigate('/');
+    else if (currentUser.role !== 'donor') navigate('/');
+  }, [currentUser, navigate]);
 
-  useEffect(() => {
-    if (currentUser) loadMyDonations()
-  }, [currentUser])
-
-  const loadMyDonations = async () => {
-    setLoadingDons(true)
+  // Load initial data
+  const loadData = async () => {
+    setLoadingData(true);
     try {
-      const res = await donationApi.getMyDonations()
-      setDonations(res.donations || [])
-    } catch { /* ignore */ }
-    finally { setLoadingDons(false) }
-  }
+      const [donRes, depositRes, withdrawRes, txRes, campaignsRes] = await Promise.all([
+        donationApi.getMyDonations().catch(() => ({ donations: [] })),
+        walletApi.getMyDepositRequests().catch(() => ({ requests: [] })),
+        walletApi.getMyWithdrawals().catch(() => ({ withdrawals: [] })),
+        walletApi.getTransactions().catch(() => ({ transactions: [] })),
+        campaignApi.getAll({ status: 'approved' }).catch(() => ({ campaigns: [] })),
+      ]);
+      setDonations(donRes.donations || []);
+      setDepositRequests(depositRes.requests || []);
+      setWithdrawals(withdrawRes.withdrawals || []);
+      setTransactions(txRes.transactions || []);
+      setApprovedCampaigns(campaignsRes.campaigns || []);
+      const total = (donRes.donations || []).reduce((s, d) => s + toNumber(d.amount), 0);
+      setTotalDonated(total);
+    } catch (err) {
+      console.error('Data load error:', err);
+      showToast('Error loading dashboard data', true);
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
-  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+  // Poll pending deposit request (every 3 seconds)
+  useEffect(() => {
+    const pending = depositRequests.find(r => ['pending','instructions_sent','awaiting_proof'].includes(r.status));
+    if (!pending) {
+      if (depositPollInterval.current) clearInterval(depositPollInterval.current);
+      return;
+    }
 
-  const filtered = approvedCampaigns.filter(c => {
-    const matchSearch = !searchTerm || c.title.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchCat    = !selectedCategory || c.category === selectedCategory
-    return matchSearch && matchCat
-  })
+    let lastStatus = pending.status;
+    depositPollInterval.current = setInterval(async () => {
+      try {
+        // Ensure backend endpoint exists: GET /wallet/deposit-requests/:id
+        if (!walletApi.getDepositRequestById) {
+          console.warn('getDepositRequestById not implemented in API');
+          return;
+        }
+        const res = await walletApi.getDepositRequestById(pending.id);
+        const updated = res.request;
+        if (updated.status !== lastStatus) {
+          // Notify user of status change
+          if (updated.status === 'instructions_sent') {
+            showToast(`Payment instructions for deposit #${pending.id} are now available.`);
+          } else if (updated.status === 'approved') {
+            showToast(`Deposit #${pending.id} approved! Wallet credited.`);
+            refreshWallet();
+            loadData();
+          } else if (updated.status === 'rejected') {
+            showToast(`Deposit #${pending.id} rejected.`, true);
+          }
+          lastStatus = updated.status;
+          setDepositRequests(prev => prev.map(r => r.id === pending.id ? updated : r));
+        }
+        if (updated.status === 'approved' || updated.status === 'rejected') {
+          clearInterval(depositPollInterval.current);
+        }
+      } catch (err) {
+        console.warn('Deposit polling error:', err);
+      }
+    }, 3000);
 
-  const totalDonated = donations.reduce((s, d) => s + parseFloat(d.amount || 0), 0)
+    return () => clearInterval(depositPollInterval.current);
+  }, [depositRequests, refreshWallet, showToast]);
 
-  const HOW_STEPS = [
-    { n:1, title:'Browse Causes',   desc:'Explore verified campaigns across education, health, environment and more.' },
-    { n:2, title:'Choose Amount',   desc:'Pick any amount — every dollar directly helps those in need.' },
-    { n:3, title:'Donate Securely', desc:'Pay via PayPal or your HopeBridge wallet with full security.' },
-    { n:4, title:'See the Change',  desc:'Track your impact and get updates from the campaigns you support.' },
-  ]
-  const TRUST_ITEMS = [
-    { icon:'🛡', title:'100% Secure',        desc:'Encrypted and protected payments.' },
-    { icon:'✅', title:'Verified Campaigns', desc:'All campaigns reviewed by our team.' },
-    { icon:'👁', title:'Full Transparency',  desc:'See exactly where your money goes.' },
-    { icon:'📧', title:'Tax Receipt',        desc:'Get your receipt instantly.' },
-  ]
-  const TESTIMONIALS = [
-    { stars:5, text:'HopeBridge makes giving transparent — I see exactly where my donation goes. Amazing!', author:'Amanda R.' },
-    { stars:5, text:'I supported a clean water campaign and got real updates. This platform works!', author:'Marcus T.' },
-    { stars:5, text:'Every campaign feels legitimate. I trust HopeBridge completely.', author:'Priya S.' },
-  ]
+  // Poll withdrawal requests (every 5 seconds) – optional but nice
+  useEffect(() => {
+    const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending');
+    if (pendingWithdrawals.length === 0) return;
 
+    const withdrawalInterval = setInterval(async () => {
+      try {
+        const res = await walletApi.getMyWithdrawals();
+        const newWithdrawals = res.withdrawals || [];
+        // Detect status changes
+        newWithdrawals.forEach(w => {
+          const old = withdrawals.find(ow => ow.id === w.id);
+          if (old && old.status !== w.status) {
+            if (w.status === 'approved') showToast(`Withdrawal #${w.id} approved!`);
+            if (w.status === 'rejected') showToast(`Withdrawal #${w.id} rejected.`, true);
+          }
+        });
+        setWithdrawals(newWithdrawals);
+      } catch (err) { console.warn(err); }
+    }, 5000);
+    return () => clearInterval(withdrawalInterval);
+  }, [withdrawals, showToast]);
+
+  // Periodic wallet refresh (every 10 seconds)
+  useEffect(() => {
+    walletRefreshInterval.current = setInterval(() => {
+      refreshWallet();
+      loadData();
+    }, 10000);
+    return () => clearInterval(walletRefreshInterval.current);
+  }, []);
+
+  // Initial load on mount
+  useEffect(() => {
+    if (currentUser) loadData();
+  }, [currentUser]);
+
+  // ----- Handlers -----
+  const handleRequestDeposit = async (e) => {
+    e.preventDefault();
+    const amt = toNumber(depositAmount);
+    if (amt < 1) { showToast('Amount must be at least $1', true); return; }
+    setDepositLoading(true);
+    try {
+      const res = await walletApi.requestDeposit({ amount: amt });
+      showToast(res.message);
+      setDepositAmount('');
+      await loadData();
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setDepositLoading(false);
+    }
+  };
+
+  const handleUploadProof = async () => {
+    const pending = depositRequests.find(r => ['pending','instructions_sent'].includes(r.status));
+    if (!pending || !proofFile) return;
+    setProofUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('proof', proofFile);
+      const res = await walletApi.uploadProof(pending.id, fd);
+      showToast(res.message);
+      setProofFile(null);
+      await loadData();
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setProofUploading(false);
+    }
+  };
+
+  const handleWithdraw = async (e) => {
+    e.preventDefault();
+    const amt = toNumber(withdrawAmount);
+    if (amt < 1) { showToast('Amount must be at least $1', true); return; }
+    if (amt > walletBalance) { showToast('Insufficient balance', true); return; }
+    if (!withdrawDetails.trim()) { showToast('Payment details required', true); return; }
+    setWithdrawLoading(true);
+    try {
+      const res = await walletApi.requestWithdrawal({
+        amount: amt,
+        payment_method: withdrawMethod,
+        payment_details: withdrawDetails,
+      });
+      showToast(res.message);
+      setWithdrawAmount('');
+      setWithdrawDetails('');
+      refreshWallet();
+      await loadData();
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setWithdrawLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  const initials = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const pendingDeposit = depositRequests.find(r => ['pending','instructions_sent','awaiting_proof'].includes(r.status));
+
+  // ----- Render -----
   return (
-    <div style={{ minHeight: '100vh', background: '#fff' }}>
+    <div className="shell">
+      {/* Sidebar */}
+      <aside className="sidebar">
+        <div className="sb-logo">
+          <div className="logo-mark">
+            <div className="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg></div>
+            <div><div className="logo-text">HopeBridge</div><div className="logo-sub">Donor Portal</div></div>
+          </div>
+        </div>
+        <div className="sb-user">
+          <div className="user-av">{initials}</div>
+          <div>
+            <div className="user-name">{currentUser?.name}</div>
+            <div className="user-badge">Donor</div>
+          </div>
+        </div>
+        <nav className="sb-nav">
+          <div className="nav-sec">Main</div>
+          <button className={`nl ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            Dashboard
+          </button>
+          <button className={`nl ${activeTab === 'donations' ? 'active' : ''}`} onClick={() => setActiveTab('donations')}>
+            <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>
+            My Donations
+          </button>
+          <div className="nav-sec">Finance</div>
+          <button className={`nl ${activeTab === 'wallet' ? 'active' : ''}`} onClick={() => setActiveTab('wallet')}>
+            <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            Wallet
+            {depositRequests.some(r => ['pending','instructions_sent'].includes(r.status)) && <span className="nb">!</span>}
+          </button>
+          <div className="nav-sec">Account</div>
+          <button className={`nl ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Settings
+          </button>
+        </nav>
+        <div className="sb-footer">
+          <button className="nl" style={{ color: 'var(--red)' }} onClick={handleLogout}>
+            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign Out
+          </button>
+        </div>
+      </aside>
 
-      {/* ── HERO ── */}
-      <section style={{
-        background: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 100%)',
-        position: 'relative', overflow: 'hidden',
-        minHeight: 500, display: 'flex', alignItems: 'center',
-      }}>
-        <div style={{
-          position: 'absolute', inset: 0,
-          backgroundImage: 'url(https://images.unsplash.com/photo-1593113598332-cd288d649433?w=1400&h=700&fit=crop)',
-          backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.12,
-        }} />
-        {/* Decorative circles */}
-        <div style={{ position:'absolute', width:400, height:400, borderRadius:'50%', background:'rgba(232,83,30,0.12)', top:-100, right:-100 }} />
-        <div style={{ position:'absolute', width:200, height:200, borderRadius:'50%', background:'rgba(232,83,30,0.08)', bottom:50, left:'5%' }} />
+      <div className="main">
+        <div className="topbar">
+          <div className="tb-title">
+            {activeTab === 'overview' && 'Dashboard'}
+            {activeTab === 'donations' && 'My Donations'}
+            {activeTab === 'wallet' && 'Wallet'}
+            {activeTab === 'settings' && 'Settings'}
+          </div>
+          <div className="tb-actions">
+            <div className="tb-btn" onClick={() => showToast('Notifications')}>
+              <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
+              <svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
+            <div className="tb-btn" onClick={() => showToast('Profile')}>
+              <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
+            </div>
+          </div>
+        </div>
 
-        <div style={{ maxWidth:1200, margin:'0 auto', padding:'70px 24px', width:'100%', position:'relative', zIndex:1 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:60, flexWrap:'wrap' }}>
-            <div style={{ flex:'1.2', minWidth:280 }}>
-              {/* Welcome badge for logged-in donors */}
-              {currentUser ? (
-                <div style={{
-                  display:'inline-flex', alignItems:'center', gap:8,
-                  background:'rgba(29,158,117,0.2)', border:'1px solid rgba(29,158,117,0.4)',
-                  color:'#4ade80', padding:'7px 18px', borderRadius:30,
-                  fontSize:'0.82rem', fontWeight:700, marginBottom:20, letterSpacing:1,
-                  textTransform:'uppercase',
-                }}>
-                  👋 Welcome back, {currentUser.name.split(' ')[0]}!
-                </div>
-              ) : (
-                <div style={{
-                  display:'inline-flex', alignItems:'center', gap:8,
-                  background:'rgba(232,83,30,0.2)', border:'1px solid rgba(232,83,30,0.4)',
-                  color:'#f47c50', padding:'7px 18px', borderRadius:30,
-                  fontSize:'0.82rem', fontWeight:700, marginBottom:20, letterSpacing:1,
-                  textTransform:'uppercase',
-                }}>
-                  ⭐ Making A Real Difference
-                </div>
-              )}
+        <div className="mob-top">
+          <div className="mob-logo">HopeBridge</div>
+          <div className="tb-actions">
+            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
+              <svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </button>
+            <div className="tb-btn" onClick={() => showToast('Profile')}>
+              <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
+            </div>
+          </div>
+        </div>
 
-              <h1 style={{
-                fontFamily:'Raleway,sans-serif', fontWeight:900,
-                fontSize:'clamp(2rem,5vw,3.2rem)', lineHeight:1.15,
-                color:'#fff', marginBottom:16,
-              }}>
-                Every Contribution <br />
-                Builds A Brighter <span style={{ color:'#f47c50' }}>Tomorrow</span>
-              </h1>
-              <p style={{ fontSize:'1.05rem', color:'rgba(255,255,255,0.72)', marginBottom:28, maxWidth:480 }}>
-                Join thousands of donors empowering education, healthcare, and clean water across the globe.
-              </p>
+        <div className="page">
+          {loadingData && <div style={{ padding: '8px 16px', background: 'var(--green)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>Loading your data...</div>}
 
-              {/* Stats row */}
-              <div style={{ display:'flex', gap:32, flexWrap:'wrap', alignItems:'center', marginBottom:32 }}>
-                {[
-                  [approvedCampaigns.length, 'Active Projects'],
-                  [`$${(totalFunds/1000).toFixed(1)}K`, 'Funds Raised'],
-                  ['100%', 'Transparent'],
-                  ...(currentUser ? [[`$${walletBalance.toFixed(0)}`, 'Your Wallet']] : []),
-                ].map(([n,l],i) => (
-                  <div key={i} style={{ textAlign:'left' }}>
-                    <div style={{ fontSize:'2rem', fontWeight:900, color:'#f47c50', fontFamily:'Raleway,sans-serif', lineHeight:1 }}>{n}</div>
-                    <div style={{ fontSize:'0.78rem', color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:'.5px', marginTop:3 }}>{l}</div>
-                  </div>
+          {/* ========== OVERVIEW TAB ========== */}
+          <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
+            <div className="stats-grid">
+              <div className="sc"><div className="si"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div><div className="sv">${walletBalance.toLocaleString()}</div><div className="sl">Wallet Balance</div></div>
+              <div className="sc"><div className="si"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg></div><div className="sv">${totalDonated.toLocaleString()}</div><div className="sl">Total Donated</div></div>
+              <div className="sc"><div className="si"><svg viewBox="0 0 24 24"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg></div><div className="sv">{donations.length}</div><div className="sl">Donations Made</div></div>
+              <div className="sc"><div className="si"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div><div className="sv">{approvedCampaigns.length}</div><div className="sl">Active Campaigns</div></div>
+            </div>
+            <div className="card">
+              <div className="card-h"><div className="card-t">Recent Donations</div><button className="card-a" onClick={() => setActiveTab('donations')}>View all →</button></div>
+              <div className="card-b">
+                {donations.slice(0, 5).map(d => (
+                  <div key={d.id} className="cr"><div className="ci"><div className="cn">{d.campaign_title || `Campaign #${d.campaign_id}`}</div><div className="cm">{new Date(d.created_at).toLocaleDateString()}</div></div><div className="badge ba">+${toNumber(d.amount).toFixed(2)}</div></div>
                 ))}
-              </div>
-
-              <div style={{ display:'flex', gap:14, flexWrap:'wrap' }}>
-                <button
-                  onClick={() => scrollTo('causes')}
-                  style={{
-                    background:'linear-gradient(135deg,#e8531e,#f47c50)',
-                    color:'#fff', border:'none', padding:'14px 30px', borderRadius:6,
-                    fontWeight:700, fontSize:'1rem', cursor:'pointer',
-                    fontFamily:'Raleway,sans-serif', textTransform:'uppercase', letterSpacing:'.5px',
-                    boxShadow:'0 8px 30px rgba(232,83,30,0.3)',
-                  }}
-                >
-                  ❤ Donate Now
-                </button>
-                {!currentUser && (
-                  <button
-                    onClick={() => openAuth('register','donor')}
-                    style={{
-                      background:'transparent', border:'2px solid rgba(255,255,255,0.4)',
-                      color:'#fff', padding:'12px 28px', borderRadius:6,
-                      fontWeight:700, fontSize:'0.9rem', cursor:'pointer',
-                      fontFamily:'Raleway,sans-serif', textTransform:'uppercase', letterSpacing:'.5px',
-                    }}
-                  >
-                    🔑 Join Free
-                  </button>
-                )}
+                {donations.length === 0 && <div className="cr">No donations yet</div>}
               </div>
             </div>
-
-            {/* Right stats card */}
-            <div style={{ flex:'.9', minWidth:240 }}>
-              <div style={{
-                background:'rgba(255,255,255,0.07)', backdropFilter:'blur(10px)',
-                border:'1px solid rgba(255,255,255,0.12)', borderRadius:18,
-                padding:24, marginBottom:14, color:'#fff',
-              }}>
-                <div style={{ fontSize:'0.75rem', textTransform:'uppercase', letterSpacing:1, color:'rgba(255,255,255,0.5)', marginBottom:6 }}>
-                  Total Raised
-                </div>
-                <div style={{ fontFamily:'Raleway,sans-serif', fontSize:'1.6rem', fontWeight:800 }}>
-                  ${totalFunds.toLocaleString()}
-                </div>
-                <div style={{ fontSize:'0.8rem', color:'rgba(255,255,255,0.4)', marginTop:4 }}>
-                  Across all active campaigns
-                </div>
-              </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                {[['89%','Efficiency'],['14K+','Lives'],['120+','Projects'],['100%','Trust']].map(([n,l]) => (
-                  <div key={l} style={{
-                    background:'rgba(232,83,30,0.15)', border:'1px solid rgba(232,83,30,0.25)',
-                    borderRadius:12, padding:'14px 12px', color:'#fff', textAlign:'center',
-                  }}>
-                    <div style={{ fontSize:'1.25rem', fontWeight:800, color:'#f47c50', fontFamily:'Raleway,sans-serif' }}>{n}</div>
-                    <div style={{ fontSize:'0.72rem', color:'rgba(255,255,255,0.55)', textTransform:'uppercase', letterSpacing:.5 }}>{l}</div>
-                  </div>
+            <div className="card">
+              <div className="card-h"><div className="card-t">Support a Campaign</div><button className="card-a" onClick={() => window.location.href = '/#causes'}>Browse all →</button></div>
+              <div className="card-b">
+                {approvedCampaigns.slice(0, 3).map(c => (
+                  <div key={c.id} className="cr"><div className="ci"><div className="cn">{c.title}</div><div className="cm">${toNumber(c.raised).toLocaleString()} raised of ${toNumber(c.goal).toLocaleString()}</div><div className="pb"><div className="pf" style={{ width: `${(toNumber(c.raised) / toNumber(c.goal)) * 100}%` }}></div></div></div><button className="db dba" onClick={() => window.location.href = '/#donate'}>Donate</button></div>
                 ))}
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* ── Donor stats bar (logged-in only) ── */}
-      {currentUser && (
-        <div style={{
-          background:'linear-gradient(135deg,#0F6E56,#1D9E75)',
-          padding:'14px 24px',
-        }}>
-          <div style={{ maxWidth:1200, margin:'0 auto', display:'flex', gap:32, flexWrap:'wrap', alignItems:'center' }}>
-            <div style={{ color:'rgba(255,255,255,0.7)', fontSize:'0.85rem', fontWeight:600 }}>
-              Your Activity
-            </div>
-            {[
-              ['💰', `$${walletBalance.toFixed(2)}`, 'Wallet Balance'],
-              ['❤', donations.length, 'Total Donations'],
-              ['📊', `$${totalDonated.toFixed(2)}`, 'Amount Given'],
-            ].map(([icon, val, label]) => (
-              <div key={label} style={{ display:'flex', alignItems:'center', gap:10 }}>
-                <div style={{ fontSize:'1.2rem' }}>{icon}</div>
-                <div>
-                  <div style={{ fontWeight:800, color:'#fff', fontSize:'1rem', fontFamily:'Raleway,sans-serif' }}>{val}</div>
-                  <div style={{ fontSize:'0.72rem', color:'rgba(255,255,255,0.6)', textTransform:'uppercase', letterSpacing:.5 }}>{label}</div>
-                </div>
-              </div>
-            ))}
-            {currentUser && (
-              <button
-                onClick={() => setActiveTab(activeTab === 'history' ? 'home' : 'history')}
-                style={{
-                  marginLeft:'auto', background:'rgba(255,255,255,0.15)',
-                  border:'1px solid rgba(255,255,255,0.3)', color:'#fff',
-                  borderRadius:8, padding:'8px 16px', cursor:'pointer',
-                  fontSize:'0.85rem', fontWeight:700, fontFamily:'inherit',
-                }}
-              >
-                {activeTab === 'history' ? 'Back to Home' : 'My Donations →'}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── MY DONATIONS VIEW ── */}
-      {activeTab === 'history' && currentUser && (
-        <div style={{ maxWidth:1200, margin:'0 auto', padding:'48px 24px' }}>
-          <h2 style={{ fontFamily:'Raleway,sans-serif', fontSize:'1.8rem', color:'#1a1a2e', marginBottom:24 }}>
-            My Donation History
-          </h2>
-          {loadingDons ? (
-            <p style={{ color:'#9ca3af' }}>Loading…</p>
-          ) : donations.length === 0 ? (
-            <div style={{ textAlign:'center', padding:'60px 20px', color:'#9ca3af' }}>
-              <div style={{ fontSize:'3rem', marginBottom:12 }}>❤</div>
-              <p>You haven't donated yet. Browse campaigns below and make a difference!</p>
-              <button
-                onClick={() => setActiveTab('home')}
-                style={{
-                  marginTop:16, background:'linear-gradient(135deg,#e8531e,#f47c50)',
-                  color:'#fff', border:'none', padding:'12px 28px', borderRadius:8,
-                  cursor:'pointer', fontWeight:700, fontFamily:'inherit',
-                }}
-              >
-                Browse Causes
-              </button>
-            </div>
-          ) : (
-            <div>
-              <div style={{
-                background:'linear-gradient(135deg,#e1f5ee,#f0fdf4)',
-                borderRadius:16, padding:'20px 24px', marginBottom:28,
-                display:'flex', gap:32, flexWrap:'wrap',
-              }}>
-                <div>
-                  <div style={{ fontSize:'0.78rem', color:'#6b7280', textTransform:'uppercase', letterSpacing:1, marginBottom:4 }}>Total Given</div>
-                  <div style={{ fontSize:'2rem', fontWeight:800, color:'#0F6E56', fontFamily:'Raleway,sans-serif' }}>
-                    ${totalDonated.toFixed(2)}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize:'0.78rem', color:'#6b7280', textTransform:'uppercase', letterSpacing:1, marginBottom:4 }}>Donations Made</div>
-                  <div style={{ fontSize:'2rem', fontWeight:800, color:'#0F6E56', fontFamily:'Raleway,sans-serif' }}>
-                    {donations.length}
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ background:'#fff', borderRadius:14, overflow:'hidden', boxShadow:'0 2px 12px rgba(0,0,0,0.06)' }}>
-                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'0.9rem' }}>
-                  <thead>
-                    <tr style={{ background:'#f9fafb' }}>
-                      {['Date','Campaign','Amount','Method','Monthly'].map(h => (
-                        <th key={h} style={{ padding:'13px 16px', textAlign:'left', fontWeight:700, color:'#6b7280', fontSize:'0.78rem', textTransform:'uppercase', letterSpacing:.5, borderBottom:'1px solid #f3f4f6' }}>
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
+          {/* ========== DONATIONS TAB ========== */}
+          <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
+            <div className="card">
+              <div className="card-h"><div className="card-t">All Donations</div></div>
+              <div className="card-b" style={{ padding: 0 }}>
+                <table className="ut">
+                  <thead><tr><th>Campaign</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
                   <tbody>
                     {donations.map(d => (
-                      <tr key={d.id} style={{ borderBottom:'1px solid #f9fafb' }}>
-                        <td style={{ padding:'13px 16px', color:'#6b7280' }}>
-                          {new Date(d.created_at).toLocaleDateString()}
-                        </td>
-                        <td style={{ padding:'13px 16px', fontWeight:600, color:'#1a1a2e' }}>
-                          {d.campaign_title || '—'}
-                        </td>
-                        <td style={{ padding:'13px 16px', fontWeight:700, color:'#0F6E56' }}>
-                          ${parseFloat(d.amount).toFixed(2)}
-                        </td>
-                        <td style={{ padding:'13px 16px' }}>
-                          <span style={{
-                            background: d.payment_method === 'paypal' ? '#eff6ff' : '#e1f5ee',
-                            color: d.payment_method === 'paypal' ? '#1d4ed8' : '#0F6E56',
-                            borderRadius:20, padding:'2px 10px', fontSize:'0.78rem', fontWeight:700,
-                          }}>
-                            {d.payment_method || 'card'}
-                          </span>
-                        </td>
-                        <td style={{ padding:'13px 16px' }}>
-                          {d.is_monthly ? '✅' : '—'}
-                        </td>
-                      </tr>
+                      <tr key={d.id}><td>{d.campaign_title || `Campaign #${d.campaign_id}`}</td><td>${toNumber(d.amount).toFixed(2)}</td><td>{new Date(d.created_at).toLocaleDateString()}</td><td><span className="badge ba">{d.escrow_status || 'held'}</span></td></tr>
                     ))}
+                    {donations.length === 0 && <tr><td colSpan="4">No donations yet</td></tr>}
                   </tbody>
                 </table>
               </div>
             </div>
-          )}
-        </div>
-      )}
+          </div>
 
-      {/* ── MAIN HOME CONTENT ── */}
-      {activeTab === 'home' && (
-        <>
-          {/* HOW IT WORKS */}
-          <section id="how-it-works" style={{ padding:'80px 0', background:'#fff' }}>
-            <div style={{ maxWidth:1200, margin:'0 auto', padding:'0 24px' }}>
-              <div style={{ textAlign:'center', marginBottom:48 }}>
-                <div className="section-tag"><i className="fas fa-info-circle"></i> How It Works</div>
-                <h2 className="section-title">Simple Steps to <span className="accent">Make an Impact</span></h2>
-                <div className="section-divider" style={{ margin:'16px auto 0' }}></div>
-              </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))', gap:24 }}>
-                {HOW_STEPS.map(s => (
-                  <div key={s.n} style={{ textAlign:'center', padding:'24px 16px' }}>
-                    <div style={{
-                      width:60, height:60, borderRadius:'50%',
-                      background:'linear-gradient(135deg,#e8531e,#f47c50)',
-                      color:'#fff', display:'flex', alignItems:'center', justifyContent:'center',
-                      fontSize:'1.4rem', fontWeight:900, margin:'0 auto 16px',
-                      fontFamily:'Raleway,sans-serif', boxShadow:'0 8px 24px rgba(232,83,30,0.25)',
-                    }}>
-                      {s.n}
-                    </div>
-                    <h4 style={{ fontFamily:'Raleway,sans-serif', color:'#1a1a2e', marginBottom:8 }}>{s.title}</h4>
-                    <p style={{ color:'#6b7280', fontSize:'0.88rem', lineHeight:1.6 }}>{s.desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* CAUSES */}
-          <section id="causes" style={{ padding:'80px 0', background:'#f8f9fa' }}>
-            <div style={{ maxWidth:1200, margin:'0 auto', padding:'0 24px' }}>
-              <div className="section-tag"><i className="fas fa-heart"></i> Active Causes</div>
-              <h2 className="section-title">
-                Urgent Causes <span className="accent">You Can Change</span>
-              </h2>
-              <div className="section-divider"></div>
-
-              {/* Search & filter */}
-              <div style={{ display:'flex', gap:12, flexWrap:'wrap', marginBottom:32 }}>
-                <input
-                  type="text"
-                  placeholder="🔍 Search campaigns..."
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  style={{
-                    flex:1, minWidth:200, padding:'11px 16px',
-                    border:'2px solid #e5e7eb', borderRadius:10,
-                    fontSize:'0.95rem', fontFamily:'inherit', outline:'none',
-                  }}
-                />
-                <select
-                  value={selectedCategory}
-                  onChange={e => setSelectedCategory(e.target.value)}
-                  style={{
-                    padding:'11px 16px', border:'2px solid #e5e7eb', borderRadius:10,
-                    fontSize:'0.95rem', fontFamily:'inherit', outline:'none',
-                    background:'#fff', cursor:'pointer',
-                  }}
-                >
-                  <option value="">All Categories</option>
-                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-
-              {filtered.length === 0 ? (
-                <div style={{ textAlign:'center', padding:'60px 0', color:'#9ca3af' }}>
-                  {approvedCampaigns.length === 0 ? 'No active campaigns yet.' : 'No campaigns match your search.'}
-                </div>
-              ) : (
-                <div className="cards-grid">
-                  {filtered.map(c => (
-                    <CauseCard
-                      key={c.id}
-                      campaign={c}
-                      onDonate={() => scrollTo('donate')}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* IMPACT PARALLAX */}
-          <section id="impact" className="parallax-banner">
-            <div className="parallax-content container-inner">
-              <div className="parallax-tag"><i className="fas fa-chart-line"></i> Our Impact</div>
-              <h2>Where Your Money <span style={{ color:'var(--primary-light)' }}>Goes</span></h2>
-              <p>We operate with 100% transparency. Every cent is tracked and reported.</p>
-              <button
-                onClick={() => scrollTo('donate')}
-                style={{
-                  background:'linear-gradient(135deg,#e8531e,#f47c50)',
-                  color:'#fff', border:'none', padding:'14px 32px', borderRadius:6,
-                  fontWeight:700, fontSize:'1rem', cursor:'pointer',
-                  fontFamily:'Raleway,sans-serif', textTransform:'uppercase',
-                }}
-              >
-                ❤ Donate Now
-              </button>
-              <div className="parallax-stats">
-                {[['89%','Program Efficiency'],['14K+','Lives Impacted'],['120+','Projects Funded'],['100%','Transparency']].map(([n,l]) => (
-                  <div key={l} className="pstat">
-                    <div className="pstat-num"><span className="counter-accent">{n}</span></div>
-                    <div className="pstat-lbl">{l}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* DONATION FORM */}
-          <section id="donate" style={{ padding:'80px 0', background:'#f8f9fa' }}>
-            <div style={{ maxWidth:1200, margin:'0 auto', padding:'0 24px' }}>
-              <div className="section-tag"><i className="fas fa-gift"></i> Make A Donation</div>
-              <h2 className="section-title mb-0">
-                Give <span className="accent">Today</span>
-              </h2>
-              <div className="section-divider"></div>
-              <div className="donation-wrapper">
-                <div className="donation-info">
-                  <h2>Your Generosity <span style={{ color:'var(--primary)' }}>Transforms Lives</span></h2>
-                  <p>Select a campaign, enter your details, and help make the world a better place.</p>
-                  <div className="trust-items">
-                    {TRUST_ITEMS.map(t => (
-                      <div key={t.title} className="trust-item">
-                        <div className="trust-icon" style={{ fontSize:'1.3rem' }}>{t.icon}</div>
-                        <div className="trust-text">
-                          <strong>{t.title}</strong>
-                          <span>{t.desc}</span>
+          {/* ========== WALLET TAB ========== */}
+          <div className={`ps ${activeTab === 'wallet' ? 'active' : ''}`}>
+            {/* Deposit Section */}
+            <div className="card">
+              <div className="card-h"><div className="card-t">Deposit Funds</div></div>
+              <div className="card-b">
+                {pendingDeposit ? (
+                  <div>
+                    <div style={{ background:'#eff6ff', borderRadius:12, padding:16, marginBottom:16 }}>
+                      <div><strong>Pending Deposit #{pendingDeposit.id}</strong> – ${pendingDeposit.amount}</div>
+                      <div>Status: <span style={{ color: statusColor(pendingDeposit.status) }}>{statusLabel(pendingDeposit.status)}</span></div>
+                      {pendingDeposit.admin_instructions && (
+                        <div style={{ marginTop:12, background:'#dbeafe', padding:12, borderRadius:8 }}>
+                          <strong>Instructions:</strong><br/>{pendingDeposit.admin_instructions}
                         </div>
-                      </div>
-                    ))}
+                      )}
+                    </div>
+                    {(pendingDeposit.status === 'pending' || pendingDeposit.status === 'instructions_sent') && !pendingDeposit.proof_image_url && (
+                      <>
+                        <input type="file" ref={proofInputRef} accept="image/*" style={{ display:'none' }} onChange={e => setProofFile(e.target.files[0])} />
+                        {proofFile ? (
+                          <div><span>📄 {proofFile.name}</span> <button className="db dbr" onClick={() => setProofFile(null)}>Remove</button></div>
+                        ) : (
+                          <button className="db dba" onClick={() => proofInputRef.current?.click()}>Select Proof Image</button>
+                        )}
+                        {proofFile && (
+                          <button className="btn btn-g" onClick={handleUploadProof} disabled={proofUploading} style={{ marginTop:12 }}>{proofUploading ? 'Uploading...' : 'Upload Proof'}</button>
+                        )}
+                      </>
+                    )}
+                    {pendingDeposit.status === 'awaiting_proof' && <div>✅ Proof submitted, waiting for admin verification.</div>}
                   </div>
-                </div>
-                <DonationForm />
+                ) : (
+                  <form onSubmit={handleRequestDeposit}>
+                    <label className="fl">Amount (USD)</label>
+                    <input type="number" min="1" step="0.01" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} required className="fi" placeholder="Min $1" />
+                    <div style={{ display:'flex', gap:8, marginBottom:12 }}>
+                      {[20,50,100,200,500].map(a => (
+                        <button key={a} type="button" onClick={() => setDepositAmount(a)} style={{ padding:'6px 12px', background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6 }}>${a}</button>
+                      ))}
+                    </div>
+                    <button type="submit" className="btn btn-g" disabled={depositLoading}>{depositLoading ? 'Submitting...' : 'Request Deposit'}</button>
+                  </form>
+                )}
               </div>
             </div>
-          </section>
 
-          {/* TESTIMONIALS */}
-          <section style={{ padding:'80px 0', background:'#fff' }}>
-            <div style={{ maxWidth:1200, margin:'0 auto', padding:'0 24px' }}>
-              <div style={{ textAlign:'center', marginBottom:48 }}>
-                <div className="section-tag"><i className="fas fa-quote-right"></i> Testimonials</div>
-                <h2 className="section-title">What Our <span className="accent">Donors Say</span></h2>
-                <div className="section-divider" style={{ margin:'16px auto 0' }}></div>
-              </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))', gap:24 }}>
-                {TESTIMONIALS.map(t => (
-                  <div key={t.author} className="testimonial-card">
-                    <div className="stars">{'★'.repeat(t.stars)}</div>
-                    <p className="testimonial-text">"{t.text}"</p>
-                    <div className="testimonial-author">— {t.author}</div>
-                  </div>
-                ))}
+            {/* Withdraw Section */}
+            <div className="card">
+              <div className="card-h"><div className="card-t">Withdraw Funds</div></div>
+              <div className="card-b">
+                <div style={{ marginBottom:12, background:'#fef9c3', padding:12, borderRadius:8 }}>Available: <strong>${walletBalance.toFixed(2)}</strong></div>
+                <form onSubmit={handleWithdraw}>
+                  <label className="fl">Amount (USD)</label>
+                  <input type="number" min="1" step="0.01" max={walletBalance} value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} required className="fi" />
+                  <label className="fl">Payment Method</label>
+                  <select className="fi" value={withdrawMethod} onChange={e => setWithdrawMethod(e.target.value)}>
+                    <option value="bank">Bank Transfer</option>
+                    <option value="mobile_money">Mobile Money</option>
+                    <option value="paypal">PayPal</option>
+                  </select>
+                  <label className="fl">Payment Details</label>
+                  <textarea className="fi" rows="2" placeholder={withdrawMethod === 'bank' ? 'Account name, number, bank name' : withdrawMethod === 'mobile_money' ? 'Phone number & network' : 'PayPal email'} value={withdrawDetails} onChange={e => setWithdrawDetails(e.target.value)} required />
+                  <button type="submit" className="btn btn-g" disabled={withdrawLoading}>{withdrawLoading ? 'Submitting...' : 'Request Withdrawal'}</button>
+                </form>
               </div>
             </div>
-          </section>
 
-          {/* CTA STRIP */}
-          <section className="cta-strip">
-            <div style={{ maxWidth:1200, margin:'0 auto', padding:'0 24px', textAlign:'center' }}>
-              <h2>Ready to Make a Difference?</h2>
-              <p>Start your campaign today or donate to an existing cause.</p>
-              <div style={{ display:'flex', gap:16, justifyContent:'center', flexWrap:'wrap' }}>
-                <button
-                  className="btn-hero-outline"
-                  style={{ borderColor:'rgba(255,255,255,.8)' }}
-                  onClick={() => openAuth('register','creator')}
-                >
-                  <i className="fas fa-plus"></i> Start a Campaign
-                </button>
-                <button className="cta-strip-btn-white" onClick={() => scrollTo('donate')}>
-                  Donate Now <i className="fas fa-arrow-right"></i>
-                </button>
+            {/* Transaction History */}
+            <div className="card">
+              <div className="card-h"><div className="card-t">Transaction History</div></div>
+              <div className="card-b">
+                {transactions.length === 0 ? (
+                  <div>No transactions yet</div>
+                ) : (
+                  <table className="ut">
+                    <thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead>
+                    <tbody>
+                      {transactions.slice(0, 10).map(tx => (
+                        <tr key={tx.id}>
+                          <td>{new Date(tx.created_at).toLocaleDateString()}</td>
+                          <td>{tx.description || tx.type}</td>
+                          <td style={{ color: tx.amount > 0 ? 'var(--green)' : 'var(--red)' }}>{tx.amount > 0 ? '+' : ''}{toNumber(tx.amount).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </div>
-          </section>
+          </div>
 
-          {/* FOOTER */}
-          <footer className="site-footer">
-            <div className="footer-inner">
-              <div>
-                <div className="footer-logo"><i className="fas fa-heart"></i> HopeBridge</div>
-                <p style={{ fontSize:'.88rem', lineHeight:1.8, maxWidth:240 }}>
-                  Empowering communities through transparent giving.
-                </p>
-                <div className="social-icons">
-                  {['facebook-f','twitter','instagram','linkedin-in'].map(icon => (
-                    <a key={icon} href="#"><i className={`fab fa-${icon}`}></i></a>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h4>Explore</h4>
-                <ul className="footer-links">
-                  <li><a onClick={() => scrollTo('causes')}>Active Causes</a></li>
-                  <li><a onClick={() => scrollTo('how-it-works')}>How It Works</a></li>
-                  <li><a onClick={() => scrollTo('impact')}>Our Impact</a></li>
-                </ul>
-              </div>
-              <div>
-                <h4>Join Us</h4>
-                <ul className="footer-links">
-                  <li><a onClick={() => openAuth('register','donor')}>Become a Donor</a></li>
-                  <li><a onClick={() => openAuth('register','creator')}>Start a Campaign</a></li>
-                </ul>
-              </div>
-              <div>
-                <h4>Contact</h4>
-                <ul className="footer-links">
-                  <li><a>hello@hopebridge.org</a></li>
-                  <li><a>+1 (555) 123-4567</a></li>
-                </ul>
+          {/* ========== SETTINGS TAB ========== */}
+          <div className={`ps ${activeTab === 'settings' ? 'active' : ''}`}>
+            <div className="card">
+              <div className="card-h"><div className="card-t">Profile Settings</div></div>
+              <div className="card-b">
+                <label className="fl">Display Name</label>
+                <input className="fi" type="text" defaultValue={currentUser?.name} />
+                <label className="fl">Email</label>
+                <input className="fi" type="email" defaultValue={currentUser?.email} />
+                <button className="btn btn-g" onClick={() => showToast('Profile update coming soon')}>Save Changes</button>
               </div>
             </div>
-            <div className="footer-bottom">
-              <p>© 2025 HopeBridge — Nonprofit. All Rights Reserved.</p>
-              <p>Made with <span style={{ color:'var(--primary)' }}>❤</span> for a better world</p>
-            </div>
-          </footer>
-        </>
-      )}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="bnav">
+        <div className="bnav-inner">
+          {['overview', 'donations', 'wallet'].map(tab => (
+            <button key={tab} className={`bni ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+              <div className="bni-icon">
+                {tab === 'overview' && <svg width="20" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>}
+                {tab === 'donations' && <svg width="20" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>}
+                {tab === 'wallet' && <svg width="20" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>}
+              </div>
+              <span className="bni-lbl">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {/* Floating Action Button (for quick deposit) */}
+      <button className="fab" onClick={() => setActiveTab('wallet')}>
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
     </div>
-  )
+  );
 }
