@@ -64,7 +64,7 @@ export default function Navbar() {
                 onClick={() => setProfileOpen(o => !o)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
-                  background: 'none', border: `2px solid ${roleColor}20`,
+                  border: `2px solid ${roleColor}20`,
                   borderRadius: 40, padding: '6px 14px 6px 6px',
                   cursor: 'pointer', transition: '0.15s', fontFamily: 'inherit',
                   background: profileOpen ? `${roleColor}10` : '#fff',
