@@ -933,11 +933,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Campaigns */}
-          <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
-            <div className="sh"><div className="sht">Campaign Management</div><button className="btn btn-g" onClick={() => { const name = prompt('Campaign name'); const creator = prompt('Creator name'); const goal = parseFloat(prompt('Goal amount')); if (name && creator && goal) { /* API call to create campaign */ showToast('Campaign creation API needed'); } }}>+ New Campaign</button></div>
-            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut" style={{ width: '100%' }}><thead><tr><th style={{ paddingLeft: 20 }}>Campaign</th><th>Creator</th><th>Goal</th><th>Progress</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{campaigns.map(c => (<tr key={c.id}><td style={{ paddingLeft: 20 }}><div style={{ fontWeight: 600 }}>{c.title}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{c.creator_name}</div></td><td>${c.goal.toLocaleString()}</td><td><div style={{ width: 80 }}><div className="pb"><div className="pf" style={{ width: `${((c.raised) / c.goal) * 100}%` }}></div></div><div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 2 }}>{Math.round(((c.raised) / c.goal) * 100)}%</div></div></td><td><span className={`badge ${c.status === 'active' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td><td style={{ paddingRight: 20 }}><div style={{ display: 'flex', gap: 6 }}>{c.status !== 'active' && <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>Approve</button>}<button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}>Delete</button></div></td></tr>))}</tbody></table></div></div>
-          </div>
+          
 
           {/* Users */}
           <div className={`ps ${activeTab === 'users' ? 'active' : ''}`}>
