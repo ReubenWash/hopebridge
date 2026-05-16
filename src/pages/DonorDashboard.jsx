@@ -208,10 +208,26 @@ export default function DonorDashboard() {
     }
 
     let lastStatus = pending.status;
+    
+    // Clear any existing interval first
+    if (depositPollInterval.current) clearInterval(depositPollInterval.current);
+    
     depositPollInterval.current = setInterval(async () => {
       try {
-        const res = await walletApi.getDepositRequestById(pending.id);
-        const updated = res.request;
+        // Add safety check for the API call
+        let updated;
+        try {
+          const res = await walletApi.getDepositRequestById(pending.id);
+          updated = res.request;
+          if (!updated) {
+            console.warn('No request data in response');
+            return;
+          }
+        } catch (apiErr) {
+          console.warn('API call failed:', apiErr.message);
+          return;
+        }
+        
         if (updated.status !== lastStatus) {
           if (updated.status === 'instructions_sent') {
             showToast(`Payment instructions for deposit #${pending.id} are now available.`);
@@ -233,8 +249,10 @@ export default function DonorDashboard() {
       }
     }, 3000);
 
-    return () => clearInterval(depositPollInterval.current);
-  }, [depositRequests, refreshWallet, showToast]);
+    return () => {
+      if (depositPollInterval.current) clearInterval(depositPollInterval.current);
+    };
+  }, [depositRequests, refreshWallet, showToast, loadData]);
 
   // Poll withdrawal requests (every 5 seconds)
   useEffect(() => {
@@ -260,11 +278,14 @@ export default function DonorDashboard() {
 
   // Periodic wallet refresh (every 10 seconds)
   useEffect(() => {
+    if (walletRefreshInterval.current) clearInterval(walletRefreshInterval.current);
     walletRefreshInterval.current = setInterval(() => {
       refreshWallet();
       loadData();
     }, 10000);
-    return () => clearInterval(walletRefreshInterval.current);
+    return () => {
+      if (walletRefreshInterval.current) clearInterval(walletRefreshInterval.current);
+    };
   }, [refreshWallet]);
 
   // Initial load on mount
