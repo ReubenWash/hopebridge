@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage'
 import DonorDashboard from './pages/DonorDashboard'
 import CreatorDashboard from './pages/CreatorDashboard'
 import AdminDashboard from './pages/AdminDashboard'
+import CampaignProfile from './pages/CampaignProfile'
 import VerifyEmail from './pages/VerifyEmail'
 import AuthModal from './components/AuthModal'
 import Toast from './components/Toast'
@@ -80,6 +81,17 @@ function AppContent() {
       <Routes>
         {/* Home / Landing Page - with Navbar */}
         <Route path="/" element={<HomeRoute />} />
+
+        {/* Campaign Profile - public page, shows Navbar */}
+        <Route 
+          path="/campaign/:id" 
+          element={
+            <>
+              <Navbar />
+              <CampaignProfile />
+            </>
+          } 
+        />
 
         {/* Donor Dashboard - no Navbar (it has its own sidebar) */}
         <Route

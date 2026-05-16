@@ -45,6 +45,11 @@ async function multipart(method, path, formData) {
   return data
 }
 
+// ── Users ─────────────────────────────────────────────────────────
+export const userApi = {
+  getById: (id) => request(`/users/${id}`),
+}
+
 // ── Auth ─────────────────────────────────────────────────────────
 export const authApi = {
   register: (body) => request('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
@@ -71,6 +76,7 @@ export const campaignApi = {
   },
   getMy:   () => request('/campaigns/my'),
   getById: (id) => request(`/campaigns/${id}`),
+  getCreator: (userId) => request(`/users/${userId}`),
   create:  (formData) => multipart('POST',  '/campaigns',      formData),
   update:  (id, formData) => multipart('PATCH', `/campaigns/${id}`, formData),
   delete:  (id) => request(`/campaigns/${id}`, { method: 'DELETE' }),
