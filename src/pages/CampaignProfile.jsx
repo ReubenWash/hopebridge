@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { campaignApi, donationApi, walletApi } from '../services/api';
+import { campaignApi, donationApi, userApi } from '../services/api';
 import DonationForm from '../components/DonationForm';
 
 export default function CampaignProfile() {
@@ -28,8 +28,16 @@ export default function CampaignProfile() {
       const data = await campaignApi.getById(id);
       setCampaign(data.campaign);
       // Get creator info
-      const creatorData = await campaignApi.getCreator?.(data.campaign.creator_id);
-      if (creatorData) setCreator(creatorData.user);
+      if (data.campaign.creator_id) {
+        try {
+          const creatorData = await userApi.getById(data.campaign.creator_id);
+          if (creatorData && creatorData.user) {
+            setCreator(creatorData.user);
+          }
+        } catch (err) {
+          console.error('Error loading creator:', err);
+        }
+      }
     } catch (err) {
       console.error('Error loading campaign:', err);
       setError('Campaign not found');
@@ -63,6 +71,14 @@ export default function CampaignProfile() {
     showToast('Link copied to clipboard!');
   };
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleGoHome = () => {
+    navigate('/');
+  };
+
   if (loading) {
     return (
       <div className="campaign-profile-loading">
@@ -75,20 +91,31 @@ export default function CampaignProfile() {
   if (error || !campaign) {
     return (
       <div className="campaign-profile-error">
+        <i className="fas fa-exclamation-circle" style={{ fontSize: '3rem', color: '#e8531e', marginBottom: '1rem' }}></i>
         <h2>Campaign Not Found</h2>
         <p>The campaign you're looking for doesn't exist or has been removed.</p>
-        <button onClick={() => navigate('/')} className="btn-primary-custom">
-          Back to Home
+        <button onClick={handleGoHome} className="btn-primary-custom">
+          <i className="fas fa-arrow-left"></i> Back to Home
         </button>
       </div>
     );
   }
 
   const progress = (campaign.raised / campaign.goal) * 100;
-  const daysLeft = campaign.days_left || 30; // You can add this to your campaign table
+  const daysLeft = campaign.days_left || 30;
 
   return (
     <div className="campaign-profile">
+      {/* Back Navigation Bar */}
+      <div className="campaign-nav-bar">
+        <button onClick={handleBack} className="nav-back-btn">
+          <i className="fas fa-arrow-left"></i> Back
+        </button>
+        <button onClick={handleGoHome} className="nav-home-btn">
+          <i className="fas fa-home"></i> Home
+        </button>
+      </div>
+
       {/* Hero Section */}
       <div className="campaign-hero">
         <div 
@@ -98,11 +125,17 @@ export default function CampaignProfile() {
           <div className="campaign-hero-overlay"></div>
         </div>
         <div className="campaign-hero-content">
-          <div className="campaign-category">{campaign.category || 'Cause'}</div>
+          <div className="campaign-category">
+            <i className="fas fa-tag"></i> {campaign.category || 'Cause'}
+          </div>
           <h1>{campaign.title}</h1>
           <div className="campaign-creator">
-            <span className="creator-avatar">👤</span>
+            <i className="fas fa-user-circle"></i>
             <span>Created by {creator?.name || campaign.creator_name || 'Anonymous'}</span>
+          </div>
+          <div className="campaign-date">
+            <i className="far fa-calendar-alt"></i>
+            <span>Started {new Date(campaign.created_at).toLocaleDateString()}</span>
           </div>
         </div>
       </div>
@@ -111,40 +144,54 @@ export default function CampaignProfile() {
         <div className="campaign-main">
           {/* Description */}
           <div className="campaign-section">
-            <h2>About This Campaign</h2>
+            <h2><i className="fas fa-info-circle"></i> About This Campaign</h2>
             <div className="campaign-description">
               {campaign.description || 'No description provided.'}
             </div>
           </div>
 
-          {/* Updates Section (optional - you can add updates table) */}
+          {/* Updates Section */}
           <div className="campaign-section">
-            <h2>Updates</h2>
+            <h2><i className="fas fa-newspaper"></i> Updates</h2>
             <div className="campaign-updates">
-              <p>No updates yet. Check back soon!</p>
+              <div className="no-updates">
+                <i className="far fa-newspaper"></i>
+                <p>No updates yet. Check back soon!</p>
+              </div>
             </div>
           </div>
 
           {/* Donations List */}
           <div className="campaign-section">
-            <h2>Recent Donations</h2>
+            <h2><i className="fas fa-hand-holding-heart"></i> Recent Donations</h2>
             {donations.length === 0 ? (
-              <p>No donations yet. Be the first to donate!</p>
+              <div className="no-donations">
+                <i className="fas fa-gift"></i>
+                <p>No donations yet. Be the first to donate!</p>
+              </div>
             ) : (
               <div className="donations-list">
                 {donations.slice(0, 10).map(donation => (
                   <div key={donation.id} className="donation-item">
                     <div className="donor-info">
-                      <strong>{donation.donor_name || 'Anonymous'}</strong>
+                      <div className="donor-name">
+                        <i className="fas fa-user"></i>
+                        <strong>{donation.donor_name || 'Anonymous'}</strong>
+                      </div>
                       <span className="donation-date">
+                        <i className="far fa-calendar-alt"></i>
                         {new Date(donation.created_at).toLocaleDateString()}
                       </span>
                     </div>
                     <div className="donation-amount">
-                      ${parseFloat(donation.amount).toLocaleString()}
+                      <i className="fas fa-dollar-sign"></i>
+                      {parseFloat(donation.amount).toLocaleString()}
                     </div>
                     {donation.message && (
-                      <div className="donation-message">"{donation.message}"</div>
+                      <div className="donation-message">
+                        <i className="fas fa-quote-left"></i>
+                        "{donation.message}"
+                      </div>
                     )}
                   </div>
                 ))}
@@ -157,36 +204,46 @@ export default function CampaignProfile() {
           {/* Progress Card */}
           <div className="progress-card">
             <div className="raised-amount">
-              <span className="amount">${campaign.raised?.toLocaleString()}</span>
+              <span className="amount">
+                <i className="fas fa-dollar-sign"></i> {campaign.raised?.toLocaleString()}
+              </span>
               <span className="goal">raised of ${campaign.goal?.toLocaleString()} goal</span>
             </div>
             <div className="progress-bar">
               <div className="progress-fill" style={{ width: `${Math.min(progress, 100)}%` }}></div>
             </div>
             <div className="progress-stats">
-              <span>{Math.round(progress)}% funded</span>
-              <span>{daysLeft} days left</span>
+              <span><i className="fas fa-chart-line"></i> {Math.round(progress)}% funded</span>
+              <span><i className="far fa-clock"></i> {daysLeft} days left</span>
             </div>
             
             <button className="donate-now-btn" onClick={handleDonateClick}>
-              ❤ Donate Now
+              <i className="fas fa-heart"></i> Donate Now
             </button>
             
             <button className="share-btn" onClick={handleShare}>
-              📤 Share Campaign
+              <i className="fas fa-share-alt"></i> Share Campaign
             </button>
           </div>
 
           {/* Donation Form (when clicked) */}
           {showDonateForm && (
             <div className="donation-form-card">
-              <h3>Make a Donation</h3>
-              <DonationForm campaignId={campaign.id} onSuccess={() => {
-                setShowDonateForm(false);
-                loadCampaign();
-                loadDonations();
-                refreshWallet();
-              }} />
+              <div className="donation-form-header">
+                <h3><i className="fas fa-gift"></i> Make a Donation</h3>
+                <button className="close-form-btn" onClick={() => setShowDonateForm(false)}>
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              <DonationForm 
+                campaignId={campaign.id} 
+                onSuccess={() => {
+                  setShowDonateForm(false);
+                  loadCampaign();
+                  loadDonations();
+                  refreshWallet();
+                }} 
+              />
             </div>
           )}
         </div>
@@ -196,6 +253,48 @@ export default function CampaignProfile() {
         .campaign-profile {
           min-height: 100vh;
           background: #f8f9fa;
+        }
+        
+        .campaign-nav-bar {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          background: white;
+          padding: 12px 24px;
+          display: flex;
+          gap: 12px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .nav-back-btn, .nav-home-btn {
+          padding: 8px 16px;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 0.9rem;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          transition: all 0.2s;
+        }
+        
+        .nav-back-btn {
+          background: #f3f4f6;
+          color: #374151;
+        }
+        
+        .nav-back-btn:hover {
+          background: #e5e7eb;
+        }
+        
+        .nav-home-btn {
+          background: #e8531e;
+          color: white;
+        }
+        
+        .nav-home-btn:hover {
+          background: #c4400f;
         }
         
         .campaign-hero {
@@ -238,7 +337,9 @@ export default function CampaignProfile() {
         }
         
         .campaign-category {
-          display: inline-block;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
           background: rgba(232, 83, 30, 0.9);
           padding: 6px 16px;
           border-radius: 20px;
@@ -256,22 +357,13 @@ export default function CampaignProfile() {
           max-width: 800px;
         }
         
-        .campaign-creator {
+        .campaign-creator, .campaign-date {
           display: flex;
           align-items: center;
           gap: 8px;
           font-size: 0.9rem;
           opacity: 0.9;
-        }
-        
-        .creator-avatar {
-          width: 32px;
-          height: 32px;
-          background: rgba(255,255,255,0.2);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          margin-bottom: 8px;
         }
         
         .campaign-container {
@@ -295,11 +387,30 @@ export default function CampaignProfile() {
           font-size: 1.4rem;
           margin-bottom: 20px;
           color: #1a1a2e;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        
+        .campaign-section h2 i {
+          color: #e8531e;
         }
         
         .campaign-description {
           line-height: 1.8;
           color: #444;
+        }
+        
+        .no-updates, .no-donations {
+          text-align: center;
+          padding: 40px;
+          color: #9ca3af;
+        }
+        
+        .no-updates i, .no-donations i {
+          font-size: 2.5rem;
+          margin-bottom: 12px;
+          display: block;
         }
         
         .progress-card {
@@ -321,6 +432,10 @@ export default function CampaignProfile() {
           font-weight: 800;
           color: #e8531e;
           display: block;
+        }
+        
+        .raised-amount .amount i {
+          font-size: 1.5rem;
         }
         
         .raised-amount .goal {
@@ -351,6 +466,10 @@ export default function CampaignProfile() {
           margin-bottom: 24px;
         }
         
+        .progress-stats i {
+          margin-right: 4px;
+        }
+        
         .donate-now-btn, .share-btn {
           width: 100%;
           padding: 14px;
@@ -361,6 +480,10 @@ export default function CampaignProfile() {
           cursor: pointer;
           transition: all 0.2s;
           margin-bottom: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
         }
         
         .donate-now-btn {
@@ -402,7 +525,16 @@ export default function CampaignProfile() {
           margin-bottom: 8px;
         }
         
+        .donor-name {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        
         .donation-date {
+          display: flex;
+          align-items: center;
+          gap: 6px;
           font-size: 0.8rem;
           color: #9ca3af;
         }
@@ -411,6 +543,9 @@ export default function CampaignProfile() {
           font-weight: 700;
           color: #e8531e;
           margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
         
         .donation-message {
@@ -420,6 +555,13 @@ export default function CampaignProfile() {
           padding: 8px 12px;
           background: #f9fafb;
           border-radius: 8px;
+          display: flex;
+          gap: 8px;
+        }
+        
+        .donation-message i {
+          color: #9ca3af;
+          font-size: 0.8rem;
         }
         
         .donation-form-card {
@@ -428,6 +570,35 @@ export default function CampaignProfile() {
           padding: 24px;
           margin-top: 20px;
           box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        
+        .donation-form-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+          padding-bottom: 12px;
+          border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .donation-form-header h3 {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0;
+        }
+        
+        .close-form-btn {
+          background: none;
+          border: none;
+          font-size: 1.2rem;
+          cursor: pointer;
+          color: #9ca3af;
+          padding: 4px;
+        }
+        
+        .close-form-btn:hover {
+          color: #ef4444;
         }
         
         .campaign-profile-loading, .campaign-profile-error {
@@ -463,6 +634,10 @@ export default function CampaignProfile() {
           
           .campaign-hero-content h1 {
             font-size: 1.8rem;
+          }
+          
+          .campaign-nav-bar {
+            padding: 10px 16px;
           }
         }
       `}</style>
