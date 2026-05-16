@@ -92,6 +92,16 @@ export const donationApi = {
   saveCreatorPaymentMethod: (data) => request('/donations/creator/payment-method', {
     method: 'PUT', body: JSON.stringify(data),
   }),
+
+  // Creator wallet and payouts (for creator dashboard)
+  getCreatorWallet: () => request('/donations/creator/wallet'),
+  getMyPayoutRequests: () => request('/donations/creator/payout-requests'),
+  requestPayout: (data) => request('/donations/creator/request-payout', {
+    method: 'POST', body: JSON.stringify(data),
+  }),
+  updateCampaignProgress: (id, data) => request(`/campaigns/${id}/progress`, {
+    method: 'PATCH', body: JSON.stringify(data),
+  }),
 }
 
 // ── Wallet ────────────────────────────────────────────────────────

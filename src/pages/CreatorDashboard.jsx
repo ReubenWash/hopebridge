@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { donationApi, campaignApi } from '../services/api';
+import { donationApi, campaignApi, walletApi } from '../services/api';
 import CampaignModal from '../components/CampaignModal';
 import DonationsModal from '../components/DonationsModal';
 
@@ -138,7 +138,7 @@ export default function CreatorDashboard() {
   const [payoutRequests, setPayoutRequests] = useState([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [totalEarned, setTotalEarned] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState({ paypal_email: '' });
+  const [paymentMethod, setPaymentMethod] = useState({ paypal_email: '', account_name: '', account_number: '', bank_name: '' });
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
@@ -160,17 +160,36 @@ export default function CreatorDashboard() {
     setLoadingData(true);
     try {
       await loadMyCampaigns();
-      const [donRes, payRes, walletRes] = await Promise.all([
-        safeGet(() => donationApi.getMyDonations?.(), { donations: [] }),
-        safeGet(() => donationApi.getMyPayoutRequests?.(), { requests: [] }),
-        safeGet(() => donationApi.getCreatorWallet?.(), { balance: 0, total_earned: 0 }),
-      ]);
+      
+      // Safe API calls with fallbacks
+      let donRes = { donations: [] };
+      let payRes = { requests: [] };
+      let walletRes = { balance: 0, total_earned: 0 };
+      
+      try {
+        donRes = await donationApi.getMyDonations();
+      } catch (err) {
+        console.warn('Failed to fetch donations:', err.message);
+      }
+      
+      try {
+        payRes = await donationApi.getMyPayoutRequests();
+      } catch (err) {
+        console.warn('Failed to fetch payout requests:', err.message);
+      }
+      
+      try {
+        walletRes = await donationApi.getCreatorWallet();
+      } catch (err) {
+        console.warn('Failed to fetch wallet:', err.message);
+      }
+      
       setDonations(donRes.donations || []);
       setPayoutRequests(payRes.requests || []);
       setWalletBalance(walletRes.balance ?? 0);
       setTotalEarned(walletRes.total_earned ?? 0);
     } catch (err) {
-      console.error(err);
+      console.error('Error loading data:', err);
       showToast('Error loading data', true);
     } finally {
       setLoadingData(false);
@@ -181,7 +200,9 @@ export default function CreatorDashboard() {
     try {
       const res = await donationApi.getCreatorPaymentMethod();
       if (res.payment_method) setPaymentMethod(res.payment_method);
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.warn('Failed to load payment method:', err.message);
+    }
   };
 
   const savePaymentMethod = async (e) => {
@@ -204,7 +225,7 @@ export default function CreatorDashboard() {
       return;
     }
     try {
-      await donationApi.updateCampaignProgress?.(selectedCampaignId, { raised: newRaised });
+      await donationApi.updateCampaignProgress(selectedCampaignId, { raised: newRaised });
       showToast('Progress updated');
       setProgressModalOpen(false);
       await loadData();
@@ -227,8 +248,22 @@ export default function CreatorDashboard() {
   const handleRequestPayout = async () => {
     const amount = parseFloat(prompt('Amount to withdraw (USD)', '100'));
     if (!amount || amount <= 0) return;
+    
+    const method = prompt('Payment method (bank, paypal, mobile_money):', 'bank');
+    if (!method) return;
+    
+    const details = prompt('Payment details (account number/email/phone):', '');
+    if (!details) {
+      showToast('Payment details required', true);
+      return;
+    }
+    
     try {
-      await donationApi.requestPayout?.({ amount });
+      await donationApi.requestPayout({ 
+        amount, 
+        payment_method: method,
+        payment_details: details 
+      });
       showToast(`Withdrawal request of $${amount} submitted`);
       await loadData();
     } catch (err) {
@@ -237,7 +272,6 @@ export default function CreatorDashboard() {
   };
 
   const handleSaveSettings = async () => {
-    // In a real implementation, you'd save name/email/bank account
     showToast('Settings saved (demo)');
   };
 
@@ -249,7 +283,7 @@ export default function CreatorDashboard() {
   const initials = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   const totalRaised = myCampaigns.reduce((sum, c) => sum + parseFloat(c.raised || 0), 0);
   const activeCampaigns = myCampaigns.filter(c => c.status === 'approved' || c.status === 'active').length;
-  const pendingPayoutSum = payoutRequests.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
+  const pendingPayoutSum = payoutRequests.filter(p => p.status === 'pending').reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
 
   return (
     <div className="shell">
@@ -295,7 +329,7 @@ export default function CreatorDashboard() {
           </button>
           <div className="nav-sec">Account</div>
           <button className={`nl ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             Settings
           </button>
         </nav>
@@ -379,7 +413,7 @@ export default function CreatorDashboard() {
                       <div className="cn">{d.donor_name}</div>
                       <div className="cm">{d.campaign_title}</div>
                     </div>
-                    <div className="badge ba">+${d.amount}</div>
+                    <div className="badge ba">+${parseFloat(d.amount).toFixed(2)}</div>
                     <div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{new Date(d.created_at).toLocaleDateString()}</div>
                   </div>
                 ))}
@@ -393,7 +427,7 @@ export default function CreatorDashboard() {
                   <div key={c.id} className="cr">
                     <div className="ci">
                       <div className="cn">{c.title}</div>
-                      <div className="cm">${c.raised?.toLocaleString()} / ${c.goal?.toLocaleString()}</div>
+                      <div className="cm">${parseFloat(c.raised || 0).toLocaleString()} / ${parseFloat(c.goal).toLocaleString()}</div>
                       <div className="pb"><div className="pf" style={{ width: `${((c.raised || 0) / c.goal) * 100}%` }}></div></div>
                     </div>
                     <button className="db dba" onClick={() => { setSelectedCampaignId(c.id); setProgressModalOpen(true); }}>Update</button>
@@ -429,8 +463,8 @@ export default function CreatorDashboard() {
                       return (
                         <tr key={c.id}>
                           <td><strong>{c.title}</strong><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>Created {new Date(c.created_at).toLocaleDateString()}</div></td>
-                          <td>${c.goal?.toLocaleString()}</td>
-                          <td>${c.raised?.toLocaleString()}</td>
+                          <td>${parseFloat(c.goal).toLocaleString()}</td>
+                          <td>${parseFloat(c.raised || 0).toLocaleString()}</td>
                           <td>
                             <div className="pb" style={{ width: 100 }}>
                               <div className="pf" style={{ width: `${percent}%` }}></div>
@@ -465,7 +499,7 @@ export default function CreatorDashboard() {
                       <tr key={d.id}>
                         <td>{d.donor_name}</td>
                         <td>{d.campaign_title}</td>
-                        <td>${d.amount}</td>
+                        <td>${parseFloat(d.amount).toFixed(2)}</td>
                         <td>{new Date(d.created_at).toLocaleDateString()}</td>
                       </tr>
                     ))}
@@ -489,7 +523,7 @@ export default function CreatorDashboard() {
                 <div><strong>Recent payout requests</strong>
                   {payoutRequests.map(p => (
                     <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                      <span>${p.amount} · {new Date(p.created_at).toLocaleDateString()}</span>
+                      <span>${parseFloat(p.amount).toFixed(2)} · {new Date(p.created_at).toLocaleDateString()}</span>
                       <span className={`badge ${p.status === 'pending' ? 'bp' : 'ba'}`}>{p.status}</span>
                     </div>
                   ))}
@@ -506,7 +540,7 @@ export default function CreatorDashboard() {
               <div className="card-b">
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}><span>Current balance</span><strong>${walletBalance.toLocaleString()}</strong></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}><span>Pending payouts</span><strong>${pendingPayoutSum.toLocaleString()}</strong></div>
-                <button className="btn btn-g" style={{ marginTop: 12 }} onClick={() => showToast('Transaction history (demo)')}>View Statement</button>
+                <button className="btn btn-g" style={{ marginTop: 12 }} onClick={() => showToast('Transaction history coming soon')}>View Statement</button>
               </div>
             </div>
           </div>
@@ -530,7 +564,13 @@ export default function CreatorDashboard() {
               <div className="card-b">
                 <form onSubmit={savePaymentMethod}>
                   <label className="fl">PayPal Email Address</label>
-                  <input className="fi" type="email" value={paymentMethod.paypal_email} onChange={e => setPaymentMethod({ paypal_email: e.target.value })} placeholder="you@example.com" required />
+                  <input className="fi" type="email" value={paymentMethod.paypal_email || ''} onChange={e => setPaymentMethod({ ...paymentMethod, paypal_email: e.target.value })} placeholder="you@example.com" />
+                  <label className="fl">Bank Account Name</label>
+                  <input className="fi" type="text" value={paymentMethod.account_name || ''} onChange={e => setPaymentMethod({ ...paymentMethod, account_name: e.target.value })} placeholder="Account holder name" />
+                  <label className="fl">Bank Account Number</label>
+                  <input className="fi" type="text" value={paymentMethod.account_number || ''} onChange={e => setPaymentMethod({ ...paymentMethod, account_number: e.target.value })} placeholder="Account number" />
+                  <label className="fl">Bank Name</label>
+                  <input className="fi" type="text" value={paymentMethod.bank_name || ''} onChange={e => setPaymentMethod({ ...paymentMethod, bank_name: e.target.value })} placeholder="Bank name" />
                   <button type="submit" className="btn btn-g" disabled={loadingPayment}>{loadingPayment ? 'Saving...' : 'Save Payment Method'}</button>
                 </form>
               </div>
