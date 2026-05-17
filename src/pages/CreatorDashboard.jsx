@@ -172,7 +172,7 @@ export default function CreatorDashboard() {
       let payRes = { requests: [] };
       try {
         const raw = await donationApi.getMyPayoutRequests();
-        console.log('🔍 raw payoutRequests response:', raw); // debug — remove when confirmed
+       
         // Normalise: handle { requests: [] }, plain array, or anything else
         payRes = {
           requests: Array.isArray(raw)

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useEffect } from 'react-router-dom'
 import { Component } from 'react'
 import { AppProvider, useApp } from './context/AppContext'
 import Navbar from './components/Navbar'
@@ -12,7 +12,7 @@ import AuthModal from './components/AuthModal'
 import Toast from './components/Toast'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 
-// Error Boundary
+/* ── Error Boundary ─────────────────────────────── */
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
@@ -34,7 +34,7 @@ class ErrorBoundary extends Component {
           <button
             onClick={() => window.location.reload()}
             style={{
-              padding: '10px 24px', background: '#e8531e', color: '#fff',
+              padding: '10px 24px', background: '#1D9E75', color: '#fff',
               border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700,
             }}
           >
@@ -47,53 +47,69 @@ class ErrorBoundary extends Component {
   }
 }
 
-// Home page – shows Navbar + HomePage for guests, redirects logged-in users
+/* ── Backend warm-up (prevents Koyeb cold-start failures) ── */
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const HEALTH_URL = API_URL.replace(/\/api\/?$/, '/health')
+
+function useBackendWarmup() {
+  useEffect(() => {
+    const ping = async () => {
+      try {
+        await fetch(HEALTH_URL, { method: 'GET' })
+        console.log('🏓 Backend warmed up')
+      } catch {
+        // Silently ignore — server may still be starting
+      }
+    }
+    ping()
+  }, [])
+}
+
+/* ── Home route ─────────────────────────────────── */
 function HomeRoute() {
   const { currentUser } = useApp()
-  
-  // Not logged in – show landing page with Navbar
   if (!currentUser) return <><Navbar /><HomePage /></>
-  
-  // Logged in – redirect to role-specific dashboard (no Navbar on dashboards)
   if (currentUser.role === 'admin')   return <Navigate to="/admin-dashboard" replace />
   if (currentUser.role === 'creator') return <Navigate to="/creator-dashboard" replace />
   if (currentUser.role === 'donor')   return <Navigate to="/donor-dashboard" replace />
-  
   return <><Navbar /><HomePage /></>
 }
 
-// Protected route wrapper
+/* ── Protected route wrapper ────────────────────── */
 function RoleRoute({ children, allowedRoles }) {
   const { currentUser, loading } = useApp()
-  if (loading) return <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>Loading…</div>
+  if (loading) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      Loading…
+    </div>
+  )
   if (!currentUser) return <Navigate to="/" replace />
   if (!allowedRoles.includes(currentUser.role)) return <Navigate to="/" replace />
   return children
 }
 
+/* ── App content ────────────────────────────────── */
 function AppContent() {
   const { toast } = useApp()
+
+  // Warm up the backend on first load so it's ready when the user interacts
+  useBackendWarmup()
 
   return (
     <>
       <PWAInstallPrompt />
 
       <Routes>
-        {/* Home / Landing Page - with Navbar */}
+        {/* Landing page */}
         <Route path="/" element={<HomeRoute />} />
 
-        {/* Campaign Profile - public page, shows Navbar */}
-        <Route 
-          path="/campaign/:id" 
-          element={
-            <>
-              <Navbar />
-              <CampaignProfile />
-            </>
-          } 
+        {/* Campaign profile — public */}
+        <Route
+          path="/campaign/:id"
+          element={<><Navbar /><CampaignProfile /></>}
         />
 
-        {/* Donor Dashboard - no Navbar (it has its own sidebar) */}
+        {/* Donor dashboard */}
         <Route
           path="/donor-dashboard"
           element={
@@ -103,7 +119,7 @@ function AppContent() {
           }
         />
 
-        {/* Creator Dashboard - no Navbar (it has its own sidebar) */}
+        {/* Creator dashboard */}
         <Route
           path="/creator-dashboard"
           element={
@@ -113,7 +129,7 @@ function AppContent() {
           }
         />
 
-        {/* Admin Dashboard - no Navbar (it has its own sidebar) */}
+        {/* Admin dashboard */}
         <Route
           path="/admin-dashboard"
           element={
@@ -126,19 +142,17 @@ function AppContent() {
         {/* Email verification */}
         <Route path="/verify-email" element={<VerifyEmail />} />
 
-        {/* Catch-all redirect to home */}
+        {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* Auth Modal – global */}
       <AuthModal />
-
-      {/* Toast notifications */}
       {toast && <Toast msg={toast.msg} error={toast.error} />}
     </>
   )
 }
 
+/* ── Root ───────────────────────────────────────── */
 export default function App() {
   return (
     <AppProvider>
