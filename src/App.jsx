@@ -1,4 +1,7 @@
-import { Routes, Route, Navigate, useEffect } from 'react-router-dom'
+
+// ✅ Correct
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { Component, useEffect } from 'react'
 import { Component } from 'react'
 import { AppProvider, useApp } from './context/AppContext'
 import Navbar from './components/Navbar'
