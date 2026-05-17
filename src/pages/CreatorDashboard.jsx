@@ -5,16 +5,6 @@ import { donationApi, campaignApi, walletApi } from '../services/api';
 import CampaignModal from '../components/CampaignModal';
 import DonationsModal from '../components/DonationsModal';
 
-// Helper for safe API calls
-const safeGet = async (apiCall, fallback) => {
-  try {
-    return await apiCall();
-  } catch (err) {
-    console.warn('API call failed:', err);
-    return fallback;
-  }
-};
-
 // Global style injection (once)
 let stylesInjected = false;
 const injectStyles = () => {
@@ -90,7 +80,7 @@ const injectStyles = () => {
     .ut { width: 100%; border-collapse: collapse; }
     .ut th { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--txt-3); text-align: left; padding: 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
     .ut td { padding: 14px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-    .db { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; transition: opacity var(--tr); }
+    .db { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; transition: opacity var(--tr); margin-right: 4px; }
     .dba { background: var(--green-l); color: var(--green-d); }
     .dbr { background: var(--red-l); color: var(--red); }
     .dbv { background: var(--blue-l); color: #185FA5; }
@@ -134,24 +124,25 @@ export default function CreatorDashboard() {
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState(null);
   const [progressAmount, setProgressAmount] = useState('');
+
+  // ✅ All state initialized with safe defaults — prevents any .filter/.map on undefined
   const [donations, setDonations] = useState([]);
   const [payoutRequests, setPayoutRequests] = useState([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [totalEarned, setTotalEarned] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState({ paypal_email: '', account_name: '', account_number: '', bank_name: '' });
+  const [paymentMethod, setPaymentMethod] = useState({
+    paypal_email: '',
+    account_name: '',
+    account_number: '',
+    bank_name: '',
+  });
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
   // Auth check & initial data load
   useEffect(() => {
-    if (!currentUser) {
-      navigate('/');
-      return;
-    }
-    if (currentUser.role !== 'creator') {
-      navigate('/');
-      return;
-    }
+    if (!currentUser) { navigate('/'); return; }
+    if (currentUser.role !== 'creator') { navigate('/'); return; }
     loadData();
     loadPaymentMethod();
   }, [currentUser]);
@@ -160,34 +151,59 @@ export default function CreatorDashboard() {
     setLoadingData(true);
     try {
       await loadMyCampaigns();
-      
-      // Safe API calls with fallbacks
+
+      // ── Donations ──────────────────────────────────────────────
       let donRes = { donations: [] };
-      let payRes = { requests: [] };
-      let walletRes = { balance: 0, total_earned: 0 };
-      
       try {
-        donRes = await donationApi.getMyDonations();
+        const raw = await donationApi.getMyDonations();
+        // Normalise: handle { donations: [] }, plain array, or anything else
+        donRes = {
+          donations: Array.isArray(raw)
+            ? raw
+            : Array.isArray(raw?.donations)
+            ? raw.donations
+            : [],
+        };
       } catch (err) {
         console.warn('Failed to fetch donations:', err.message);
       }
-      
+
+      // ── Payout requests ────────────────────────────────────────
+      let payRes = { requests: [] };
       try {
-        payRes = await donationApi.getMyPayoutRequests();
+        const raw = await donationApi.getMyPayoutRequests();
+        console.log('🔍 raw payoutRequests response:', raw); // debug — remove when confirmed
+        // Normalise: handle { requests: [] }, plain array, or anything else
+        payRes = {
+          requests: Array.isArray(raw)
+            ? raw
+            : Array.isArray(raw?.requests)
+            ? raw.requests
+            : Array.isArray(raw?.data)
+            ? raw.data
+            : [],
+        };
       } catch (err) {
         console.warn('Failed to fetch payout requests:', err.message);
       }
-      
+
+      // ── Wallet ─────────────────────────────────────────────────
+      let walletRes = { balance: 0, total_earned: 0 };
       try {
-        walletRes = await donationApi.getCreatorWallet();
+        const raw = await donationApi.getCreatorWallet();
+        walletRes = {
+          balance: parseFloat(raw?.balance ?? 0),
+          total_earned: parseFloat(raw?.total_earned ?? 0),
+        };
       } catch (err) {
         console.warn('Failed to fetch wallet:', err.message);
       }
-      
-      setDonations(donRes.donations || []);
-      setPayoutRequests(payRes.requests || []);
-      setWalletBalance(walletRes.balance ?? 0);
-      setTotalEarned(walletRes.total_earned ?? 0);
+
+      // ✅ Safe setters — all arrays guaranteed
+      setDonations(donRes.donations);
+      setPayoutRequests(payRes.requests);
+      setWalletBalance(walletRes.balance);
+      setTotalEarned(walletRes.total_earned);
     } catch (err) {
       console.error('Error loading data:', err);
       showToast('Error loading data', true);
@@ -199,7 +215,7 @@ export default function CreatorDashboard() {
   const loadPaymentMethod = async () => {
     try {
       const res = await donationApi.getCreatorPaymentMethod();
-      if (res.payment_method) setPaymentMethod(res.payment_method);
+      if (res?.payment_method) setPaymentMethod(res.payment_method);
     } catch (err) {
       console.warn('Failed to load payment method:', err.message);
     }
@@ -220,10 +236,7 @@ export default function CreatorDashboard() {
 
   const handleUpdateProgress = async () => {
     const newRaised = parseFloat(progressAmount);
-    if (isNaN(newRaised) || newRaised <= 0) {
-      showToast('Enter a valid amount', true);
-      return;
-    }
+    if (isNaN(newRaised) || newRaised <= 0) { showToast('Enter a valid amount', true); return; }
     try {
       await donationApi.updateCampaignProgress(selectedCampaignId, { raised: newRaised });
       showToast('Progress updated');
@@ -248,22 +261,12 @@ export default function CreatorDashboard() {
   const handleRequestPayout = async () => {
     const amount = parseFloat(prompt('Amount to withdraw (USD)', '100'));
     if (!amount || amount <= 0) return;
-    
     const method = prompt('Payment method (bank, paypal, mobile_money):', 'bank');
     if (!method) return;
-    
     const details = prompt('Payment details (account number/email/phone):', '');
-    if (!details) {
-      showToast('Payment details required', true);
-      return;
-    }
-    
+    if (!details) { showToast('Payment details required', true); return; }
     try {
-      await donationApi.requestPayout({ 
-        amount, 
-        payment_method: method,
-        payment_details: details 
-      });
+      await donationApi.requestPayout({ amount, payment_method: method, payment_details: details });
       showToast(`Withdrawal request of $${amount} submitted`);
       await loadData();
     } catch (err) {
@@ -271,19 +274,18 @@ export default function CreatorDashboard() {
     }
   };
 
-  const handleSaveSettings = async () => {
-    showToast('Settings saved (demo)');
-  };
+  const handleLogout = () => { logout(); navigate('/'); };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
+  // ✅ Safe derived values — always working from guaranteed arrays
+  const safeCampaigns      = Array.isArray(myCampaigns) ? myCampaigns : [];
+  const safeDonations      = Array.isArray(donations) ? donations : [];
+  const safePayoutRequests = Array.isArray(payoutRequests) ? payoutRequests : [];
 
-  const initials = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  const totalRaised = myCampaigns.reduce((sum, c) => sum + parseFloat(c.raised || 0), 0);
-  const activeCampaigns = myCampaigns.filter(c => c.status === 'approved' || c.status === 'active').length;
-  const pendingPayoutSum = payoutRequests.filter(p => p.status === 'pending').reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+  const initials        = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const totalRaised     = safeCampaigns.reduce((sum, c) => sum + parseFloat(c.raised || 0), 0);
+  const activeCampaigns = safeCampaigns.filter(c => c.status === 'approved' || c.status === 'active').length;
+  const pendingPayouts  = safePayoutRequests.filter(p => p.status === 'pending');
+  const pendingPayoutSum = pendingPayouts.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
 
   return (
     <div className="shell">
@@ -291,10 +293,16 @@ export default function CreatorDashboard() {
       <aside className="sidebar">
         <div className="sb-logo">
           <div className="logo-mark">
-            <div className="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg></div>
-            <div><div className="logo-text">HopeBridge</div><div className="logo-sub">Creator Studio</div></div>
+            <div className="logo-icon">
+              <svg viewBox="0 0 24 24"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
+            </div>
+            <div>
+              <div className="logo-text">HopeBridge</div>
+              <div className="logo-sub">Creator Studio</div>
+            </div>
           </div>
         </div>
+
         <div className="sb-creator">
           <div className="creator-av">{initials}</div>
           <div>
@@ -302,37 +310,39 @@ export default function CreatorDashboard() {
             <div className="creator-badge">Verified Creator</div>
           </div>
         </div>
+
         <nav className="sb-nav">
           <div className="nav-sec">Workspace</div>
-          <button className={`nl ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-            Dashboard
-          </button>
-          <button className={`nl ${activeTab === 'campaigns' ? 'active' : ''}`} onClick={() => setActiveTab('campaigns')}>
-            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
-            My Campaigns
-            <span className="nb">{myCampaigns.length}</span>
-          </button>
-          <button className={`nl ${activeTab === 'donations' ? 'active' : ''}`} onClick={() => setActiveTab('donations')}>
-            <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>
-            Donations
-          </button>
+          {[
+            { id: 'overview',   label: 'Dashboard',     icon: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></> },
+            { id: 'campaigns',  label: 'My Campaigns',  icon: <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></>, badge: safeCampaigns.length },
+            { id: 'donations',  label: 'Donations',     icon: <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/> },
+          ].map(({ id, label, icon, badge }) => (
+            <button key={id} className={`nl ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}>
+              <svg viewBox="0 0 24 24">{icon}</svg>
+              {label}
+              {badge > 0 && <span className="nb">{badge}</span>}
+            </button>
+          ))}
+
           <div className="nav-sec">Finance</div>
           <button className={`nl ${activeTab === 'payouts' ? 'active' : ''}`} onClick={() => setActiveTab('payouts')}>
             <svg viewBox="0 0 24 24"><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
             Payouts
-            {pendingPayoutSum > 0 && <span className="nb">{payoutRequests.filter(p => p.status === 'pending').length}</span>}
+            {pendingPayouts.length > 0 && <span className="nb">{pendingPayouts.length}</span>}
           </button>
           <button className={`nl ${activeTab === 'wallet' ? 'active' : ''}`} onClick={() => setActiveTab('wallet')}>
             <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
             Wallet
           </button>
+
           <div className="nav-sec">Account</div>
           <button className={`nl ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             Settings
           </button>
         </nav>
+
         <div className="sb-footer">
           <button className="nl" style={{ color: 'var(--red)' }} onClick={handleLogout}>
             <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -341,15 +351,17 @@ export default function CreatorDashboard() {
         </div>
       </aside>
 
+      {/* Main */}
       <div className="main">
+        {/* Desktop topbar */}
         <div className="topbar">
           <div className="tb-title">
-            {activeTab === 'overview' && 'Dashboard'}
+            {activeTab === 'overview'  && 'Dashboard'}
             {activeTab === 'campaigns' && 'My Campaigns'}
             {activeTab === 'donations' && 'Donations'}
-            {activeTab === 'payouts' && 'Payouts'}
-            {activeTab === 'wallet' && 'Wallet'}
-            {activeTab === 'settings' && 'Settings'}
+            {activeTab === 'payouts'   && 'Payouts'}
+            {activeTab === 'wallet'    && 'Wallet'}
+            {activeTab === 'settings'  && 'Settings'}
           </div>
           <div className="tb-actions">
             <div className="tb-btn" onClick={() => showToast('Notifications')}>
@@ -358,35 +370,36 @@ export default function CreatorDashboard() {
             <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
               <svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             </button>
-            <div className="tb-btn" onClick={() => showToast('Profile')}>
+            <div className="tb-btn">
               <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
             </div>
           </div>
         </div>
 
+        {/* Mobile topbar */}
         <div className="mob-top">
-          <div className="mob-logo">HopeBridge</div>
+          <div style={{ fontFamily: 'var(--fd)', fontSize: 18, flex: 1 }}>HopeBridge</div>
           <div className="tb-actions">
             <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
               <svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             </button>
-            <div className="tb-btn" onClick={() => showToast('Profile')}>
-              <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
-            </div>
           </div>
         </div>
 
         <div className="page">
-          {loadingData && <div style={{ padding: '8px 16px', background: 'var(--green)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>Loading your data...</div>}
+          {loadingData && (
+            <div style={{ padding: '8px 16px', background: 'var(--green)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>
+              Loading your data…
+            </div>
+          )}
 
-          {/* Overview Page */}
+          {/* ── Overview ─────────────────────────────────────── */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
             <div className="stats-grid">
               <div className="sc">
                 <div className="si"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg></div>
                 <div className="sv">${totalRaised.toLocaleString()}</div>
                 <div className="sl">Total raised</div>
-                <div className="sd dup">↑12%</div>
               </div>
               <div className="sc">
                 <div className="si"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div>
@@ -395,7 +408,7 @@ export default function CreatorDashboard() {
               </div>
               <div className="sc">
                 <div className="si"><svg viewBox="0 0 24 24"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg></div>
-                <div className="sv">{donations.length}</div>
+                <div className="sv">{safeDonations.length}</div>
                 <div className="sl">Total donations</div>
               </div>
               <div className="sc">
@@ -404,44 +417,54 @@ export default function CreatorDashboard() {
                 <div className="sl">Wallet balance</div>
               </div>
             </div>
+
             <div className="card">
-              <div className="card-h"><div className="card-t">Recent Donations</div><button className="card-a" onClick={() => setActiveTab('donations')}>View all →</button></div>
+              <div className="card-h">
+                <div className="card-t">Recent Donations</div>
+                <button className="card-a" onClick={() => setActiveTab('donations')}>View all →</button>
+              </div>
               <div className="card-b">
-                {donations.slice(0, 3).map(d => (
+                {safeDonations.slice(0, 3).map(d => (
                   <div key={d.id} className="cr">
                     <div className="ci">
-                      <div className="cn">{d.donor_name}</div>
+                      <div className="cn">{d.donor_name || 'Anonymous'}</div>
                       <div className="cm">{d.campaign_title}</div>
                     </div>
-                    <div className="badge ba">+${parseFloat(d.amount).toFixed(2)}</div>
+                    <div className="badge ba">+${parseFloat(d.amount || 0).toFixed(2)}</div>
                     <div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{new Date(d.created_at).toLocaleDateString()}</div>
                   </div>
                 ))}
-                {donations.length === 0 && <div className="cr">No donations yet</div>}
+                {safeDonations.length === 0 && <div className="cr" style={{ color: 'var(--txt-3)' }}>No donations yet</div>}
               </div>
             </div>
+
             <div className="card">
-              <div className="card-h"><div className="card-t">Active Campaigns</div><button className="card-a" onClick={() => setActiveTab('campaigns')}>Manage →</button></div>
+              <div className="card-h">
+                <div className="card-t">Active Campaigns</div>
+                <button className="card-a" onClick={() => setActiveTab('campaigns')}>Manage →</button>
+              </div>
               <div className="card-b">
-                {myCampaigns.filter(c => c.status === 'approved' || c.status === 'active').map(c => (
+                {safeCampaigns.filter(c => c.status === 'approved' || c.status === 'active').map(c => (
                   <div key={c.id} className="cr">
                     <div className="ci">
                       <div className="cn">{c.title}</div>
                       <div className="cm">${parseFloat(c.raised || 0).toLocaleString()} / ${parseFloat(c.goal).toLocaleString()}</div>
-                      <div className="pb"><div className="pf" style={{ width: `${((c.raised || 0) / c.goal) * 100}%` }}></div></div>
+                      <div className="pb"><div className="pf" style={{ width: `${Math.min(((c.raised || 0) / c.goal) * 100, 100)}%` }}></div></div>
                     </div>
                     <button className="db dba" onClick={() => { setSelectedCampaignId(c.id); setProgressModalOpen(true); }}>Update</button>
                   </div>
                 ))}
-                {myCampaigns.filter(c => c.status === 'approved' || c.status === 'active').length === 0 && <div className="cr">No active campaigns</div>}
+                {safeCampaigns.filter(c => c.status === 'approved' || c.status === 'active').length === 0 && (
+                  <div className="cr" style={{ color: 'var(--txt-3)' }}>No active campaigns</div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Campaigns Page */}
+          {/* ── Campaigns ────────────────────────────────────── */}
           <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div className="sht" style={{ fontFamily: 'var(--fd)', fontSize: 20 }}>My Campaigns</div>
+              <div style={{ fontFamily: 'var(--fd)', fontSize: 20 }}>My Campaigns</div>
               <button className="btn btn-g" onClick={() => { setEditCampaign(null); setModalOpen(true); }}>+ New Campaign</button>
             </div>
             <div className="card">
@@ -449,26 +472,25 @@ export default function CreatorDashboard() {
                 <table className="ut">
                   <thead>
                     <tr>
-                      <th>Campaign</th>
-                      <th>Goal</th>
-                      <th>Raised</th>
-                      <th>Progress</th>
-                      <th>Status</th>
-                      <th>Actions</th>
+                      <th>Campaign</th><th>Goal</th><th>Raised</th><th>Progress</th><th>Status</th><th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {myCampaigns.map(c => {
-                      const percent = ((c.raised || 0) / c.goal) * 100;
+                    {safeCampaigns.length === 0 && (
+                      <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--txt-3)', padding: 24 }}>No campaigns yet</td></tr>
+                    )}
+                    {safeCampaigns.map(c => {
+                      const percent = Math.min(((c.raised || 0) / c.goal) * 100, 100);
                       return (
                         <tr key={c.id}>
-                          <td><strong>{c.title}</strong><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>Created {new Date(c.created_at).toLocaleDateString()}</div></td>
+                          <td>
+                            <strong>{c.title}</strong>
+                            <div style={{ fontSize: 11, color: 'var(--txt-3)' }}>Created {new Date(c.created_at).toLocaleDateString()}</div>
+                          </td>
                           <td>${parseFloat(c.goal).toLocaleString()}</td>
                           <td>${parseFloat(c.raised || 0).toLocaleString()}</td>
                           <td>
-                            <div className="pb" style={{ width: 100 }}>
-                              <div className="pf" style={{ width: `${percent}%` }}></div>
-                            </div>
+                            <div className="pb" style={{ width: 100 }}><div className="pf" style={{ width: `${percent}%` }}></div></div>
                             {Math.round(percent)}%
                           </td>
                           <td><span className="badge ba">{c.status}</span></td>
@@ -485,7 +507,7 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Donations Page */}
+          {/* ── Donations ────────────────────────────────────── */}
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t">Donations Received</div></div>
@@ -495,11 +517,14 @@ export default function CreatorDashboard() {
                     <tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Date</th></tr>
                   </thead>
                   <tbody>
-                    {donations.map(d => (
+                    {safeDonations.length === 0 && (
+                      <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--txt-3)', padding: 24 }}>No donations yet</td></tr>
+                    )}
+                    {safeDonations.map(d => (
                       <tr key={d.id}>
-                        <td>{d.donor_name}</td>
+                        <td>{d.donor_name || 'Anonymous'}</td>
                         <td>{d.campaign_title}</td>
-                        <td>${parseFloat(d.amount).toFixed(2)}</td>
+                        <td>${parseFloat(d.amount || 0).toFixed(2)}</td>
                         <td>{new Date(d.created_at).toLocaleDateString()}</td>
                       </tr>
                     ))}
@@ -509,69 +534,93 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Payouts Page */}
+          {/* ── Payouts ──────────────────────────────────────── */}
           <div className={`ps ${activeTab === 'payouts' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t">Available Balance & Withdrawals</div></div>
               <div className="card-b">
                 <div className="stats-grid" style={{ marginBottom: 20 }}>
-                  <div className="sc"><div className="sv">${(walletBalance - pendingPayoutSum).toLocaleString()}</div><div className="sl">Ready to withdraw</div></div>
-                  <div className="sc"><div className="sv">${totalEarned.toLocaleString()}</div><div className="sl">Total earned (all time)</div></div>
+                  <div className="sc">
+                    <div className="sv">${Math.max(walletBalance - pendingPayoutSum, 0).toLocaleString()}</div>
+                    <div className="sl">Ready to withdraw</div>
+                  </div>
+                  <div className="sc">
+                    <div className="sv">${totalEarned.toLocaleString()}</div>
+                    <div className="sl">Total earned (all time)</div>
+                  </div>
                 </div>
                 <button className="btn btn-g" onClick={handleRequestPayout}>Request Withdrawal</button>
                 <hr style={{ margin: '20px 0', borderColor: 'var(--border)' }} />
-                <div><strong>Recent payout requests</strong>
-                  {payoutRequests.map(p => (
-                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                      <span>${parseFloat(p.amount).toFixed(2)} · {new Date(p.created_at).toLocaleDateString()}</span>
-                      <span className={`badge ${p.status === 'pending' ? 'bp' : 'ba'}`}>{p.status}</span>
-                    </div>
-                  ))}
-                  {payoutRequests.length === 0 && <div style={{ padding: '10px 0', color: 'var(--txt-3)' }}>No payout requests yet</div>}
-                </div>
+                <strong>Recent payout requests</strong>
+                {safePayoutRequests.length === 0 && (
+                  <div style={{ padding: '10px 0', color: 'var(--txt-3)' }}>No payout requests yet</div>
+                )}
+                {safePayoutRequests.map(p => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                    <span>${parseFloat(p.amount || 0).toFixed(2)} · {new Date(p.created_at).toLocaleDateString()}</span>
+                    <span className={`badge ${p.status === 'pending' ? 'bp' : p.status === 'rejected' ? 'bx' : 'ba'}`}>{p.status}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Wallet Page */}
+          {/* ── Wallet ───────────────────────────────────────── */}
           <div className={`ps ${activeTab === 'wallet' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t">Creator Wallet</div></div>
               <div className="card-b">
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}><span>Current balance</span><strong>${walletBalance.toLocaleString()}</strong></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}><span>Pending payouts</span><strong>${pendingPayoutSum.toLocaleString()}</strong></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                  <span>Current balance</span><strong>${walletBalance.toLocaleString()}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                  <span>Pending payouts</span><strong>${pendingPayoutSum.toLocaleString()}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
+                  <span>Available to withdraw</span><strong>${Math.max(walletBalance - pendingPayoutSum, 0).toLocaleString()}</strong>
+                </div>
                 <button className="btn btn-g" style={{ marginTop: 12 }} onClick={() => showToast('Transaction history coming soon')}>View Statement</button>
               </div>
             </div>
           </div>
 
-          {/* Settings Page */}
+          {/* ── Settings ─────────────────────────────────────── */}
           <div className={`ps ${activeTab === 'settings' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t">Profile Settings</div></div>
               <div className="card-b">
-                <label className="fl">Display Name</label>
-                <input className="fi" type="text" defaultValue={currentUser?.name} id="creatorName" />
-                <label className="fl">Email</label>
-                <input className="fi" type="email" defaultValue={currentUser?.email} id="creatorEmail" />
-                <label className="fl">Bank Account (for payouts)</label>
-                <input className="fi" type="text" id="bankAccount" placeholder="Account number" />
-                <button className="btn btn-g" onClick={handleSaveSettings}>Save Changes</button>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>Display Name</label>
+                <input className="fi" type="text" defaultValue={currentUser?.name} />
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>Email</label>
+                <input className="fi" type="email" defaultValue={currentUser?.email} />
+                <button className="btn btn-g" onClick={() => showToast('Settings saved (demo)')}>Save Changes</button>
               </div>
             </div>
+
             <div className="card" style={{ marginTop: 20 }}>
               <div className="card-h"><div className="card-t">Payment Methods</div></div>
               <div className="card-b">
                 <form onSubmit={savePaymentMethod}>
-                  <label className="fl">PayPal Email Address</label>
-                  <input className="fi" type="email" value={paymentMethod.paypal_email || ''} onChange={e => setPaymentMethod({ ...paymentMethod, paypal_email: e.target.value })} placeholder="you@example.com" />
-                  <label className="fl">Bank Account Name</label>
-                  <input className="fi" type="text" value={paymentMethod.account_name || ''} onChange={e => setPaymentMethod({ ...paymentMethod, account_name: e.target.value })} placeholder="Account holder name" />
-                  <label className="fl">Bank Account Number</label>
-                  <input className="fi" type="text" value={paymentMethod.account_number || ''} onChange={e => setPaymentMethod({ ...paymentMethod, account_number: e.target.value })} placeholder="Account number" />
-                  <label className="fl">Bank Name</label>
-                  <input className="fi" type="text" value={paymentMethod.bank_name || ''} onChange={e => setPaymentMethod({ ...paymentMethod, bank_name: e.target.value })} placeholder="Bank name" />
-                  <button type="submit" className="btn btn-g" disabled={loadingPayment}>{loadingPayment ? 'Saving...' : 'Save Payment Method'}</button>
+                  {[
+                    { label: 'PayPal Email',        key: 'paypal_email',    type: 'email', placeholder: 'you@example.com' },
+                    { label: 'Bank Account Name',   key: 'account_name',   type: 'text',  placeholder: 'Account holder name' },
+                    { label: 'Bank Account Number', key: 'account_number', type: 'text',  placeholder: 'Account number' },
+                    { label: 'Bank Name',           key: 'bank_name',      type: 'text',  placeholder: 'Bank name' },
+                  ].map(({ label, key, type, placeholder }) => (
+                    <div key={key}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>{label}</label>
+                      <input
+                        className="fi"
+                        type={type}
+                        placeholder={placeholder}
+                        value={paymentMethod[key] || ''}
+                        onChange={e => setPaymentMethod(prev => ({ ...prev, [key]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                  <button type="submit" className="btn btn-g" disabled={loadingPayment}>
+                    {loadingPayment ? 'Saving…' : 'Save Payment Method'}
+                  </button>
                 </form>
               </div>
             </div>
@@ -582,29 +631,35 @@ export default function CreatorDashboard() {
       {/* Mobile Bottom Nav */}
       <nav className="bnav">
         <div className="bnav-inner">
-          {['overview', 'campaigns', 'donations', 'wallet'].map(tab => (
-            <button key={tab} className={`bni ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
-              <div className="bni-icon">
-                {tab === 'overview' && <svg width="20" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>}
-                {tab === 'campaigns' && <svg width="20" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>}
-                {tab === 'donations' && <svg width="20" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>}
-                {tab === 'wallet' && <svg width="20" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>}
-              </div>
-              <span className="bni-lbl">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+          {[
+            { id: 'overview',  label: 'Overview',  icon: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></> },
+            { id: 'campaigns', label: 'Campaigns', icon: <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></> },
+            { id: 'donations', label: 'Donations', icon: <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/> },
+            { id: 'wallet',    label: 'Wallet',    icon: <><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></> },
+          ].map(({ id, label, icon }) => (
+            <button key={id} className={`bni ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}>
+              <div className="bni-icon"><svg width="20" viewBox="0 0 24 24" fill="none" stroke="var(--txt-3)" strokeWidth="1.8">{icon}</svg></div>
+              <span className="bni-lbl">{label}</span>
             </button>
           ))}
         </div>
       </nav>
 
       <button className="fab" onClick={() => { setEditCampaign(null); setModalOpen(true); }}>
-        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
 
       {/* Progress Update Modal */}
       <div className={`modal-bd ${progressModalOpen ? 'open' : ''}`} onClick={() => setProgressModalOpen(false)}>
         <div className="modal" onClick={e => e.stopPropagation()}>
           <div className="card-t" style={{ marginBottom: 12 }}>Update Campaign Progress</div>
-          <input className="fi" type="number" placeholder="New raised amount (USD)" value={progressAmount} onChange={e => setProgressAmount(e.target.value)} />
+          <input
+            className="fi"
+            type="number"
+            placeholder="New raised amount (USD)"
+            value={progressAmount}
+            onChange={e => setProgressAmount(e.target.value)}
+          />
           <div style={{ display: 'flex', gap: 10 }}>
             <button className="btn btn-gh" onClick={() => setProgressModalOpen(false)}>Cancel</button>
             <button className="btn btn-g" onClick={handleUpdateProgress}>Update</button>
@@ -613,7 +668,10 @@ export default function CreatorDashboard() {
       </div>
 
       {modalOpen && (
-        <CampaignModal campaign={editCampaign} onClose={() => { setModalOpen(false); setEditCampaign(null); loadData(); }} />
+        <CampaignModal
+          campaign={editCampaign}
+          onClose={() => { setModalOpen(false); setEditCampaign(null); loadData(); }}
+        />
       )}
 
       {viewDonations && (
