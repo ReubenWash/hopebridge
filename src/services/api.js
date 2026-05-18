@@ -56,6 +56,8 @@ export const authApi = {
   login:    (body) => request('/auth/login',    { method: 'POST', body: JSON.stringify(body) }),
   me:       ()     => request('/auth/me'),
   updateMe: (body) => request('/auth/me', { method: 'PATCH', body: JSON.stringify(body) }),
+  getVerificationStatus: () => request('/auth/verification-status'),
+  checkSession: () => request('/auth/check-session'),
 
   verifyEmail: (token) => request('/auth/verify-email', {
     method: 'POST', body: JSON.stringify({ token }),
@@ -76,10 +78,15 @@ export const campaignApi = {
   },
   getMy:   () => request('/campaigns/my'),
   getById: (id) => request(`/campaigns/${id}`),
+  getUpdates: (id) => request(`/campaigns/${id}/updates`),
+  getRelated: (id, category) => request(`/campaigns/${id}/related?category=${category}`),
   getCreator: (userId) => request(`/users/${userId}`),
   create:  (formData) => multipart('POST',  '/campaigns',      formData),
   update:  (id, formData) => multipart('PATCH', `/campaigns/${id}`, formData),
   delete:  (id) => request(`/campaigns/${id}`, { method: 'DELETE' }),
+  addUpdate: (id, data) => request(`/campaigns/${id}/updates`, {
+    method: 'POST', body: JSON.stringify(data),
+  }),
 }
 
 // ── Donations (wallet‑only, no PayPal) ────────────────────────────
@@ -130,10 +137,12 @@ export const walletApi = {
 
 // ── Admin ─────────────────────────────────────────────────────────
 export const adminApi = {
+  // Stats & Users
   getStats:       () => request('/admin/stats'),
   getUsers:       () => request('/admin/users'),
   toggleUser:     (id) => request(`/admin/users/${id}/toggle`, { method: 'PATCH' }),
 
+  // Campaign Management
   getCampaigns:   (params) => {
     const qs = new URLSearchParams(params || {}).toString()
     return request(`/admin/campaigns${qs ? `?${qs}` : ''}`)
@@ -142,24 +151,54 @@ export const adminApi = {
     method: 'PATCH', body: JSON.stringify(body),
   }),
 
+  // Donations
   getDonations:   () => request('/admin/donations'),
-  getDisputes:    () => request('/admin/disputes'),
-  resolveDispute: (id) => request(`/admin/disputes/${id}/resolve`, { method: 'PATCH' }),
 
+  // Theme & Content
   getTheme:  () => request('/admin/theme'),
   saveTheme: (theme) => request('/admin/theme', { method: 'PUT', body: JSON.stringify(theme) }),
+  getContent:  () => request('/admin/content'),
+  saveContent: (data) => request('/admin/content', { method: 'PUT', body: JSON.stringify(data) }),
 
-  saveFCMToken: (token) => request('/admin/fcm-token', {
-    method: 'POST', body: JSON.stringify({ token }),
-  }),
-
+  // Settings
   getSettings:  () => request('/admin/settings'),
   saveSettings: (data) => request('/admin/settings', { method: 'PUT', body: JSON.stringify(data) }),
 
-  sendMassMail: (body) => request('/admin/mass-mail', { method: 'POST', body: JSON.stringify(body) }),
+  // Email Verification Settings
+  getVerificationSetting: () => request('/admin/verification-setting'),
+  updateVerificationSetting: (data) => request('/admin/verification-setting', {
+    method: 'PUT', body: JSON.stringify(data),
+  }),
 
-  getContent:  () => request('/admin/content'),
-  saveContent: (data) => request('/admin/content', { method: 'PUT', body: JSON.stringify(data) }),
+  // FCM / Push Notifications
+  saveFCMToken: (token) => request('/admin/fcm-token', {
+    method: 'POST', body: JSON.stringify({ token }),
+  }),
+  saveAdminFCMToken: (token) => request('/admin/admin-fcm-token', {
+    method: 'POST', body: JSON.stringify({ token }),
+  }),
+  getAdminFCMTokens: () => request('/admin/admin-fcm-tokens'),
+  removeAdminFCMToken: (token) => request('/admin/admin-fcm-token', {
+    method: 'DELETE', body: JSON.stringify({ token }),
+  }),
+  sendTestPushNotification: (data) => request('/admin/test-push', {
+    method: 'POST', body: JSON.stringify(data),
+  }),
+
+  // Firebase Settings
+  getFirebaseSettings: () => request('/admin/firebase-settings'),
+  saveFirebaseSettings: (data) => request('/admin/firebase-settings', {
+    method: 'PUT', body: JSON.stringify(data),
+  }),
+
+  // ImageKit.io Settings
+  getImageKitSettings: () => request('/admin/imagekit-settings'),
+  saveImageKitSettings: (data) => request('/admin/imagekit-settings', {
+    method: 'PUT', body: JSON.stringify(data),
+  }),
+
+  // Mass Mail
+  sendMassMail: (body) => request('/admin/mass-mail', { method: 'POST', body: JSON.stringify(body) }),
 
   // Deposit requests
   getDepositRequests:   () => request('/admin/deposit-requests'),
@@ -175,9 +214,29 @@ export const adminApi = {
   rejectWithdrawal: (id, reason) => request(`/admin/withdrawal-requests/${id}/reject`, {
     method: 'PUT', body: JSON.stringify({ reason }),
   }),
+
+  // Campaign Completion Requests (Escrow)
+  getCompletionRequests: () => request('/admin/campaigns/completion-requests'),
+  releaseCampaignEscrow: (id) => request(`/admin/campaigns/${id}/release-escrow`, {
+    method: 'POST',
+  }),
+  refundCampaignEscrow: (id) => request(`/admin/campaigns/${id}/refund-escrow`, {
+    method: 'POST',
+  }),
+
+  // Maintenance Mode
+  getMaintenanceStatus: () => request('/admin/maintenance-status'),
+  toggleMaintenance: (data) => request('/admin/maintenance-toggle', {
+    method: 'POST', body: JSON.stringify(data),
+  }),
+
+  // Disputes (keep for reference but not used in UI)
+  getDisputes:    () => request('/admin/disputes'),
+  resolveDispute: (id) => request(`/admin/disputes/${id}/resolve`, { method: 'PATCH' }),
 }
 
 // ── Public ────────────────────────────────────────────────────────
 export const publicApi = {
   getSettings: () => request('/settings/public'),
+  getMaintenanceStatus: () => request('/maintenance-status'),
 }

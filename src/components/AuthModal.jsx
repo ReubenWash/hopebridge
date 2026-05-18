@@ -1,87 +1,119 @@
-import { useState } from 'react'
-import { useApp } from '../context/AppContext'
-import { authApi } from '../services/api'
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
+import { authApi } from '../services/api';
 
 export default function AuthModal() {
-  const { authOpen, authMode, authRole, closeAuth, login, register, showToast, openAuth } = useApp()
+  const { authOpen, authMode, authRole, closeAuth, login, register, showToast, openAuth } = useApp();
+  const navigate = useNavigate();
 
-  const [mode, setMode]         = useState(authMode)   // 'login' | 'register' | 'verify'
-  const [role, setRole]         = useState(authRole)
-  const [name, setName]         = useState('')
-  const [email, setEmail]       = useState('')
-  const [password, setPassword] = useState('')
-  const [code, setCode]         = useState('')
-  const [busy, setBusy]         = useState(false)
-  const [needsVerify, setNeedsVerify] = useState(false)
-  const [verifyEmail, setVerifyEmail] = useState('')
-  const [showPass, setShowPass] = useState(false)
+  const [mode, setMode] = useState(authMode);
+  const [role, setRole] = useState(authRole);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [needsVerify, setNeedsVerify] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [verificationEnabled, setVerificationEnabled] = useState(true);
 
-  if (!authOpen) return null
+  // Check if email verification is enabled
+  useEffect(() => {
+    if (authOpen) {
+      authApi.getVerificationStatus().then(data => {
+        setVerificationEnabled(data.enabled);
+      }).catch(() => {});
+    }
+  }, [authOpen]);
+
+  if (!authOpen) return null;
 
   const switchMode = (m, r) => {
-    setMode(m)
-    if (r) setRole(r)
-    setName(''); setEmail(''); setPassword(''); setCode('')
-  }
+    setMode(m);
+    if (r) setRole(r);
+    setName(''); setEmail(''); setPassword(''); setCode('');
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setBusy(true)
+    e.preventDefault();
+    setBusy(true);
     try {
       if (mode === 'register') {
-        const user = await register(name, email, password, role, null)
-        if (role === 'creator') {
-          setVerifyEmail(email)
-          setNeedsVerify(true)
-          setMode('verify')
+        const user = await register(name, email, password, role, null);
+        
+        // Check if verification is needed
+        if (user.needsVerification || (verificationEnabled && role !== 'admin')) {
+          setVerifyEmail(email);
+          setNeedsVerify(true);
+          setMode('verify');
+          showToast('Please check your email for verification code!');
         } else {
-          // Donor – auto-verified, just close
-          closeAuth()
-          showToast(`Welcome to HopeBridge, ${user.name}! 🎉`)
+          closeAuth();
+          showToast(`Welcome to HopeBridge, ${user.name}! 🎉`);
+          
+          // Check for pending donation after successful registration
+          const pendingDonation = sessionStorage.getItem('pendingDonation');
+          if (pendingDonation) {
+            sessionStorage.removeItem('pendingDonation');
+            showToast('You can now complete your donation!');
+          }
         }
       } else if (mode === 'login') {
-        await login(email, password)
-        closeAuth()
+        await login(email, password);
+        closeAuth();
+        
+        // Check for pending donation after successful login
+        const pendingDonation = sessionStorage.getItem('pendingDonation');
+        const redirectPath = sessionStorage.getItem('redirectAfterAuth');
+        
+        if (pendingDonation && redirectPath) {
+          sessionStorage.removeItem('pendingDonation');
+          sessionStorage.removeItem('redirectAfterAuth');
+          navigate(redirectPath);
+          showToast('You can now complete your donation!');
+        }
       }
     } catch (err) {
       if (err.data?.needsVerification) {
-        setVerifyEmail(email)
-        setNeedsVerify(true)
-        setMode('verify')
-        showToast('Please verify your email first.', true)
+        setVerifyEmail(email);
+        setNeedsVerify(true);
+        setMode('verify');
+        showToast('Please verify your email first.', true);
       } else {
-        showToast(err.message, true)
+        showToast(err.message, true);
       }
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
   const handleVerify = async (e) => {
-    e.preventDefault()
-    setBusy(true)
+    e.preventDefault();
+    setBusy(true);
     try {
-      await authApi.verifyCode({ email: verifyEmail, code })
-      showToast('Email verified! You can now log in.')
-      setMode('login')
-      setNeedsVerify(false)
-      setCode('')
-      setEmail(verifyEmail)
+      await authApi.verifyCode({ email: verifyEmail, code });
+      showToast('Email verified! You can now log in.');
+      setMode('login');
+      setNeedsVerify(false);
+      setCode('');
+      setEmail(verifyEmail);
     } catch (err) {
-      showToast(err.message, true)
+      showToast(err.message, true);
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
-  }
+  };
 
   const handleResendCode = async () => {
     try {
-      await authApi.resendCode(verifyEmail)
-      showToast('Verification code resent!')
+      await authApi.resendCode(verifyEmail);
+      showToast('Verification code resent!');
     } catch (err) {
-      showToast(err.message, true)
+      showToast(err.message, true);
     }
-  }
+  };
 
   const inputStyle = {
     width: '100%',
@@ -96,7 +128,7 @@ export default function AuthModal() {
     marginBottom: 14,
     color: '#1a1a2e',
     background: '#fff',
-  }
+  };
 
   const btnStyle = {
     width: '100%',
@@ -112,7 +144,7 @@ export default function AuthModal() {
     opacity: busy ? 0.7 : 1,
     transition: '0.2s',
     marginTop: 4,
-  }
+  };
 
   return (
     <div
@@ -138,7 +170,6 @@ export default function AuthModal() {
         boxShadow: '0 30px 80px rgba(0,0,0,0.22)',
         fontFamily: "'DM Sans',sans-serif",
       }}>
-        {/* Close */}
         <button onClick={closeAuth} style={{
           position: 'absolute', top: 16, right: 18,
           background: '#f3f4f6', border: 'none', borderRadius: '50%',
@@ -146,7 +177,6 @@ export default function AuthModal() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>×</button>
 
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
           <div style={{ fontSize: '2.2rem', color: '#e8531e' }}>❤</div>
           <div style={{ fontFamily: 'Raleway,sans-serif', fontSize: '1.5rem', fontWeight: 900, color: '#1a1a2e' }}>
@@ -154,7 +184,6 @@ export default function AuthModal() {
           </div>
         </div>
 
-        {/* ── VERIFY EMAIL ── */}
         {mode === 'verify' && (
           <>
             <h2 style={{ fontSize: '1.3rem', color: '#1a1a2e', marginBottom: 6, textAlign: 'center' }}>
@@ -206,7 +235,6 @@ export default function AuthModal() {
           </>
         )}
 
-        {/* ── LOGIN ── */}
         {mode === 'login' && (
           <>
             <h2 style={{ fontSize: '1.4rem', color: '#1a1a2e', marginBottom: 6, textAlign: 'center' }}>
@@ -223,7 +251,6 @@ export default function AuthModal() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder=""
                 required
                 style={inputStyle}
               />
@@ -235,7 +262,6 @@ export default function AuthModal() {
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder=""
                   required
                   style={{ ...inputStyle, marginBottom: 0, paddingRight: 44 }}
                 />
@@ -247,16 +273,13 @@ export default function AuthModal() {
                     background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16,
                   }}
                 >
-                  
+                  {showPass ? '🙈' : '👁️'}
                 </button>
               </div>
               <button type="submit" style={btnStyle} disabled={busy}>
                 {busy ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
-
-            
-
             <div style={{ textAlign: 'center', marginTop: 16, fontSize: '0.88rem', color: '#6b7280' }}>
               No account?{' '}
               <span
@@ -277,17 +300,15 @@ export default function AuthModal() {
           </>
         )}
 
-        {/* ── REGISTER ── */}
         {mode === 'register' && (
           <>
             <h2 style={{ fontSize: '1.3rem', color: '#1a1a2e', marginBottom: 6, textAlign: 'center' }}>
               Create Account
             </h2>
 
-            {/* Role selector */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 20, marginTop: 6 }}>
               {[
-                { r: 'donor',   label: ' Donor',   sub: 'Give to causes' },
+                { r: 'donor', label: ' Donor', sub: 'Give to causes' },
                 { r: 'creator', label: 'Creator', sub: 'Run campaigns' },
               ].map(({ r, label, sub }) => (
                 <button
@@ -313,12 +334,12 @@ export default function AuthModal() {
               ))}
             </div>
 
-            {role === 'donor' && (
+            {verificationEnabled && (
               <div style={{
                 background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10,
                 padding: '10px 14px', fontSize: '0.82rem', color: '#1e40af', marginBottom: 16,
               }}>
-              
+                <i className="fas fa-envelope"></i> We'll send a verification code to your email
               </div>
             )}
 
@@ -330,7 +351,6 @@ export default function AuthModal() {
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder=""
                 required
                 style={inputStyle}
               />
@@ -341,7 +361,6 @@ export default function AuthModal() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder=""
                 required
                 style={inputStyle}
               />
@@ -353,7 +372,6 @@ export default function AuthModal() {
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder=""
                   required
                   minLength={6}
                   style={{ ...inputStyle, marginBottom: 0, paddingRight: 44 }}
@@ -366,7 +384,7 @@ export default function AuthModal() {
                     background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16,
                   }}
                 >
-                  
+                  {showPass ? '🙈' : '👁️'}
                 </button>
               </div>
 
@@ -393,5 +411,5 @@ export default function AuthModal() {
         )}
       </div>
     </div>
-  )
+  );
 }

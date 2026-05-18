@@ -120,7 +120,7 @@ const injectStyles = () => {
     .ba{background:var(--green-l);color:var(--green-d)}
     .br{background:var(--blue-l);color:#185FA5}
     .bx{background:var(--red-l);color:var(--red)}
-    .qg{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+    .qg{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px}
     .qb{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform var(--tr),box-shadow var(--tr);font-family:var(--fb);border:none}
     .qb:hover{transform:translateY(-2px);box-shadow:var(--sh-md);background:var(--surface)}
     .qb:active{transform:scale(0.96)}
@@ -211,73 +211,14 @@ const injectStyles = () => {
     .brv{font-size:14px;font-weight:700}
     .mob-top{display:none;height:58px;background:var(--surface);border-bottom:1px solid var(--border);align-items:center;padding:0 16px;gap:12px;position:sticky;top:0;z-index:100}
     .mob-logo{font-family:var(--fd);font-size:20px;color:var(--txt);flex:1}
-  .bnav {
-  display: none;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: var(--bottom-nav);
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  z-index: 200;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.07);
-}
-.bnav-inner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 100%;
-  width: 100%;
-  max-width: 100%;
-  padding: 0 12px;
-}
-.bni {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  border: none;
-  background: none;
-  position: relative;
-  font-family: var(--fb);
-  transition: background var(--tr);
-  padding: 8px 0;
-}
-.bni.active .bni-icon svg {
-  stroke: var(--green);
-}
-.bni.active .bni-lbl {
-  color: var(--green);
-  font-weight: 700;
-}
-.bni-icon svg {
-  width: 40px;
-  height: 24px;
-  stroke: var(--txt-3);
-  stroke-width: 1.8;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.bni-lbl {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--txt-3);
-}
-.bni-dot {
-  position: absolute;
-  top: 6px;
-  right: calc(50% - 18px);
-  width: 8px;
-  height: 8px;
-  background: var(--red);
-  border-radius: 50%;
-  border: 1.5px solid var(--surface);
-}
+    .bnav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottom-nav);background:var(--surface);border-top:1px solid var(--border);z-index:200;box-shadow:0 -4px 20px rgba(0,0,0,0.07)}
+    .bnav-inner{display:flex;justify-content:space-between;align-items:center;height:100%;width:100%;max-width:100%;padding:0 12px}
+    .bni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:none;position:relative;font-family:var(--fb);transition:background var(--tr);padding:8px 0}
+    .bni.active .bni-icon svg{stroke:var(--green)}
+    .bni.active .bni-lbl{color:var(--green);font-weight:700}
+    .bni-icon svg{width:40px;height:24px;stroke:var(--txt-3);stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .bni-lbl{font-size:10px;font-weight:600;color:var(--txt-3)}
+    .bni-dot{position:absolute;top:6px;right:calc(50% - 18px);width:8px;height:8px;background:var(--red);border-radius:50%;border:1.5px solid var(--surface)}
     .fab{display:none;position:fixed;right:18px;bottom:calc(var(--bottom-nav) + 14px);width:56px;height:56px;border-radius:50%;background:var(--green);border:none;cursor:pointer;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(29,158,117,0.5);z-index:150;transition:transform var(--tr)}
     .fab:active{transform:scale(0.93)}
     .fab svg{width:24px;height:24px;stroke:#fff;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
@@ -521,6 +462,140 @@ function WithdrawalRequestsManager({ requests, onApprove, onReject, showToast })
   );
 }
 
+// ---------- Component: CompletionRequestsManager ----------
+function CompletionRequestsManager({ requests, onRelease, onRefund, showToast }) {
+  const [processingId, setProcessingId] = useState(null);
+
+  const handleRelease = async (id) => {
+    if (!window.confirm('Release escrow funds to creator? This action cannot be undone.')) return;
+    setProcessingId(id);
+    try {
+      await onRelease(id);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRefund = async (id) => {
+    if (!window.confirm('Refund all donations? This will return money to donors.')) return;
+    setProcessingId(id);
+    try {
+      await onRefund(id);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  if (requests.length === 0) return <div>No pending completion requests.</div>;
+
+  return (
+    <div>
+      {requests.map(req => (
+        <div key={req.id} style={{ borderBottom: '1px solid var(--border)', padding: '16px 0' }}>
+          <div><strong>Campaign:</strong> {req.title}</div>
+          <div><strong>Creator ID:</strong> #{req.creator_id}</div>
+          <div><strong>Requested:</strong> {new Date(req.completion_requested_at).toLocaleString()}</div>
+          <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+            <button 
+              className="db dba" 
+              onClick={() => handleRelease(req.id)} 
+              disabled={processingId === req.id}
+            >
+              {processingId === req.id ? 'Processing...' : 'Release Escrow'}
+            </button>
+            <button 
+              className="db dbr" 
+              onClick={() => handleRefund(req.id)} 
+              disabled={processingId === req.id}
+            >
+              {processingId === req.id ? 'Processing...' : 'Refund Donors'}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------- Component: MaintenanceMode ----------
+function MaintenanceModeManager({ isEnabled, onToggle, showToast }) {
+  const [toggling, setToggling] = useState(false);
+  const [message, setMessage] = useState('');
+  const [savingMessage, setSavingMessage] = useState(false);
+
+  useEffect(() => {
+    if (isEnabled?.message) setMessage(isEnabled.message);
+  }, [isEnabled]);
+
+  const handleToggle = async () => {
+    setToggling(true);
+    try {
+      await onToggle(!isEnabled.enabled);
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  const handleSaveMessage = async () => {
+    setSavingMessage(true);
+    try {
+      await adminApi.saveSettings({ keys: { maintenance_message: message } });
+      showToast('Maintenance message saved');
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setSavingMessage(false);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <strong>Maintenance Mode</strong>
+          <p style={{ fontSize: 12, color: 'var(--txt-2)', marginTop: 4 }}>
+            When enabled, only admins can access the site. Regular users will see a maintenance page.
+          </p>
+        </div>
+        <button
+          onClick={handleToggle}
+          disabled={toggling}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 30,
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: 600,
+            background: isEnabled?.enabled ? '#ef4444' : '#10b981',
+            color: '#fff',
+          }}
+        >
+          {toggling ? '...' : isEnabled?.enabled ? 'Disable Maintenance' : 'Enable Maintenance'}
+        </button>
+      </div>
+      
+      {isEnabled?.enabled && (
+        <div style={{ marginTop: 20 }}>
+          <label className="fl">Maintenance Message (shown to users)</label>
+          <textarea
+            className="fi"
+            rows="3"
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            placeholder="We're currently performing scheduled maintenance. Please check back soon!"
+          />
+          <button className="btn btn-g" onClick={handleSaveMessage} disabled={savingMessage}>
+            {savingMessage ? 'Saving...' : 'Save Message'}
+          </button>
+          <div style={{ marginTop: 12, padding: 12, background: 'var(--amber-l)', borderRadius: 8, fontSize: 12 }}>
+            <strong>Preview:</strong> Users will see: "{message || 'We are currently under maintenance. Please check back later.'}"
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------- Main AdminDashboard ----------
 export default function AdminDashboard() {
   injectStyles();
@@ -539,11 +614,11 @@ export default function AdminDashboard() {
     '--dark': '#1a1a2e',
   });
   
-  // Updated integration keys - removed PayPal/Firebase, added Cloudinary
   const [integrationKeys, setIntegrationKeys] = useState({
     smtp_host: '', smtp_port: '', smtp_user: '', smtp_pass: '',
     cloudinary_cloud_name: '', cloudinary_api_key: '', cloudinary_api_secret: '',
     recaptcha_site_key: '', recaptcha_secret_key: '',
+    maintenance_message: '',
   });
   
   const [socialLinks, setSocialLinks] = useState({
@@ -551,13 +626,15 @@ export default function AdminDashboard() {
   });
 
   // Data states
-  const [stats, setStats] = useState({ total_raised: 0, total_campaigns: 0, pending_campaigns: 0, total_users: 0, open_disputes: 0 });
+  const [stats, setStats] = useState({ total_raised: 0, total_campaigns: 0, pending_campaigns: 0, total_users: 0 });
   const [campaigns, setCampaigns] = useState([]);
   const [users, setUsers] = useState([]);
-  const [disputes, setDisputes] = useState([]);
   const [donations, setDonations] = useState([]);
   const [depositRequests, setDepositRequests] = useState([]);
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
+  const [completionRequests, setCompletionRequests] = useState([]);
+  const [maintenanceMode, setMaintenanceMode] = useState({ enabled: false, message: '' });
+  const [verificationEnabled, setVerificationEnabled] = useState(true);
   const [content, setContent] = useState({
     hero_title: 'Together We Can',
     hero_subtitle: 'Support the causes you care about and make a real difference.',
@@ -600,30 +677,74 @@ export default function AdminDashboard() {
     setAuthChecked(true);
   }, [sessionLoading, currentUser, navigate, showToast]);
 
+  // Fetch verification status
+  const fetchVerificationStatus = async () => {
+    try {
+      const data = await adminApi.getVerificationSetting();
+      setVerificationEnabled(data.enabled);
+    } catch (err) {
+      console.error('Failed to fetch verification status:', err);
+    }
+  };
+
+  // Toggle verification
+  const toggleVerification = async () => {
+    try {
+      const newStatus = !verificationEnabled;
+      await adminApi.updateVerificationSetting({ enabled: newStatus });
+      setVerificationEnabled(newStatus);
+      showToast(`Email verification ${newStatus ? 'enabled' : 'disabled'}`);
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  };
+
+  // Fetch maintenance status
+  const fetchMaintenanceStatus = async () => {
+    try {
+      const settings = await adminApi.getSettings();
+      const enabled = settings.settings?.keys?.maintenance_mode === 'true';
+      const message = settings.settings?.keys?.maintenance_message || '';
+      setMaintenanceMode({ enabled, message });
+    } catch (err) {
+      console.error('Failed to fetch maintenance status:', err);
+    }
+  };
+
+  // Toggle maintenance mode
+  const toggleMaintenance = async (enabled) => {
+    try {
+      await adminApi.saveSettings({ keys: { maintenance_mode: enabled ? 'true' : 'false' } });
+      setMaintenanceMode(prev => ({ ...prev, enabled }));
+      showToast(`Maintenance mode ${enabled ? 'enabled' : 'disabled'}`);
+    } catch (err) {
+      showToast(err.message, true);
+      throw err;
+    }
+  };
+
   // Fetch all data
   const fetchAll = async () => {
     setDataLoading(true);
     try {
-      const [s, c, u, d, don, dep, withdraw, sett, cont] = await Promise.all([
+      const [s, c, u, don, dep, withdraw, compl, sett, cont] = await Promise.all([
         safeGet(() => adminApi.getStats(), { stats: {} }),
         safeGet(() => adminApi.getCampaigns(), { campaigns: [] }),
         safeGet(() => adminApi.getUsers(), { users: [] }),
-        safeGet(() => adminApi.getDisputes(), { disputes: [] }),
         safeGet(() => adminApi.getDonations(), { donations: [] }),
         safeGet(() => adminApi.getDepositRequests?.(), { requests: [] }),
         safeGet(() => adminApi.getWithdrawalRequests?.(), { withdrawals: [] }),
+        safeGet(() => adminApi.getCompletionRequests?.(), { campaigns: [] }),
         safeGet(() => adminApi.getSettings(), { settings: null }),
         safeGet(() => adminApi.getContent(), { content: null }),
       ]);
 
-      // Convert stats numbers
       const parsedStats = { ...(s.stats || {}) };
-      ['total_raised', 'total_campaigns', 'pending_campaigns', 'total_users', 'open_disputes'].forEach(key => {
+      ['total_raised', 'total_campaigns', 'pending_campaigns', 'total_users'].forEach(key => {
         if (parsedStats[key] !== undefined) parsedStats[key] = toNumber(parsedStats[key]);
       });
       setStats(parsedStats);
 
-      // Convert campaigns
       const parsedCampaigns = (c.campaigns || []).map(camp => ({
         ...camp,
         goal: toNumber(camp.goal),
@@ -631,38 +752,39 @@ export default function AdminDashboard() {
       }));
       setCampaigns(parsedCampaigns);
 
-      // Convert users
       const parsedUsers = (u.users || []).map(user => ({
         ...user,
         wallet_balance: toNumber(user.wallet_balance)
       }));
       setUsers(parsedUsers);
 
-      // Convert donations
       const parsedDonations = (don.donations || []).map(d => ({
         ...d,
         amount: toNumber(d.amount)
       }));
       setDonations(parsedDonations);
 
-      // Convert deposit requests
       const parsedDeposits = (dep.requests || []).map(req => ({
         ...req,
         amount: toNumber(req.amount)
       }));
       setDepositRequests(parsedDeposits);
 
-      // Convert withdrawal requests
       const parsedWithdrawals = (withdraw.withdrawals || []).map(w => ({
         ...w,
         amount: toNumber(w.amount)
       }));
       setWithdrawalRequests(parsedWithdrawals);
+      setCompletionRequests(compl.campaigns || []);
 
-      // Settings and content
       if (sett?.settings) {
         if (sett.settings.theme) setThemeSettings(prev => ({ ...prev, ...sett.settings.theme }));
-        if (sett.settings.keys) setIntegrationKeys(prev => ({ ...prev, ...sett.settings.keys }));
+        if (sett.settings.keys) {
+          setIntegrationKeys(prev => ({ ...prev, ...sett.settings.keys }));
+          const maintenanceEnabled = sett.settings.keys.maintenance_mode === 'true';
+          const maintenanceMsg = sett.settings.keys.maintenance_message || '';
+          setMaintenanceMode({ enabled: maintenanceEnabled, message: maintenanceMsg });
+        }
       }
       if (cont?.content) {
         setContent(prev => ({
@@ -681,7 +803,11 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    if (authChecked) fetchAll();
+    if (authChecked) {
+      fetchAll();
+      fetchVerificationStatus();
+      fetchMaintenanceStatus();
+    }
   }, [authChecked]);
 
   // Handlers
@@ -718,14 +844,6 @@ export default function AdminDashboard() {
     } catch (err) { showToast(err.message, true); }
   };
 
-  const handleResolveDispute = async (id) => {
-    try {
-      await adminApi.resolveDispute(id);
-      showToast('Dispute resolved');
-      fetchAll();
-    } catch (err) { showToast(err.message, true); }
-  };
-
   const handleApproveDeposit = async (id, amount) => {
     try {
       await adminApi.updateDepositRequest?.(id, { status: 'approved' });
@@ -755,7 +873,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Withdrawal handlers
   const handleApproveWithdrawal = async (id) => {
     try {
       await adminApi.approveWithdrawal(id);
@@ -775,6 +892,26 @@ export default function AdminDashboard() {
       fetchAll();
     } catch (err) { 
       showToast(err.message, true); 
+    }
+  };
+
+  const handleReleaseEscrow = async (id) => {
+    try {
+      await adminApi.releaseCampaignEscrow(id);
+      showToast('Escrow released successfully');
+      fetchAll();
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  };
+
+  const handleRefundEscrow = async (id) => {
+    try {
+      await adminApi.refundCampaignEscrow(id);
+      showToast('Escrow refunded to donors');
+      fetchAll();
+    } catch (err) {
+      showToast(err.message, true);
     }
   };
 
@@ -818,20 +955,18 @@ export default function AdminDashboard() {
     return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading admin panel...</div>;
   }
 
-  // Computed values
   const totalRaised = campaigns.reduce((sum, c) => sum + c.raised, 0);
   const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'approved').length;
   const pendingCampaigns = campaigns.filter(c => c.status === 'pending' || c.status === 'review').length;
   const donorsCount = users.filter(u => u.role === 'donor').length;
   const creatorsCount = users.filter(u => u.role === 'creator').length;
-  const openDisputesCount = disputes.filter(d => d.status !== 'resolved').length;
   const pendingWithdrawals = withdrawalRequests.filter(w => w.status === 'pending').length;
+  const pendingCompletions = completionRequests.length;
 
-  const tabs = ['overview', 'campaigns', 'users', 'donations', 'deposits', 'withdrawals', 'massmail', 'content', 'settings'];
+  const tabs = ['overview', 'campaigns', 'users', 'donations', 'deposits', 'withdrawals', 'completions', 'massmail', 'content', 'settings', 'maintenance'];
 
   return (
     <div className="shell">
-      {/* Sidebar */}
       <aside className="sidebar">
         <div className="sb-logo">
           <div className="logo-mark">
@@ -866,6 +1001,17 @@ export default function AdminDashboard() {
               {tab === 'withdrawals' && pendingWithdrawals > 0 && <span className="nb am">{pendingWithdrawals}</span>}
             </button>
           ))}
+          <div className="nav-sec">Operations</div>
+          <button className={`nl ${activeTab === 'completions' ? 'active' : ''}`} onClick={() => setActiveTab('completions')}>
+            <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Completions
+            {pendingCompletions > 0 && <span className="nb am">{pendingCompletions}</span>}
+          </button>
+          <button className={`nl ${activeTab === 'maintenance' ? 'active' : ''}`} onClick={() => setActiveTab('maintenance')}>
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Maintenance
+            {maintenanceMode.enabled && <span className="nb am">ON</span>}
+          </button>
           <div className="nav-sec">Admin</div>
           {['massmail', 'content', 'settings'].map(tab => (
             <button key={tab} className={`nl ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
@@ -917,7 +1063,9 @@ export default function AdminDashboard() {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>Platform Status</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', background: 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.2)' }}>● Live</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', background: maintenanceMode.enabled ? 'var(--amber)' : 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.2)' }}>
+                    {maintenanceMode.enabled ? '🔧 Maintenance' : '● Live'}
+                  </div>
                 </div>
               </div>
               <div className="hero-stats">
@@ -932,18 +1080,20 @@ export default function AdminDashboard() {
               <div className="sc"><div className="si si-g"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg></div><div className="sv">{stats.total_users || users.length}</div><div className="sl">Total Users</div></div>
               <div className="sc"><div className="si si-b"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></div><div className="sv">{activeCampaigns}</div><div className="sl">Active Campaigns</div></div>
               <div className="sc"><div className="si si-a"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg></div><div className="sv">${(totalRaised / 1000).toFixed(0)}k</div><div className="sl">Total Raised</div></div>
-              <div className="sc"><div className="si si-r"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div className="sv">{openDisputesCount}</div><div className="sl">Open Disputes</div></div>
+              <div className="sc"><div className="si si-r"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div className="sv">{pendingCompletions}</div><div className="sl">Pending Completions</div></div>
             </div>
 
             <div className="sh"><div className="sht">Quick Actions</div></div>
             <div className="qg">
-              {['campaigns', 'users', 'deposits', 'withdrawals', 'massmail', 'content', 'settings'].map(tab => (
+              {['campaigns', 'users', 'deposits', 'withdrawals', 'completions', 'maintenance', 'massmail', 'content', 'settings'].map(tab => (
                 <button key={tab} className="qb" onClick={() => setActiveTab(tab)}>
                   <div className="qi">
                     {tab === 'campaigns' && <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>}
                     {tab === 'users' && <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>}
                     {tab === 'deposits' && <svg viewBox="0 0 24 24"><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>}
                     {tab === 'withdrawals' && <svg viewBox="0 0 24 24"><polyline points="7,1 3,5 7,9"/><path d="M21 11V9a4 4 0 0 0-4-4H3"/><polyline points="17,23 21,19 17,15"/><path d="M3 13v2a4 4 0 0 0 4 4h14"/></svg>}
+                    {tab === 'completions' && <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>}
+                    {tab === 'maintenance' && <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
                     {tab === 'massmail' && <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}
                     {tab === 'content' && <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>}
                     {tab === 'settings' && <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>}
@@ -978,25 +1128,18 @@ export default function AdminDashboard() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div className="card">
-                  <div className="card-h"><div className="card-t">Deposit Queue</div><button className="card-a" onClick={() => setActiveTab('deposits')}>Manage →</button></div>
+                  <div className="card-h"><div className="card-t">Completion Requests</div><button className="card-a" onClick={() => setActiveTab('completions')}>Manage →</button></div>
                   <div className="card-b">
-                    {depositRequests.slice(0, 3).map(req => (
+                    {completionRequests.slice(0, 3).map(req => (
                       <div key={req.id} className="di">
-                        <div className="uav avb" style={{ width: 32, height: 32, fontSize: 11 }}>{req.userName?.[0] || 'U'}</div>
-                        <div className="di-info"><div className="di-user">{req.userName}</div><div className="di-amt">${req.amount.toFixed(2)}</div></div>
+                        <div className="uav ava" style={{ width: 32, height: 32, fontSize: 11 }}>{req.title?.charAt(0) || 'C'}</div>
+                        <div className="di-info"><div className="di-user">{req.title}</div><div className="di-amt">Requested {new Date(req.completion_requested_at).toLocaleDateString()}</div></div>
                         <div className="di-acts">
-                          {req.status === 'pending' && <button className="db dba" onClick={() => setActiveTab('deposits')}>Manage</button>}
-                          {req.status === 'instructions_sent' && <span style={{ color: 'var(--blue)' }}>Awaiting proof</span>}
-                          {req.status === 'awaiting_proof' && (
-                            <>
-                              <button className="db dba" onClick={() => handleApproveDeposit(req.id, req.amount)}>Approve</button>
-                              <button className="db dbr" onClick={() => handleRejectDeposit(req.id)}>Reject</button>
-                            </>
-                          )}
+                          <button className="db dba" onClick={() => setActiveTab('completions')}>Review</button>
                         </div>
                       </div>
                     ))}
-                    {depositRequests.length === 0 && <div>No deposit requests</div>}
+                    {pendingCompletions === 0 && <div>No completion requests</div>}
                   </div>
                 </div>
                 <div className="card">
@@ -1028,7 +1171,7 @@ export default function AdminDashboard() {
           {/* Users Tab */}
           <div className={`ps ${activeTab === 'users' ? 'active' : ''}`}>
             <div className="sh"><div className="sht">User Management</div></div>
-            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th style={{ paddingLeft: 20 }}>User</th><th>Role</th><th>Joined</th><th>Wallet</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{users.map(u => (<tr key={u.id}><td style={{ paddingLeft: 20 }}><div className="uc"><div className={`uav avg`}>{u.name?.charAt(0)}</div><div><div style={{ fontWeight: 600 }}>{u.name}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{u.email}</div></div></div></td><td><span className="badge br">{u.role}</span></td><td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td><td style={{ fontWeight: 600 }}>${u.wallet_balance.toFixed(2)}</td><td><span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span></td><td style={{ paddingRight: 20 }}><button className="db dbv" onClick={() => handleToggleUser(u.id)}>{u.is_active ? 'Suspend' : 'Restore'}</button></td></tr>))}</tbody></table></div></div>
+            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th style={{ paddingLeft: 20 }}>User</th><th>Role</th><th>Joined</th><th>Wallet</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{users.map(u => (<tr key={u.id}><td style={{ paddingLeft: 20 }}><div className="uc"><div className={`uav avg`}>{u.name?.charAt(0)}</div><div><div style={{ fontWeight: 600 }}>{u.name}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{u.email}</div></div></div></td><td><span className="badge br">{u.role}</span></td><td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td><td style={{ fontWeight: 600 }}>${u.wallet_balance?.toFixed(2) || '0.00'}</td><td><span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span></td><td style={{ paddingRight: 20 }}><button className="db dbv" onClick={() => handleToggleUser(u.id)}>{u.is_active ? 'Suspend' : 'Restore'}</button></td></tr>))}</tbody></table></div></div>
           </div>
 
           {/* Donations Tab */}
@@ -1064,6 +1207,19 @@ export default function AdminDashboard() {
             </div></div>
           </div>
 
+          {/* Completions Tab */}
+          <div className={`ps ${activeTab === 'completions' ? 'active' : ''}`}>
+            <div className="sh"><div className="sht">Campaign Completion Requests</div></div>
+            <div className="card"><div className="card-b">
+              <CompletionRequestsManager
+                requests={completionRequests}
+                onRelease={handleReleaseEscrow}
+                onRefund={handleRefundEscrow}
+                showToast={showToast}
+              />
+            </div></div>
+          </div>
+
           {/* Mass Mail Tab */}
           <div className={`ps ${activeTab === 'massmail' ? 'active' : ''}`}>
             <div className="card"><div className="card-h"><div className="card-t">Broadcast Email</div></div><div className="card-b">
@@ -1085,6 +1241,7 @@ export default function AdminDashboard() {
                 <button className={`role-tab ${settingsTab === 'theme' ? 'active' : ''}`} onClick={() => setSettingsTab('theme')}>Theme Colours</button>
                 <button className={`role-tab ${settingsTab === 'keys' ? 'active' : ''}`} onClick={() => setSettingsTab('keys')}>Integration Keys</button>
                 <button className={`role-tab ${settingsTab === 'social' ? 'active' : ''}`} onClick={() => setSettingsTab('social')}>Social Links</button>
+                <button className={`role-tab ${settingsTab === 'security' ? 'active' : ''}`} onClick={() => setSettingsTab('security')}>Security</button>
               </div>
               {settingsTab === 'theme' && (
                 <div className="theme-settings">
@@ -1158,18 +1315,67 @@ export default function AdminDashboard() {
                   <button className="btn btn-g" onClick={handleSaveSocialLinks}>Save Social Links</button>
                 </div>
               )}
+              {settingsTab === 'security' && (
+                <div>
+                  <div className="card" style={{ marginBottom: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                      <div>
+                        <strong>Email Verification</strong>
+                        <p style={{ fontSize: 12, color: 'var(--txt-2)', marginTop: 4 }}>
+                          When enabled, all new users must verify their email before logging in
+                        </p>
+                      </div>
+                      <button
+                        onClick={toggleVerification}
+                        style={{
+                          padding: '10px 20px',
+                          borderRadius: 30,
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontWeight: 600,
+                          background: verificationEnabled ? '#ef4444' : '#10b981',
+                          color: '#fff',
+                        }}
+                      >
+                        {verificationEnabled ? 'Disable Verification' : 'Enable Verification'}
+                      </button>
+                    </div>
+                    <div style={{
+                      background: verificationEnabled ? '#fef3c7' : '#d1fae5',
+                      padding: 12,
+                      borderRadius: 8,
+                      fontSize: 13,
+                      color: verificationEnabled ? '#92400e' : '#065f46',
+                    }}>
+                      <i className={`fas ${verificationEnabled ? 'fa-shield-alt' : 'fa-envelope-open-text'}`}></i>
+                      {verificationEnabled 
+                        ? ' Email verification is ON. New users will receive a 6-digit code to verify their email address.'
+                        : ' Email verification is OFF. New users can sign in immediately after registration.'}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div></div>
+          </div>
+
+          {/* Maintenance Tab */}
+          <div className={`ps ${activeTab === 'maintenance' ? 'active' : ''}`}>
+            <div className="card"><div className="card-h"><div className="card-t">Maintenance Mode</div></div><div className="card-b">
+              <MaintenanceModeManager
+                isEnabled={maintenanceMode}
+                onToggle={toggleMaintenance}
+                showToast={showToast}
+              />
             </div></div>
           </div>
         </div>
       </div>
 
-      {/* Mobile FAB */}
       <button className="fab" onClick={() => setActiveTab('campaigns')}><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
-      {/* Bottom Nav - Mobile Only */}
       <nav className="bnav">
         <div className="bnav-inner">
-          {['overview', 'campaigns', 'deposits', 'withdrawals'].map(tab => (
+          {['overview', 'campaigns', 'deposits', 'withdrawals', 'completions'].map(tab => (
             <button 
               key={tab} 
               className={`bni ${activeTab === tab ? 'active' : ''}`} 
@@ -1204,6 +1410,12 @@ export default function AdminDashboard() {
                     <path d="M21 11V9a4 4 0 0 0-4-4H3"/>
                     <polyline points="17,23 21,19 17,15"/>
                     <path d="M3 13v2a4 4 0 0 0 4 4h14"/>
+                  </svg>
+                )}
+                {tab === 'completions' && (
+                  <svg viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
                   </svg>
                 )}
               </div>
