@@ -27,21 +27,47 @@ async function request(path, options = {}) {
   return data
 }
 
-// Multipart (file uploads)
+// Multipart (file uploads) - IMPROVED VERSION
 async function multipart(method, path, formData) {
   const token = getToken()
+  
+  // IMPORTANT: Do NOT set Content-Type header for FormData
+  // The browser will set the correct multipart boundary automatically
+  const headers = {}
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  
+  console.log(`📤 ${method} ${path} - Sending multipart request`)
+  
+  // Debug: Log FormData contents
+  if (formData instanceof FormData) {
+    for (let pair of formData.entries()) {
+      if (pair[1] instanceof File) {
+        console.log(`   📎 File: ${pair[0]} = ${pair[1].name} (${pair[1].size} bytes, ${pair[1].type})`)
+      } else {
+        console.log(`   📋 Field: ${pair[0]} = ${String(pair[1]).substring(0, 100)}`)
+      }
+    }
+  }
+  
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers,
     body: formData,
   })
+  
   const data = await res.json()
+  
   if (!res.ok) {
+    console.error(`❌ ${method} ${path} failed:`, data)
     const err = new Error(data?.error || `Request failed: ${res.status}`)
     err.status = res.status
     err.data = data
     throw err
   }
+  
+  console.log(`✅ ${method} ${path} succeeded`)
   return data
 }
 
@@ -81,8 +107,21 @@ export const campaignApi = {
   getUpdates: (id) => request(`/campaigns/${id}/updates`),
   getRelated: (id, category) => request(`/campaigns/${id}/related?category=${category}`),
   getCreator: (userId) => request(`/users/${userId}`),
-  create:  (formData) => multipart('POST',  '/campaigns',      formData),
-  update:  (id, formData) => multipart('PATCH', `/campaigns/${id}`, formData),
+  create:  (formData) => {
+    // Ensure formData is properly formatted
+    if (!(formData instanceof FormData)) {
+      console.error('createCampaign called without FormData:', formData)
+      throw new Error('Invalid form data for campaign creation')
+    }
+    return multipart('POST', '/campaigns', formData)
+  },
+  update:  (id, formData) => {
+    if (!(formData instanceof FormData)) {
+      console.error('updateCampaign called without FormData:', formData)
+      throw new Error('Invalid form data for campaign update')
+    }
+    return multipart('PATCH', `/campaigns/${id}`, formData)
+  },
   delete:  (id) => request(`/campaigns/${id}`, { method: 'DELETE' }),
   addUpdate: (id, data) => request(`/campaigns/${id}/updates`, {
     method: 'POST', body: JSON.stringify(data),
@@ -122,8 +161,13 @@ export const walletApi = {
   requestDeposit: (body) => request('/wallet/deposit-request', {
     method: 'POST', body: JSON.stringify(body),
   }),
-  uploadProof: (requestId, formData) =>
-    multipart('POST', `/wallet/deposit-request/${requestId}/proof`, formData),
+  uploadProof: (requestId, formData) => {
+    if (!(formData instanceof FormData)) {
+      console.error('uploadProof called without FormData')
+      throw new Error('Invalid form data for proof upload')
+    }
+    return multipart('POST', `/wallet/deposit-request/${requestId}/proof`, formData)
+  },
 
   donateFromWallet: (body) => request('/wallet/donate', {
     method: 'POST', body: JSON.stringify(body),

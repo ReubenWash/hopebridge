@@ -145,24 +145,70 @@ export function AppProvider({ children }) {
     return data
   }
 
-  // Campaign helpers
-  function buildFormData(fields) {
-    const fd = new FormData()
-    Object.entries(fields).forEach(([key, val]) => {
-      if (val !== undefined && val !== null) fd.append(key, val)
+  // Campaign helpers with proper FormData handling for file uploads
+  const buildFormData = useCallback((fields) => {
+    const formData = new FormData()
+    
+    Object.entries(fields).forEach(([key, value]) => {
+      // Skip undefined or null values
+      if (value === undefined || value === null) return
+      
+      // Handle File objects specially
+      if (value instanceof File) {
+        formData.append(key, value, value.name)
+        console.log(`📎 Appending file: ${key} = ${value.name} (${value.size} bytes)`)
+      }
+      // Handle arrays
+      else if (Array.isArray(value)) {
+        value.forEach((item, index) => {
+          if (typeof item === 'object' && !(item instanceof File)) {
+            formData.append(`${key}[${index}]`, JSON.stringify(item))
+          } else {
+            formData.append(`${key}[${index}]`, item)
+          }
+        })
+      }
+      // Handle objects (but not Files)
+      else if (typeof value === 'object' && !(value instanceof File)) {
+        formData.append(key, JSON.stringify(value))
+      }
+      // Handle primitive values
+      else {
+        formData.append(key, String(value))
+      }
     })
-    return fd
-  }
+    
+    // Debug: Log FormData contents
+    for (let pair of formData.entries()) {
+      if (pair[1] instanceof File) {
+        console.log(`📋 FormData: ${pair[0]} = [File: ${pair[1].name}, ${pair[1].size} bytes]`)
+      } else {
+        console.log(`📋 FormData: ${pair[0]} = ${String(pair[1]).substring(0, 100)}`)
+      }
+    }
+    
+    return formData
+  }, [])
 
   const createCampaign = async (fields) => {
-    const data = await campaignApi.create(buildFormData(fields))
+    console.log('🚀 Creating campaign with fields:', Object.keys(fields))
+    
+    // If fields is already FormData, use it directly
+    const formData = fields instanceof FormData ? fields : buildFormData(fields)
+    
+    const data = await campaignApi.create(formData)
     showToast(data.message)
     await loadMyCampaigns()
     return data.campaign
   }
 
   const updateCampaign = async (id, fields) => {
-    const data = await campaignApi.update(id, buildFormData(fields))
+    console.log(`✏️ Updating campaign ${id} with fields:`, Object.keys(fields))
+    
+    // If fields is already FormData, use it directly
+    const formData = fields instanceof FormData ? fields : buildFormData(fields)
+    
+    const data = await campaignApi.update(id, formData)
     showToast(data.message)
     await loadMyCampaigns()
     return data.campaign
