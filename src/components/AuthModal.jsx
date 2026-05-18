@@ -273,7 +273,7 @@ export default function AuthModal() {
                     background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16,
                   }}
                 >
-                  {showPass ? '🙈' : '👁️'}
+                  
                 </button>
               </div>
               <button type="submit" style={btnStyle} disabled={busy}>
@@ -384,7 +384,7 @@ export default function AuthModal() {
                     background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16,
                   }}
                 >
-                  {showPass ? '🙈' : '👁️'}
+                  
                 </button>
               </div>
 

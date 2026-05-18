@@ -120,7 +120,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
             onClick={() => openAuth('register', 'donor')}
             style={{ marginLeft: 8, color: '#e8531e', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            Create account →
+            Create account 
           </button>
         </div>
       )}
@@ -168,7 +168,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
           />
           {!currentUser && (
             <small style={{ color: '#6b7280', fontSize: 11 }}>
-              We'll send a verification code to this email
+              We will send a verification code to this email
             </small>
           )}
         </div>
