@@ -149,6 +149,8 @@ export function AppProvider({ children }) {
   const buildFormData = useCallback((fields) => {
     const formData = new FormData()
     
+    console.log('🔨 Building FormData from fields:', Object.keys(fields))
+    
     Object.entries(fields).forEach(([key, value]) => {
       // Skip undefined or null values
       if (value === undefined || value === null) return
@@ -156,7 +158,7 @@ export function AppProvider({ children }) {
       // Handle File objects specially
       if (value instanceof File) {
         formData.append(key, value, value.name)
-        console.log(`📎 Appending file: ${key} = ${value.name} (${value.size} bytes)`)
+        console.log(`   📎 Appending file: ${key} = ${value.name} (${value.size} bytes, ${value.type})`)
       }
       // Handle arrays
       else if (Array.isArray(value)) {
@@ -167,23 +169,27 @@ export function AppProvider({ children }) {
             formData.append(`${key}[${index}]`, item)
           }
         })
+        console.log(`   📋 Appending array: ${key} with ${value.length} items`)
       }
       // Handle objects (but not Files)
       else if (typeof value === 'object' && !(value instanceof File)) {
         formData.append(key, JSON.stringify(value))
+        console.log(`   📦 Appending object: ${key} =`, value)
       }
       // Handle primitive values
       else {
         formData.append(key, String(value))
+        console.log(`   📝 Appending field: ${key} = ${String(value).substring(0, 50)}`)
       }
     })
     
-    // Debug: Log FormData contents
+    // Debug: Log all FormData contents
+    console.log('📋 Final FormData contents:')
     for (let pair of formData.entries()) {
       if (pair[1] instanceof File) {
-        console.log(`📋 FormData: ${pair[0]} = [File: ${pair[1].name}, ${pair[1].size} bytes]`)
+        console.log(`   ✅ ${pair[0]} = [FILE: ${pair[1].name}, ${pair[1].size} bytes, ${pair[1].type}]`)
       } else {
-        console.log(`📋 FormData: ${pair[0]} = ${String(pair[1]).substring(0, 100)}`)
+        console.log(`   ✅ ${pair[0]} = ${String(pair[1]).substring(0, 100)}`)
       }
     }
     
@@ -191,24 +197,78 @@ export function AppProvider({ children }) {
   }, [])
 
   const createCampaign = async (fields) => {
-    console.log('🚀 Creating campaign with fields:', Object.keys(fields))
+    console.log('🚀 createCampaign called with type:', fields instanceof FormData ? 'FormData' : 'Object')
     
-    // If fields is already FormData, use it directly
+    if (fields instanceof FormData) {
+      console.log('   📋 Received FormData directly, checking contents:')
+      let hasFile = false
+      for (let pair of fields.entries()) {
+        if (pair[1] instanceof File) {
+          console.log(`   ✅ FormData contains file: ${pair[0]} = ${pair[1].name} (${pair[1].size} bytes)`)
+          hasFile = true
+        } else {
+          console.log(`   ✅ FormData contains field: ${pair[0]} = ${pair[1]}`)
+        }
+      }
+      if (!hasFile) {
+        console.warn('⚠️ FormData has no file! Image may not be uploaded.')
+      }
+    } else {
+      console.log('   📋 Fields object keys:', Object.keys(fields))
+      if (fields.image && fields.image instanceof File) {
+        console.log(`   ✅ Has image file: ${fields.image.name} (${fields.image.size} bytes)`)
+      } else if (fields.image_url) {
+        console.log(`   ✅ Has image URL: ${fields.image_url}`)
+      } else {
+        console.warn('⚠️ No image provided!')
+      }
+    }
+    
     const formData = fields instanceof FormData ? fields : buildFormData(fields)
     
+    console.log('📤 Sending to API...')
     const data = await campaignApi.create(formData)
+    console.log('✅ API Response:', data)
+    
     showToast(data.message)
     await loadMyCampaigns()
     return data.campaign
   }
 
   const updateCampaign = async (id, fields) => {
-    console.log(`✏️ Updating campaign ${id} with fields:`, Object.keys(fields))
+    console.log(`✏️ updateCampaign called for ID ${id} with type:`, fields instanceof FormData ? 'FormData' : 'Object')
     
-    // If fields is already FormData, use it directly
+    if (fields instanceof FormData) {
+      console.log('   📋 Received FormData directly, checking contents:')
+      let hasFile = false
+      for (let pair of fields.entries()) {
+        if (pair[1] instanceof File) {
+          console.log(`   ✅ FormData contains file: ${pair[0]} = ${pair[1].name} (${pair[1].size} bytes)`)
+          hasFile = true
+        } else {
+          console.log(`   ✅ FormData contains field: ${pair[0]} = ${pair[1]}`)
+        }
+      }
+      if (!hasFile) {
+        console.warn('⚠️ FormData has no file! Image may not be uploaded.')
+      }
+    } else {
+      console.log('   📋 Fields object keys:', Object.keys(fields))
+      if (fields.image && fields.image instanceof File) {
+        console.log(`   ✅ Has image file: ${fields.image.name} (${fields.image.size} bytes)`)
+      } else if (fields.image_url) {
+        console.log(`   ✅ Has image URL: ${fields.image_url}`)
+      } else {
+        console.warn('⚠️ No image provided!')
+      }
+    }
+    
     const formData = fields instanceof FormData ? fields : buildFormData(fields)
     
+    console.log(`📤 Sending update to API for ID ${id}...`)
     const data = await campaignApi.update(id, formData)
+    console.log('✅ API Response:', data)
+    
     showToast(data.message)
     await loadMyCampaigns()
     return data.campaign
