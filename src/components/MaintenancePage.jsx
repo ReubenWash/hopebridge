@@ -2,7 +2,20 @@ import { useEffect, useState } from 'react';
 import { publicApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { Lock, Key, Mail, Shield, AlertTriangle, Loader, RefreshCw, Clock, Tool, X, LogIn } from 'lucide-react';
+import { 
+  Lock, 
+  Key, 
+  Mail, 
+  Shield, 
+  AlertTriangle, 
+  Loader, 
+  RefreshCw, 
+  Clock, 
+  Wrench, 
+  X, 
+  LogIn,
+  Settings
+} from 'lucide-react';
 
 // Direct API call without going through the regular authApi
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -168,7 +181,7 @@ export default function MaintenancePage() {
             justifyContent: 'center',
             margin: '0 auto 24px'
           }}>
-            <Tool size={40} color="#e8531e" />
+            <Wrench size={40} color="#e8531e" />
           </div>
           <h1 style={{
             fontSize: '28px',
