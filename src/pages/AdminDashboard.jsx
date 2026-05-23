@@ -3,22 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { adminApi, campaignApi } from '../services/api';
 
-// ---------- Helper: safe API call ----------
 const safeGet = async (apiCall, fallback) => {
-  try {
-    return await apiCall();
-  } catch {
-    return fallback;
-  }
+  try { return await apiCall(); } catch { return fallback; }
 };
-
-// ---------- Helper: safely convert to number ----------
 const toNumber = (val, fallback = 0) => {
   const num = parseFloat(val);
   return isNaN(num) ? fallback : num;
 };
 
-// ---------- Global style injection (once) ----------
 let stylesInjected = false;
 const injectStyles = () => {
   if (stylesInjected) return;
@@ -64,6 +56,7 @@ const injectStyles = () => {
     .nl svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
     .nb{margin-left:auto;font-size:10px;font-weight:700;background:var(--red);color:#fff;padding:2px 7px;border-radius:20px}
     .nb.am{background:var(--amber)}
+    .nb.gr{background:var(--green)}
     .sb-footer{padding:12px 10px;border-top:1px solid var(--border)}
     .main{flex:1;margin-left:var(--sidebar-w);display:flex;flex-direction:column;min-height:100vh}
     .topbar{height:var(--topbar-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;position:sticky;top:0;z-index:100}
@@ -121,24 +114,42 @@ const injectStyles = () => {
     .br{background:var(--blue-l);color:#185FA5}
     .bx{background:var(--red-l);color:var(--red)}
     .qg{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px}
-    .qb{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform var(--tr),box-shadow var(--tr);font-family:var(--fb);border:none}
-    .qb:hover{transform:translateY(-2px);box-shadow:var(--sh-md);background:var(--surface)}
+    .qb{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform var(--tr),box-shadow var(--tr);font-family:var(--fb)}
+    .qb:hover{transform:translateY(-2px);box-shadow:var(--sh-md)}
     .qb:active{transform:scale(0.96)}
-    .qi{width:40px;height:40px;border-radius:var(--r-sm);background:var(--green-l);display:flex;align-items:center;justify-content:center;border:1px solid var(--border)}
+    .qi{width:40px;height:40px;border-radius:var(--r-sm);background:var(--green-l);display:flex;align-items:center;justify-content:center}
     .qi svg{width:20px;height:20px;stroke:var(--green-d);stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
     .qb.qx .qi{background:var(--red-l)}.qb.qx .qi svg{stroke:var(--red)}.qb.qx .ql{color:var(--red)}
-    .ql{font-size:11px;font-weight:600;color:var(--txt-2);text-align:center}
-    .hpills{display:flex;gap:10px;flex-wrap:wrap}
-    .mp{flex:1;min-width:80px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 10px;text-align:center}
-    .mpl{font-size:10px;color:var(--txt-3);font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px}
-    .mpv{font-size:14px;font-weight:700}
-    .ok{color:var(--green)}.stable{color:var(--blue)}.norm{color:var(--txt)}
-    .pulse-w{display:flex;align-items:center;gap:6px}
-    .pb2{width:3px;border-radius:2px;background:var(--green);animation:pa 1.2s ease-in-out infinite}
-    .pb2:nth-child(1){height:8px;animation-delay:0s}.pb2:nth-child(2){height:14px;animation-delay:.2s}
-    .pb2:nth-child(3){height:10px;animation-delay:.4s}.pb2:nth-child(4){height:16px;animation-delay:.1s}
-    .pb2:nth-child(5){height:8px;animation-delay:.3s}
-    @keyframes pa{0%,100%{opacity:.3;transform:scaleY(.7)}50%{opacity:1;transform:scaleY(1)}}
+    .qb.qa .qi{background:var(--amber-l)}.qb.qa .qi svg{stroke:#854F0B}
+    .qb.qb2 .qi{background:var(--blue-l)}.qb.qb2 .qi svg{stroke:#185FA5}
+    .ql{font-size:11px;font-weight:600;color:var(--txt-2);text-align:center;line-height:1.3}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--border)}
+    .toggle-row:last-child{border-bottom:none}
+    .toggle-info strong{font-size:14px;font-weight:600;color:var(--txt);display:block}
+    .toggle-info p{font-size:12px;color:var(--txt-2);margin-top:3px}
+    .toggle{position:relative;width:48px;height:26px;flex-shrink:0}
+    .toggle input{opacity:0;width:0;height:0}
+    .toggle-slider{position:absolute;inset:0;background:#ccc;border-radius:26px;cursor:pointer;transition:.3s}
+    .toggle-slider:before{content:'';position:absolute;height:20px;width:20px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+    .toggle input:checked+.toggle-slider{background:var(--green)}
+    .toggle input:checked+.toggle-slider:before{transform:translateX(22px)}
+    .toggle.danger input:checked+.toggle-slider{background:var(--red)}
+    .qt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+    .qt-card{background:var(--surface);border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--sh-sm);display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .qt-label{font-size:13px;font-weight:600;color:var(--txt)}
+    .qt-sub{font-size:11px;color:var(--txt-3);margin-top:2px}
+    .qt-icon{width:36px;height:36px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .qt-icon svg{width:18px;height:18px;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .tpl-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+    .tpl-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all var(--tr);background:var(--surface)}
+    .tpl-item:hover{border-color:var(--green);background:var(--green-l)}
+    .tpl-item.active{border-color:var(--green);background:var(--green-l)}
+    .tpl-icon{width:36px;height:36px;border-radius:var(--r-sm);background:var(--green-l);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .tpl-icon svg{width:18px;height:18px;stroke:var(--green-d);stroke-width:1.8;fill:none}
+    .tpl-name{font-size:13px;font-weight:600;color:var(--txt)}
+    .tpl-desc{font-size:11px;color:var(--txt-3);margin-top:2px}
+    .tpl-editor{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px}
+    .tpl-preview{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:20px;margin-top:16px;font-size:13px;line-height:1.7;max-height:300px;overflow-y:auto}
     .di{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
     .di:last-child{border-bottom:none}
     .di-info{flex:1}
@@ -151,45 +162,23 @@ const injectStyles = () => {
     .dbr{background:var(--red-l);color:var(--red)}
     .dbr:hover{background:#F7C1C1}
     .dbv{background:var(--blue-l);color:#185FA5}
-    .wh{background:linear-gradient(130deg,#042C53 0%,#185FA5 55%,#378ADD 100%);border-radius:var(--r-xl);padding:30px 32px;margin-bottom:24px;color:#fff;position:relative;overflow:hidden}
-    .wh::before{content:'';position:absolute;top:-50px;right:-50px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,0.05)}
-    .wh::after{content:'';position:absolute;bottom:-40px;left:40px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,0.04)}
-    .wh-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;position:relative;z-index:1}
-    .wh-lbl{font-size:12px;color:rgba(255,255,255,0.6);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
-    .wh-bal{font-family:var(--fd);font-size:46px;color:#fff;line-height:1}
-    .wh-sub{font-size:13px;color:rgba(255,255,255,0.6);margin-top:4px}
-    .wh-num{font-size:14px;font-weight:500;color:rgba(255,255,255,0.7);letter-spacing:.15em}
-    .wh-acts{display:flex;gap:10px;position:relative;z-index:1;flex-wrap:wrap}
-    .wa{display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.18);border-radius:var(--r-md);padding:12px 20px;cursor:pointer;transition:background var(--tr);color:#fff;font-family:var(--fb)}
-    .wa:hover{background:rgba(255,255,255,0.22)}
-    .wa svg{width:20px;height:20px;stroke:#fff;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
-    .wa span{font-size:12px;font-weight:600}
-    .wallet-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
-    .txt{width:100%;border-collapse:collapse}
-    .txt th{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--txt-3);text-align:left;padding:8px 0;border-bottom:1px solid var(--border)}
-    .txt td{font-size:13px;color:var(--txt);padding:12px 0;border-bottom:1px solid var(--border);vertical-align:middle}
-    .txt tr:last-child td{border-bottom:none}
-    .txt td:last-child{text-align:right}
-    .txi{width:32px;height:32px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .txi svg{width:16px;height:16px;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
-    .txr{display:flex;align-items:center;gap:10px}
-    .txn{font-size:13px;font-weight:600;color:var(--txt)}
-    .txd{font-size:11px;color:var(--txt-3);margin-top:1px}
-    .txam{font-weight:700;font-size:14px}
-    .tcc{color:var(--green)}.tcd{color:var(--red)}
+    .dbp{background:var(--amber-l);color:#854F0B}
     .modal-bd{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
     .modal-bd.open{opacity:1;pointer-events:all}
-    .modal{background:var(--surface);border-radius:var(--r-xl);padding:28px;width:90%;max-width:500px;box-shadow:var(--sh-lg);transform:translateY(20px);transition:transform .25s}
+    .modal{background:var(--surface);border-radius:var(--r-xl);padding:28px;width:90%;max-width:550px;box-shadow:var(--sh-lg);transform:translateY(20px);transition:transform .25s}
     .modal-bd.open .modal{transform:translateY(0)}
     .modal-t{font-family:var(--fd);font-size:22px;color:var(--txt);margin-bottom:6px}
     .modal-s{font-size:13px;color:var(--txt-2);margin-bottom:20px}
     .fl{font-size:12px;font-weight:700;color:var(--txt-2);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;display:block}
     .fi{width:100%;background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--r-sm);padding:11px 14px;font-size:14px;color:var(--txt);font-family:var(--fb);outline:none;transition:border-color var(--tr);margin-bottom:14px}
     .fi:focus{border-color:var(--green)}
+    textarea.fi{resize:vertical;min-height:80px}
     .btn{padding:11px 22px;border-radius:var(--r-sm);font-size:14px;font-weight:600;cursor:pointer;border:none;font-family:var(--fb);transition:opacity var(--tr),transform var(--tr)}
     .btn:active{transform:scale(0.97)}
     .btn-g{background:var(--green);color:#fff}.btn-g:hover{background:var(--green-d)}
     .btn-gh{background:var(--surface-2);color:var(--txt-2);border:1px solid var(--border-2)}.btn-gh:hover{background:var(--bg)}
+    .btn-r{background:var(--red);color:#fff}.btn-r:hover{opacity:.85}
+    .btn-a{background:var(--amber);color:#fff}.btn-a:hover{background:#854F0B}
     .mf{display:flex;gap:10px;margin-top:6px}
     .ut{width:100%;border-collapse:collapse}
     .ut th{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--txt-3);text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface-2)}
@@ -204,52 +193,514 @@ const injectStyles = () => {
     .uc{display:flex;align-items:center;gap:10px}
     .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
     .sht{font-family:var(--fd);font-size:20px;color:var(--txt)}
-    .bsum{display:flex;flex-direction:column;gap:0}
-    .brow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
-    .brow:last-child{border-bottom:none}
-    .brl{font-size:13px;color:var(--txt-2)}
-    .brv{font-size:14px;font-weight:700}
+    .status-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+    .status-pill.on{background:var(--green-l);color:var(--green-d)}
+    .status-pill.off{background:var(--red-l);color:var(--red)}
+    .status-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
     .mob-top{display:none;height:58px;background:var(--surface);border-bottom:1px solid var(--border);align-items:center;padding:0 16px;gap:12px;position:sticky;top:0;z-index:100}
     .mob-logo{font-family:var(--fd);font-size:20px;color:var(--txt);flex:1}
     .bnav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottom-nav);background:var(--surface);border-top:1px solid var(--border);z-index:200;box-shadow:0 -4px 20px rgba(0,0,0,0.07)}
-    .bnav-inner{display:flex;justify-content:space-between;align-items:center;height:100%;width:100%;max-width:100%;padding:0 12px}
-    .bni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:none;position:relative;font-family:var(--fb);transition:background var(--tr);padding:8px 0}
+    .bnav-inner{display:flex;justify-content:space-between;align-items:center;height:100%;width:100%;padding:0 12px}
+    .bni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:none;font-family:var(--fb)}
     .bni.active .bni-icon svg{stroke:var(--green)}
     .bni.active .bni-lbl{color:var(--green);font-weight:700}
-    .bni-icon svg{width:40px;height:24px;stroke:var(--txt-3);stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .bni-icon svg{width:24px;height:24px;stroke:var(--txt-3);stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
     .bni-lbl{font-size:10px;font-weight:600;color:var(--txt-3)}
-    .bni-dot{position:absolute;top:6px;right:calc(50% - 18px);width:8px;height:8px;background:var(--red);border-radius:50%;border:1.5px solid var(--surface)}
-    .fab{display:none;position:fixed;right:18px;bottom:calc(var(--bottom-nav) + 14px);width:56px;height:56px;border-radius:50%;background:var(--green);border:none;cursor:pointer;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(29,158,117,0.5);z-index:150;transition:transform var(--tr)}
-    .fab:active{transform:scale(0.93)}
+    .fab{display:none;position:fixed;right:18px;bottom:calc(var(--bottom-nav) + 14px);width:56px;height:56px;border-radius:50%;background:var(--green);border:none;cursor:pointer;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(29,158,117,0.5);z-index:150}
     .fab svg{width:24px;height:24px;stroke:#fff;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
-    .toast{position:fixed;bottom:calc(var(--bottom-nav) + 12px);left:50%;transform:translateX(-50%) translateY(12px);background:rgba(17,19,24,0.93);color:#fff;font-size:13px;font-weight:500;padding:10px 22px;border-radius:30px;white-space:nowrap;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;font-family:var(--fb)}
-    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-    .settings-tabs{display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:10px}
-    .role-tab{background:none;border:none;padding:6px 14px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;color:var(--txt-2)}
+    .settings-tabs{display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:10px;flex-wrap:wrap}
+    .role-tab{background:none;border:none;padding:6px 14px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;color:var(--txt-2);font-family:var(--fb)}
     .role-tab.active{background:var(--green-l);color:var(--green-d)}
-    .theme-settings .auth-field{margin-bottom:16px}
-    .keys-settings .auth-field{margin-bottom:16px}
-    .social-links-settings .auth-field{margin-bottom:16px}
-    @media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}.qg{grid-template-columns:repeat(4,1fr)}.three-col{grid-template-columns:1fr}.wallet-cols{grid-template-columns:1fr}.two-col{grid-template-columns:1fr}}
+    @media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}.qg{grid-template-columns:repeat(4,1fr)}.three-col{grid-template-columns:1fr}.two-col{grid-template-columns:1fr}.qt-grid{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:768px){
       .sidebar{display:none}.main{margin-left:0}.topbar{display:none}
       .mob-top{display:flex}.bnav{display:flex}.fab{display:flex}
       .page{padding:16px;padding-bottom:calc(var(--bottom-nav) + 70px)}
-      .stats-grid{grid-template-columns:1fr 1fr;gap:10px}.qg{grid-template-columns:repeat(4,1fr);gap:8px}
+      .stats-grid{grid-template-columns:1fr 1fr;gap:10px}.qg{grid-template-columns:repeat(3,1fr);gap:8px}
       .ov-hero{border-radius:var(--r-lg);padding:20px}.hero-t{font-size:22px}.hst-v{font-size:20px}
-      .two-col,.three-col,.wallet-cols{grid-template-columns:1fr}
-      .wh{border-radius:var(--r-lg);padding:22px 18px}.wh-bal{font-size:34px}
-      .ut th:nth-child(3),.ut td:nth-child(3),.ut th:nth-child(4),.ut td:nth-child(4){display:none}
-      .toast{bottom:calc(var(--bottom-nav) + 10px)}
+      .qt-grid{grid-template-columns:1fr 1fr}
     }
-    @media(max-width:480px){.qg{grid-template-columns:repeat(4,1fr)}.sv{font-size:26px}}
     @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
     .ps.active>*{animation:fadeUp .35s ease both}
   `;
   document.head.appendChild(styleEl);
 };
 
-// ---------- Component: MassMailForm ----------
+// ── Toggle Switch Component ───────────────────────
+function Toggle({ checked, onChange, danger = false, disabled = false }) {
+  return (
+    <label className={`toggle ${danger ? 'danger' : ''}`} style={{ opacity: disabled ? 0.5 : 1 }}>
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} disabled={disabled} />
+      <span className="toggle-slider" />
+    </label>
+  );
+}
+
+// ── Fee Settings Component ────────────────────────
+function FeeSettings({ fees, onSave, showToast }) {
+  const [localFees, setLocalFees] = useState(fees);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setLocalFees(fees);
+  }, [fees]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(localFees);
+      showToast('Fee settings saved');
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom: 16 }}>
+        <label className="fl">Platform Fee Percentage (%)</label>
+        <input type="number" className="fi" step="0.5" min="0" max="100" value={localFees.percentage || 0} onChange={e => setLocalFees(prev => ({ ...prev, percentage: parseFloat(e.target.value) }))} />
+        <p style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 4 }}>Percentage taken from each donation</p>
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <label className="fl">Fixed Fee per Transaction ($)</label>
+        <input type="number" className="fi" step="0.5" min="0" value={localFees.fixed_amount || 0} onChange={e => setLocalFees(prev => ({ ...prev, fixed_amount: parseFloat(e.target.value) }))} />
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <label className="fl">Minimum Fee ($)</label>
+        <input type="number" className="fi" step="0.5" min="0" value={localFees.min_fee || 0} onChange={e => setLocalFees(prev => ({ ...prev, min_fee: parseFloat(e.target.value) }))} />
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <label className="fl">Maximum Fee ($)</label>
+        <input type="number" className="fi" step="0.5" min="0" value={localFees.max_fee || ''} onChange={e => setLocalFees(prev => ({ ...prev, max_fee: e.target.value ? parseFloat(e.target.value) : null }))} placeholder="No limit" />
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <label className="fl">Withdrawal Fee ($)</label>
+        <input type="number" className="fi" step="0.5" min="0" value={localFees.withdrawal_fee || 0} onChange={e => setLocalFees(prev => ({ ...prev, withdrawal_fee: parseFloat(e.target.value) }))} />
+      </div>
+      <div style={{ marginBottom: 24 }}>
+        <label className="fl">Minimum Withdrawal Amount ($)</label>
+        <input type="number" className="fi" step="1" min="1" value={localFees.minimum_withdrawal || 10} onChange={e => setLocalFees(prev => ({ ...prev, minimum_withdrawal: parseFloat(e.target.value) }))} />
+      </div>
+      <button className="btn btn-g" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Fee Settings'}</button>
+    </div>
+  );
+}
+
+// ── Payouts Manager Component ─────────────────────
+function PayoutsManager({ payouts, onMarkPaid, showToast }) {
+  const [filter, setFilter] = useState('all');
+  const filtered = payouts.filter(p => filter === 'all' || p.status === filter);
+  
+  if (payouts.length === 0) return <div style={{ color: 'var(--txt-3)', padding: '8px 0' }}>No payout records.</div>;
+  
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        {['all', 'pending', 'approved', 'paid', 'rejected'].map(s => (
+          <button key={s} className={`db ${filter === s ? 'dba' : 'dbv'}`} onClick={() => setFilter(s)}>{s.charAt(0).toUpperCase() + s.slice(1)}</button>
+        ))}
+      </div>
+      <div className="ut">
+        <table className="ut">
+          <thead>
+            <tr><th>User</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {filtered.map(p => (
+              <tr key={p.id}>
+                <td>{p.user_name}<br/><small style={{ fontSize: 11, color: 'var(--txt-3)' }}>{p.user_email}</small></td>
+                <td><strong>${toNumber(p.amount).toFixed(2)}</strong></td>
+                <td>{p.payment_method}<br/><small>{p.payment_details?.substring(0, 30)}</small></td>
+                <td><span className={`badge ${p.status === 'paid' ? 'ba' : p.status === 'approved' ? 'bp' : 'bx'}`}>{p.status}</span></td>
+                <td>{new Date(p.created_at).toLocaleDateString()}</td>
+                <td>{p.status === 'approved' && <button className="db dba" onClick={() => onMarkPaid(p.id)}>Mark Paid</button>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Notification Manager Component ────────────────
+function NotificationManager({ settings, onSave, onSend, history, showToast }) {
+  const [localSettings, setLocalSettings] = useState(settings);
+  const [notification, setNotification] = useState({ title: '', body: '', target_type: 'all', target_user_id: '' });
+  const [sending, setSending] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setLocalSettings(settings);
+  }, [settings]);
+
+  const handleSaveSettings = async () => {
+    setSaving(true);
+    try {
+      await onSave(localSettings);
+      showToast('Notification settings saved');
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSend = async () => {
+    if (!notification.title || !notification.body) {
+      showToast('Please fill title and body', true);
+      return;
+    }
+    setSending(true);
+    try {
+      await onSend(notification);
+      showToast('Notification sent successfully');
+      setNotification({ title: '', body: '', target_type: 'all', target_user_id: '' });
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="toggle-row">
+        <div className="toggle-info">
+          <strong>Push Notifications</strong>
+          <p>Enable/disable push notifications to users</p>
+        </div>
+        <Toggle checked={localSettings.enabled} onChange={(val) => setLocalSettings(prev => ({ ...prev, enabled: val }))} />
+      </div>
+      <button className="btn btn-g" onClick={handleSaveSettings} disabled={saving} style={{ marginTop: 16, marginBottom: 24 }}>{saving ? 'Saving…' : 'Save Settings'}</button>
+      
+      <hr style={{ margin: '20px 0', borderColor: 'var(--border)' }} />
+      
+      <h5 style={{ marginBottom: 16 }}>Send Notification</h5>
+      <div style={{ marginBottom: 12 }}>
+        <label className="fl">Target Audience</label>
+        <select className="fi" value={notification.target_type} onChange={e => setNotification(prev => ({ ...prev, target_type: e.target.value }))}>
+          <option value="all">All Users</option>
+          <option value="donors">Donors Only</option>
+          <option value="creators">Creators Only</option>
+          <option value="admin">Admins Only</option>
+        </select>
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label className="fl">Title</label>
+        <input type="text" className="fi" value={notification.title} onChange={e => setNotification(prev => ({ ...prev, title: e.target.value }))} placeholder="Notification title" />
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label className="fl">Body</label>
+        <textarea className="fi" rows="3" value={notification.body} onChange={e => setNotification(prev => ({ ...prev, body: e.target.value }))} placeholder="Notification message" />
+      </div>
+      <button className="btn btn-g" onClick={handleSend} disabled={sending}>{sending ? 'Sending…' : 'Send Push Notification'}</button>
+      
+      {history.length > 0 && (
+        <>
+          <hr style={{ margin: '24px 0', borderColor: 'var(--border)' }} />
+          <h5 style={{ marginBottom: 12 }}>Recent Notifications</h5>
+          <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+            {history.slice(0, 10).map(h => (
+              <div key={h.id} style={{ padding: 12, borderBottom: '1px solid var(--border)' }}>
+                <div><strong>{h.title}</strong></div>
+                <div style={{ fontSize: 12, color: 'var(--txt-2)' }}>{h.body}</div>
+                <div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 4 }}>{h.target_type} · {new Date(h.sent_at).toLocaleString()}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Creator Verification Manager ──────────────────
+function CreatorVerificationManager({ verifications, onReview, showToast }) {
+  const [selected, setSelected] = useState(null);
+  const [notes, setNotes] = useState('');
+  
+  if (verifications.length === 0) return <div style={{ color: 'var(--txt-3)', padding: '8px 0' }}>No verification requests.</div>;
+  
+  return (
+    <div>
+      <div className="ut">
+        <table className="ut">
+          <thead>
+            <tr><th>Creator</th><th>Documents</th><th>Submitted</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {verifications.map(v => (
+              <tr key={v.id}>
+                <td><strong>{v.name}</strong><br/><small>{v.email}</small></td>
+                <td>
+                  {v.id_document_url && <a href={v.id_document_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green)', marginRight: 8 }}>ID</a>}
+                  {v.proof_of_address_url && <a href={v.proof_of_address_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green)' }}>Address</a>}
+                </td>
+                <td>{new Date(v.created_at).toLocaleDateString()}</td>
+                <td><span className={`badge ${v.status === 'approved' ? 'ba' : v.status === 'pending' ? 'bp' : 'bx'}`}>{v.status}</span></td>
+                <td>
+                  <button className="db dba" onClick={() => { setSelected(v); setNotes(''); }}>Review</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      
+      {selected && (
+        <div className="modal-bd open" onClick={() => setSelected(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-t">Review Verification</div>
+            <div className="modal-s">User: {selected.name} ({selected.email})</div>
+            <div style={{ marginBottom: 12 }}>
+              <strong>Documents:</strong>
+              <ul style={{ marginTop: 8, marginLeft: 20 }}>
+                {selected.id_document_url && <li><a href={selected.id_document_url} target="_blank" rel="noopener noreferrer">ID Document</a></li>}
+                {selected.proof_of_address_url && <li><a href={selected.proof_of_address_url} target="_blank" rel="noopener noreferrer">Proof of Address</a></li>}
+                {selected.business_registration_url && <li><a href={selected.business_registration_url} target="_blank" rel="noopener noreferrer">Business Registration</a></li>}
+              </ul>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label className="fl">Notes (optional)</label>
+              <textarea className="fi" rows="3" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Add review notes..." />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-g" onClick={() => { onReview(selected.id, 'approved', notes); setSelected(null); }}>Approve</button>
+              <button className="btn btn-r" onClick={() => { onReview(selected.id, 'rejected', notes); setSelected(null); }}>Reject</button>
+              <button className="btn btn-gh" onClick={() => setSelected(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Donor Management Component ────────────────────
+function DonorManagement({ topDonors, subscriptions, analytics, onSubscriptionAction, showToast }) {
+  const [activeDonorTab, setActiveDonorTab] = useState('top');
+  
+  return (
+    <div>
+      <div className="settings-tabs">
+        <button className={`role-tab ${activeDonorTab === 'top' ? 'active' : ''}`} onClick={() => setActiveDonorTab('top')}>Top Donors</button>
+        <button className={`role-tab ${activeDonorTab === 'recurring' ? 'active' : ''}`} onClick={() => setActiveDonorTab('recurring')}>Recurring Donations</button>
+        <button className={`role-tab ${activeDonorTab === 'analytics' ? 'active' : ''}`} onClick={() => setActiveDonorTab('analytics')}>Analytics</button>
+      </div>
+      
+      {activeDonorTab === 'top' && (
+        <div>
+          <div className="stats-grid" style={{ marginBottom: 16, gridTemplateColumns: 'repeat(3,1fr)' }}>
+            <div className="sc"><div className="sv">{topDonors.length}</div><div className="sl">Top Donors</div></div>
+            <div className="sc"><div className="sv">${topDonors.reduce((s, d) => s + d.total_donated, 0).toLocaleString()}</div><div className="sl">Total from Top</div></div>
+            <div className="sc"><div className="sv">{topDonors[0]?.name || '-'}</div><div className="sl">Top Donor</div></div>
+          </div>
+          <div className="ut">
+            <table className="ut">
+              <thead><tr><th>Donor</th><th>Total Donated</th><th>Donations</th><th>Last Donation</th></tr></thead>
+              <tbody>
+                {topDonors.map(d => (
+                  <tr key={d.id}>
+                    <td><strong>{d.name}</strong><br/><small>{d.email}</small></td>
+                    <td><strong>${d.total_donated.toLocaleString()}</strong></td>
+                    <td>{d.donation_count}</td>
+                    <td>{d.last_donation_date ? new Date(d.last_donation_date).toLocaleDateString() : '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      
+      {activeDonorTab === 'recurring' && (
+        <div>
+          <div className="stats-grid" style={{ marginBottom: 16, gridTemplateColumns: 'repeat(2,1fr)' }}>
+            <div className="sc"><div className="sv">{subscriptions.length}</div><div className="sl">Active Subscriptions</div></div>
+            <div className="sc"><div className="sv">${subscriptions.reduce((s, sub) => s + sub.amount, 0).toLocaleString()}/mo</div><div className="sl">Monthly Recurring</div></div>
+          </div>
+          <div className="ut">
+            <table className="ut">
+              <thead><tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Frequency</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+                {subscriptions.map(sub => (
+                  <tr key={sub.id}>
+                    <td>{sub.donor_name}</td>
+                    <td>{sub.campaign_title || 'General'}</td>
+                    <td><strong>${sub.amount.toFixed(2)}</strong></td>
+                    <td>{sub.frequency}</td>
+                    <td><span className={`badge ${sub.status === 'active' ? 'ba' : sub.status === 'paused' ? 'bp' : 'bx'}`}>{sub.status}</span></td>
+                    <td>
+                      {sub.status === 'active' && <button className="db dbp" onClick={() => onSubscriptionAction(sub.id, 'paused')}>Pause</button>}
+                      {sub.status === 'paused' && <button className="db dba" onClick={() => onSubscriptionAction(sub.id, 'active')}>Resume</button>}
+                      <button className="db dbr" onClick={() => onSubscriptionAction(sub.id, 'cancelled')}>Cancel</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      
+      {activeDonorTab === 'analytics' && (
+        <div>
+          <div className="stats-grid">
+            <div className="sc"><div className="sv">{analytics.total_donors || 0}</div><div className="sl">Total Donors</div></div>
+            <div className="sc"><div className="sv">{analytics.new_donors_month || 0}</div><div className="sl">New Donors (Month)</div></div>
+            <div className="sc"><div className="sv">{analytics.active_donors_week || 0}</div><div className="sl">Active (Week)</div></div>
+            <div className="sc"><div className="sv">{analytics.retention?.returning_donors || 0}</div><div className="sl">Returning Donors</div></div>
+          </div>
+          <div className="card" style={{ marginTop: 16 }}>
+            <div className="card-h"><div className="card-t">Donor Retention</div></div>
+            <div className="card-b">
+              <div>Total Donors: <strong>{analytics.retention?.total_donors || 0}</strong></div>
+              <div>Returning Donors: <strong>{analytics.retention?.returning_donors || 0}</strong></div>
+              <div>Active This Month: <strong>{analytics.retention?.active_this_month || 0}</strong></div>
+              <div style={{ marginTop: 12, height: 8, background: 'var(--bg)', borderRadius: 4 }}>
+                <div style={{ width: `${((analytics.retention?.returning_donors || 0) / (analytics.retention?.total_donors || 1)) * 100}%`, height: '100%', background: 'var(--green)', borderRadius: 4 }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Audit Logs Component ──────────────────────────
+function AuditLogs({ logs, showToast }) {
+  const [filter, setFilter] = useState('');
+  if (logs.length === 0) return <div style={{ color: 'var(--txt-3)', padding: '8px 0' }}>No audit logs yet.</div>;
+  
+  const filtered = filter ? logs.filter(l => l.action === filter) : logs;
+  const actions = [...new Set(logs.map(l => l.action))];
+  
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        <button className={`db ${!filter ? 'dba' : 'dbv'}`} onClick={() => setFilter('')}>All</button>
+        {actions.map(a => (
+          <button key={a} className={`db ${filter === a ? 'dba' : 'dbv'}`} onClick={() => setFilter(a)}>{a.replace(/_/g, ' ')}</button>
+        ))}
+      </div>
+      <div className="ut">
+        <table className="ut">
+          <thead><tr><th>Admin</th><th>Action</th><th>Entity</th><th>Details</th><th>Time</th></tr></thead>
+          <tbody>
+            {filtered.map(log => (
+              <tr key={log.id}>
+                <td>{log.admin_name || 'System'}</td>
+                <td><span className="badge br">{log.action}</span></td>
+                <td>{log.entity_type} #{log.entity_id}</td>
+                <td><small style={{ color: 'var(--txt-3)' }}>{log.details ? JSON.stringify(log.details).substring(0, 50) : '-'}</small></td>
+                <td><small>{new Date(log.created_at).toLocaleString()}</small></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Email Template Editor ─────────────────────────
+const EMAIL_TEMPLATES = [
+  { id: 'verification', name: 'Email Verification', desc: 'Sent when users register', subjectKey: 'verification_subject', bodyKey: 'verification_body', defaultSubject: 'Your HopeBridge Verification Code', defaultBody: 'Hi {{name}},\n\nThank you for registering. Your verification code is:\n\n{{code}}\n\nThis code expires in 15 minutes.' },
+  { id: 'welcome', name: 'Welcome Email', desc: 'Sent after successful registration', subjectKey: 'welcome_subject', bodyKey: 'welcome_body', defaultSubject: 'Welcome to HopeBridge, {{name}}!', defaultBody: 'Hi {{name}},\n\nWelcome to HopeBridge! You joined as a {{role}}.\n\nStart making an impact today.' },
+  { id: 'donation', name: 'Donation Confirmation', desc: 'Sent to donors after donating', subjectKey: 'donation_subject', bodyKey: 'donation_body', defaultSubject: 'Thank you for your donation of ${{amount}}!', defaultBody: 'Dear {{donor_name}},\n\nThank you for donating ${{amount}} to {{campaign_title}}.\n\nYour support makes a real difference.' },
+  { id: 'campaign_approved', name: 'Campaign Approved', desc: 'Sent to creators when campaign is approved', subjectKey: 'campaign_approved_subject', bodyKey: 'campaign_approved_body', defaultSubject: 'Your campaign "{{title}}" has been approved!', defaultBody: 'Dear {{creator_name}},\n\nGreat news! Your campaign "{{title}}" is now live.\n\nShare it with your network to start raising funds.' },
+  { id: 'campaign_rejected', name: 'Campaign Rejected', desc: 'Sent to creators when campaign is rejected', subjectKey: 'campaign_rejected_subject', bodyKey: 'campaign_rejected_body', defaultSubject: 'Update on your campaign "{{title}}"', defaultBody: 'Dear {{creator_name}},\n\nUnfortunately your campaign "{{title}}" did not meet our guidelines.\n\nPlease review our policy and feel free to resubmit.' },
+  { id: 'withdrawal', name: 'Withdrawal Status', desc: 'Sent when withdrawal is approved/rejected', subjectKey: 'withdrawal_subject', bodyKey: 'withdrawal_body', defaultSubject: 'Your withdrawal of ${{amount}} has been {{status}}', defaultBody: 'Dear {{name}},\n\nYour withdrawal request of ${{amount}} has been {{status}}.\n\n{{admin_note}}' },
+];
+
+function EmailTemplateEditor({ showToast }) {
+  const [selected, setSelected] = useState(EMAIL_TEMPLATES[0]);
+  const [templates, setTemplates] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  useEffect(() => {
+    safeGet(() => adminApi.getSettings(), { settings: null }).then(res => {
+      if (res?.settings?.email_templates) {
+        setTemplates(res.settings.email_templates);
+      }
+    });
+  }, []);
+
+  const getVal = (key, def) => templates[key] !== undefined ? templates[key] : def;
+  const update = (key, val) => setTemplates(prev => ({ ...prev, [key]: val }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await adminApi.saveSettings({ email_templates: templates });
+      showToast('Email template saved');
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const previewBody = getVal(selected.bodyKey, selected.defaultBody)
+    .replace('{{name}}', 'John Doe')
+    .replace('{{code}}', '847291')
+    .replace('{{amount}}', '50.00')
+    .replace('{{donor_name}}', 'John Doe')
+    .replace('{{campaign_title}}', 'Help Build a School')
+    .replace('{{title}}', 'Help Build a School')
+    .replace('{{creator_name}}', 'Jane Creator')
+    .replace('{{role}}', 'donor')
+    .replace('{{status}}', 'approved')
+    .replace('{{admin_note}}', 'Funds will be sent within 2 business days.');
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 20 }}>
+      <div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--txt-3)', textTransform: 'uppercase', marginBottom: 10 }}>Templates</div>
+        <div className="tpl-list">
+          {EMAIL_TEMPLATES.map(tpl => (
+            <div key={tpl.id} className={`tpl-item ${selected.id === tpl.id ? 'active' : ''}`} onClick={() => setSelected(tpl)}>
+              <div className="tpl-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+              <div><div className="tpl-name">{tpl.name}</div><div className="tpl-desc">{tpl.desc}</div></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div><div style={{ fontSize: 16, fontWeight: 700 }}>{selected.name}</div><div style={{ fontSize: 12, color: 'var(--txt-3)' }}>Variables: {'{{'} name {'}}'}, {'{{'} code {'}}'}, {'{{'} amount {'}}'}</div></div>
+          <button className="btn btn-gh" style={{ fontSize: 12 }} onClick={() => setShowPreview(!showPreview)}>{showPreview ? 'Hide Preview' : 'Show Preview'}</button>
+        </div>
+        <div className="tpl-editor">
+          <label className="fl">Subject Line</label>
+          <input type="text" className="fi" value={getVal(selected.subjectKey, selected.defaultSubject)} onChange={e => update(selected.subjectKey, e.target.value)} placeholder={selected.defaultSubject} />
+          <label className="fl">Email Body</label>
+          <textarea className="fi" rows={10} value={getVal(selected.bodyKey, selected.defaultBody)} onChange={e => update(selected.bodyKey, e.target.value)} placeholder={selected.defaultBody} style={{ fontFamily: 'monospace', fontSize: 13 }} />
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="btn btn-g" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Template'}</button>
+            <button className="btn btn-gh" onClick={() => { update(selected.subjectKey, selected.defaultSubject); update(selected.bodyKey, selected.defaultBody); showToast('Reset to default'); }}>Reset to Default</button>
+          </div>
+        </div>
+        {showPreview && (
+          <div className="tpl-preview" style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>Preview</div>
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>Subject: {getVal(selected.subjectKey, selected.defaultSubject)}</div>
+            <hr style={{ border: 'none', borderTop: '1px solid var(--border)', marginBottom: 12 }} />
+            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>{previewBody}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── MassMailForm ──────────────────────────────────
 function MassMailForm({ onSend, showToast }) {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -265,338 +716,120 @@ function MassMailForm({ onSend, showToast }) {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!subject || !message) {
-      showToast('Please fill subject and message', true);
-      return;
-    }
+    if (!subject || !message) { showToast('Please fill subject and message', true); return; }
     setSending(true);
     try {
-      await adminApi.sendMassMail({
-        subject,
-        message,
-        recipient_type: recipientType,
-        campaign_id: recipientType === 'campaign_donors' ? campaignId : null,
-      });
+      await adminApi.sendMassMail({ subject, message, recipient_type: recipientType, campaign_id: recipientType === 'campaign_donors' ? campaignId : null });
       showToast('Emails sent successfully!');
-      setSubject('');
-      setMessage('');
-      if (onSend) onSend();
-    } catch (err) {
-      showToast(err.message, true);
-    } finally {
-      setSending(false);
-    }
+      setSubject(''); setMessage('');
+    } catch (err) { showToast(err.message, true); }
+    finally { setSending(false); }
   };
 
   return (
     <form onSubmit={handleSend}>
-      <div className="auth-field">
-        <label className="fl">Recipient Group</label>
-        <select className="fi" value={recipientType} onChange={e => setRecipientType(e.target.value)}>
-          <option value="all_donors">All donors</option>
-          <option value="all_creators">All creators</option>
-          <option value="all_users">All registered users</option>
-          <option value="campaign_donors">Donors of a specific campaign</option>
-        </select>
-      </div>
-      {recipientType === 'campaign_donors' && (
-        <div className="auth-field">
-          <label className="fl">Campaign</label>
-          <select className="fi" value={campaignId} onChange={e => setCampaignId(e.target.value)} required>
-            <option value="">-- Select campaign --</option>
-            {campaigns.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-          </select>
-        </div>
-      )}
-      <div className="auth-field">
-        <label className="fl">Subject</label>
-        <input type="text" className="fi" value={subject} onChange={e => setSubject(e.target.value)} required />
-      </div>
-      <div className="auth-field">
-        <label className="fl">Message (plain text)</label>
-        <textarea className="fi" rows="6" value={message} onChange={e => setMessage(e.target.value)} required placeholder="Write your email content here..." />
-      </div>
-      <button className="btn btn-g" disabled={sending}>
-        {sending ? 'Sending...' : <><i className="fas fa-paper-plane"></i> Send Emails</>}
-      </button>
+      <label className="fl">Recipient Group</label>
+      <select className="fi" value={recipientType} onChange={e => setRecipientType(e.target.value)}>
+        <option value="all_donors">All donors</option><option value="all_creators">All creators</option>
+        <option value="all_users">All registered users</option><option value="campaign_donors">Donors of a specific campaign</option>
+      </select>
+      {recipientType === 'campaign_donors' && (<><label className="fl">Campaign</label><select className="fi" value={campaignId} onChange={e => setCampaignId(e.target.value)} required><option value="">-- Select campaign --</option>{campaigns.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}</select></>)}
+      <label className="fl">Subject</label><input type="text" className="fi" value={subject} onChange={e => setSubject(e.target.value)} required />
+      <label className="fl">Message</label><textarea className="fi" rows="6" value={message} onChange={e => setMessage(e.target.value)} required placeholder="Write your email content here..." />
+      <button className="btn btn-g" disabled={sending}>{sending ? 'Sending…' : 'Send Emails'}</button>
     </form>
   );
 }
 
-// ---------- Component: ContentEditor ----------
+// ── ContentEditor ─────────────────────────────────
 function ContentEditor({ content, onSave, showToast }) {
-  const [localContent, setLocalContent] = useState(content);
+  const [local, setLocal] = useState(content);
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setLocalContent(content);
-  }, [content]);
-
-  const updateField = (field, value) => setLocalContent(prev => ({ ...prev, [field]: value }));
-  const updateStat = (stat, value) => setLocalContent(prev => ({ ...prev, impact_stats: { ...prev.impact_stats, [stat]: value } }));
-  const updateSocial = (platform, value) => setLocalContent(prev => ({ ...prev, social_links: { ...prev.social_links, [platform]: value } }));
-
+  useEffect(() => { setLocal(content); }, [content]);
+  const upd = (f, v) => setLocal(p => ({ ...p, [f]: v }));
+  const updStat = (s, v) => setLocal(p => ({ ...p, impact_stats: { ...p.impact_stats, [s]: v } }));
+  const updSocial = (pl, v) => setLocal(p => ({ ...p, social_links: { ...p.social_links, [pl]: v } }));
   const handleSave = async () => {
     setSaving(true);
-    try {
-      await onSave(localContent);
-      showToast('Content updated');
-    } catch (err) {
-      showToast(err.message, true);
-    } finally {
-      setSaving(false);
-    }
+    try { await onSave(local); showToast('Content updated'); } catch (err) { showToast(err.message, true); }
+    finally { setSaving(false); }
   };
-
   return (
     <div>
-      <h5 style={{ marginTop: 20 }}>Hero Section</h5>
-      <div className="auth-field"><label className="fl">Badge Text</label><input type="text" className="fi" value={localContent.hero_badge || ''} onChange={e => updateField('hero_badge', e.target.value)} /></div>
-      <div className="auth-field"><label className="fl">Hero Title</label><input type="text" className="fi" value={localContent.hero_title || ''} onChange={e => updateField('hero_title', e.target.value)} /></div>
-      <div className="auth-field"><label className="fl">Hero Subtitle</label><textarea className="fi" rows="2" value={localContent.hero_subtitle || ''} onChange={e => updateField('hero_subtitle', e.target.value)} /></div>
-
-      <h5 style={{ marginTop: 20 }}>Impact Section</h5>
-      <div className="auth-field"><label className="fl">Section Title</label><input type="text" className="fi" value={localContent.impact_title || ''} onChange={e => updateField('impact_title', e.target.value)} /></div>
-      <div className="auth-field"><label className="fl">Section Subtitle</label><input type="text" className="fi" value={localContent.impact_subtitle || ''} onChange={e => updateField('impact_subtitle', e.target.value)} /></div>
-      <div className="auth-field"><label className="fl">Stat – Total Raised</label><input type="text" className="fi" value={localContent.impact_stats?.raised || '$0'} onChange={e => updateStat('raised', e.target.value)} /></div>
-      <div className="auth-field"><label className="fl">Stat – Campaigns</label><input type="text" className="fi" value={localContent.impact_stats?.campaigns || '0'} onChange={e => updateStat('campaigns', e.target.value)} /></div>
-      <div className="auth-field"><label className="fl">Stat – Donors</label><input type="text" className="fi" value={localContent.impact_stats?.donors || '0'} onChange={e => updateStat('donors', e.target.value)} /></div>
-
-      <h5 style={{ marginTop: 20 }}>Banner & Notification</h5>
-      <div className="auth-field"><label className="fl">Banner Image URL</label><input type="text" className="fi" value={localContent.banner_image || ''} onChange={e => updateField('banner_image', e.target.value)} /></div>
-      <div className="auth-field"><label className="fl">Notification Message</label><textarea className="fi" rows="2" value={localContent.notification_message || ''} onChange={e => updateField('notification_message', e.target.value)} /></div>
-
-      <h5 style={{ marginTop: 20 }}>Social Media Links</h5>
-      {['facebook', 'twitter', 'instagram', 'youtube', 'linkedin'].map(platform => (
-        <div className="auth-field" key={platform}>
-          <label className="fl">{platform.charAt(0).toUpperCase() + platform.slice(1)} URL</label>
-          <input type="text" className="fi" value={localContent.social_links?.[platform] || ''} onChange={e => updateSocial(platform, e.target.value)} placeholder={`https://${platform}.com/...`} />
-        </div>
-      ))}
-      <button className="btn btn-g" onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Content'}</button>
+      <h5 style={{ marginBottom: 12 }}>Hero Section</h5>
+      <label className="fl">Badge Text</label><input type="text" className="fi" value={local.hero_badge || ''} onChange={e => upd('hero_badge', e.target.value)} />
+      <label className="fl">Hero Title</label><input type="text" className="fi" value={local.hero_title || ''} onChange={e => upd('hero_title', e.target.value)} />
+      <label className="fl">Hero Subtitle</label><textarea className="fi" rows="2" value={local.hero_subtitle || ''} onChange={e => upd('hero_subtitle', e.target.value)} />
+      <h5 style={{ margin: '20px 0 12px' }}>Impact Section</h5>
+      <label className="fl">Section Title</label><input type="text" className="fi" value={local.impact_title || ''} onChange={e => upd('impact_title', e.target.value)} />
+      <label className="fl">Section Subtitle</label><input type="text" className="fi" value={local.impact_subtitle || ''} onChange={e => upd('impact_subtitle', e.target.value)} />
+      <label className="fl">Stat – Total Raised</label><input type="text" className="fi" value={local.impact_stats?.raised || '$0'} onChange={e => updStat('raised', e.target.value)} />
+      <label className="fl">Stat – Campaigns</label><input type="text" className="fi" value={local.impact_stats?.campaigns || '0'} onChange={e => updStat('campaigns', e.target.value)} />
+      <label className="fl">Stat – Donors</label><input type="text" className="fi" value={local.impact_stats?.donors || '0'} onChange={e => updStat('donors', e.target.value)} />
+      <h5 style={{ margin: '20px 0 12px' }}>Social Links</h5>
+      {['facebook', 'twitter', 'instagram', 'youtube', 'linkedin'].map(p => (<div key={p}><label className="fl">{p.charAt(0).toUpperCase() + p.slice(1)}</label><input type="text" className="fi" value={local.social_links?.[p] || ''} onChange={e => updSocial(p, e.target.value)} placeholder={`https://${p}.com/...`} /></div>))}
+      <button className="btn btn-g" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Content'}</button>
     </div>
   );
 }
 
-// ---------- Component: DepositRequestsManager ----------
+// ── DepositRequestsManager ────────────────────────
 function DepositRequestsManager({ requests, onApprove, onReject, onProvideInstructions, showToast }) {
   const [instructionsText, setInstructionsText] = useState({});
-
-  const handleProvide = (id) => {
-    const instructions = instructionsText[id];
-    if (!instructions || instructions.trim() === '') {
-      showToast('Please enter payment instructions', true);
-      return;
-    }
-    onProvideInstructions(id, instructions);
-    setInstructionsText(prev => ({ ...prev, [id]: '' }));
-  };
-
-  if (requests.length === 0) return <div>No deposit requests.</div>;
-
+  if (requests.length === 0) return <div style={{ color: 'var(--txt-3)', padding: '8px 0' }}>No deposit requests.</div>;
   return (
     <div>
       {requests.map(req => (
         <div key={req.id} style={{ borderBottom: '1px solid var(--border)', padding: '16px 0' }}>
-          <div><strong>User:</strong> {req.userName || req.name} ({req.email})</div>
-          <div><strong>Amount:</strong> ${toNumber(req.amount).toFixed(2)}</div>
-          <div><strong>Status:</strong> <span className={`badge ${req.status === 'pending' ? 'bp' : req.status === 'approved' ? 'ba' : 'bx'}`}>{req.status}</span></div>
-          {req.status === 'pending' && (
-            <div style={{ marginTop: 10 }}>
-              <textarea
-                placeholder="Payment instructions (bank, mobile money, crypto)"
-                rows="2"
-                className="fi"
-                value={instructionsText[req.id] || ''}
-                onChange={e => setInstructionsText(prev => ({ ...prev, [req.id]: e.target.value }))}
-              />
-              <button className="db dba" onClick={() => handleProvide(req.id)}>Send Instructions</button>
-            </div>
-          )}
-          {req.status === 'instructions_sent' && (
-            <div style={{ marginTop: 10, color: 'var(--blue)' }}>
-              ⏳ Waiting for donor to upload payment proof...
-            </div>
-          )}
-          {req.status === 'awaiting_proof' && req.proof_image_url && (
-            <div style={{ marginTop: 10 }}>
-              <a href={req.proof_image_url} target="_blank" rel="noopener noreferrer">View Proof</a>
-              <div style={{ marginTop: 8 }}>
-                <button className="db dba" style={{ marginRight: 8 }} onClick={() => onApprove(req.id, req.amount)}>Approve & Credit</button>
-                <button className="db dbr" onClick={() => onReject(req.id)}>Reject</button>
-              </div>
-            </div>
-          )}
-          {req.status === 'approved' && <span style={{ color: 'var(--green)' }}>✓ Credited to wallet</span>}
-          {req.status === 'rejected' && <span style={{ color: 'var(--red)' }}>✗ Rejected</span>}
+          <div style={{ marginBottom: 4 }}><strong>{req.userName || req.name}</strong> ({req.email})</div>
+          <div style={{ fontSize: 13, color: 'var(--txt-2)', marginBottom: 8 }}>Amount: <strong>${toNumber(req.amount).toFixed(2)}</strong> · <span className={`badge ${req.status === 'pending' ? 'bp' : req.status === 'approved' ? 'ba' : 'bx'}`}>{req.status}</span></div>
+          {req.status === 'pending' && (<div><textarea placeholder="Payment instructions..." rows="2" className="fi" value={instructionsText[req.id] || ''} onChange={e => setInstructionsText(p => ({ ...p, [req.id]: e.target.value }))} /><button className="db dba" onClick={() => { if (!instructionsText[req.id]?.trim()) { showToast('Enter instructions', true); return; } onProvideInstructions(req.id, instructionsText[req.id]); setInstructionsText(p => ({ ...p, [req.id]: '' })); }}>Send Instructions</button></div>)}
+          {req.status === 'instructions_sent' && <div style={{ color: 'var(--blue)', fontSize: 13 }}>⏳ Waiting for payment proof…</div>}
+          {req.status === 'awaiting_proof' && req.proof_image_url && (<div><a href={req.proof_image_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green)', fontSize: 13 }}>View Proof</a><div style={{ marginTop: 8, display: 'flex', gap: 8 }}><button className="db dba" onClick={() => onApprove(req.id, req.amount)}>Approve & Credit</button><button className="db dbr" onClick={() => onReject(req.id)}>Reject</button></div></div>)}
+          {req.status === 'approved' && <span style={{ color: 'var(--green)', fontSize: 13 }}>✓ Credited</span>}
+          {req.status === 'rejected' && <span style={{ color: 'var(--red)', fontSize: 13 }}>✗ Rejected</span>}
         </div>
       ))}
     </div>
   );
 }
 
-// ---------- Component: WithdrawalRequestsManager ----------
-function WithdrawalRequestsManager({ requests, onApprove, onReject, showToast }) {
-  if (requests.length === 0) return <div>No withdrawal requests.</div>;
-
+// ── WithdrawalRequestsManager ─────────────────────
+function WithdrawalRequestsManager({ requests, onApprove, onReject }) {
+  if (requests.length === 0) return <div style={{ color: 'var(--txt-3)', padding: '8px 0' }}>No withdrawal requests.</div>;
   return (
     <div>
       {requests.map(req => (
         <div key={req.id} style={{ borderBottom: '1px solid var(--border)', padding: '16px 0' }}>
-          <div><strong>User:</strong> {req.name} ({req.email})</div>
-          <div><strong>Amount:</strong> ${toNumber(req.amount).toFixed(2)}</div>
-          <div><strong>Method:</strong> {req.payment_method}</div>
-          <div><strong>Details:</strong> {req.payment_details}</div>
-          <div><strong>Status:</strong> <span className={`badge ${req.status === 'pending' ? 'bp' : req.status === 'approved' ? 'ba' : 'bx'}`}>{req.status}</span></div>
-          {req.status === 'pending' && (
-            <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-              <button className="db dba" onClick={() => onApprove(req.id)}>Approve & Process</button>
-              <button className="db dbr" onClick={() => onReject(req.id)}>Reject</button>
-            </div>
-          )}
-          {req.status === 'approved' && <span style={{ color: 'var(--green)' }}>✓ Approved – funds deducted from wallet</span>}
-          {req.status === 'rejected' && <span style={{ color: 'var(--red)' }}>✗ Rejected</span>}
+          <div style={{ marginBottom: 4 }}><strong>{req.name}</strong> ({req.email})</div>
+          <div style={{ fontSize: 13, color: 'var(--txt-2)', marginBottom: 4 }}>Amount: <strong>${toNumber(req.amount).toFixed(2)}</strong> · {req.payment_method}</div>
+          <div style={{ fontSize: 12, color: 'var(--txt-3)', marginBottom: 8 }}>{req.payment_details}</div>
+          <span className={`badge ${req.status === 'pending' ? 'bp' : req.status === 'approved' ? 'ba' : 'bx'}`}>{req.status}</span>
+          {req.status === 'pending' && (<div style={{ marginTop: 10, display: 'flex', gap: 8 }}><button className="db dba" onClick={() => onApprove(req.id)}>Approve & Process</button><button className="db dbr" onClick={() => onReject(req.id)}>Reject</button></div>)}
         </div>
       ))}
     </div>
   );
 }
 
-// ---------- Component: CompletionRequestsManager ----------
-function CompletionRequestsManager({ requests, onRelease, onRefund, showToast }) {
+// ── CompletionRequestsManager ─────────────────────
+function CompletionRequestsManager({ requests, onRelease, onRefund }) {
   const [processingId, setProcessingId] = useState(null);
-
-  const handleRelease = async (id) => {
-    if (!window.confirm('Release escrow funds to creator? This action cannot be undone.')) return;
-    setProcessingId(id);
-    try {
-      await onRelease(id);
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleRefund = async (id) => {
-    if (!window.confirm('Refund all donations? This will return money to donors.')) return;
-    setProcessingId(id);
-    try {
-      await onRefund(id);
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  if (requests.length === 0) return <div>No pending completion requests.</div>;
-
+  if (requests.length === 0) return <div style={{ color: 'var(--txt-3)', padding: '8px 0' }}>No pending completion requests.</div>;
   return (
     <div>
       {requests.map(req => (
         <div key={req.id} style={{ borderBottom: '1px solid var(--border)', padding: '16px 0' }}>
-          <div><strong>Campaign:</strong> {req.title}</div>
-          <div><strong>Creator ID:</strong> #{req.creator_id}</div>
-          <div><strong>Requested:</strong> {new Date(req.completion_requested_at).toLocaleString()}</div>
-          <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-            <button 
-              className="db dba" 
-              onClick={() => handleRelease(req.id)} 
-              disabled={processingId === req.id}
-            >
-              {processingId === req.id ? 'Processing...' : 'Release Escrow'}
-            </button>
-            <button 
-              className="db dbr" 
-              onClick={() => handleRefund(req.id)} 
-              disabled={processingId === req.id}
-            >
-              {processingId === req.id ? 'Processing...' : 'Refund Donors'}
-            </button>
-          </div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>{req.title}</div>
+          <div style={{ fontSize: 12, color: 'var(--txt-3)', marginBottom: 10 }}>Requested {new Date(req.completion_requested_at).toLocaleString()}</div>
+          <div style={{ display: 'flex', gap: 8 }}><button className="db dba" onClick={async () => { if (!window.confirm('Release escrow? Cannot be undone.')) return; setProcessingId(req.id); try { await onRelease(req.id); } finally { setProcessingId(null); } }} disabled={processingId === req.id}>{processingId === req.id ? 'Processing…' : 'Release Escrow'}</button><button className="db dbr" onClick={async () => { if (!window.confirm('Refund all donors?')) return; setProcessingId(req.id); try { await onRefund(req.id); } finally { setProcessingId(null); } }} disabled={processingId === req.id}>{processingId === req.id ? 'Processing…' : 'Refund Donors'}</button></div>
         </div>
       ))}
     </div>
   );
 }
 
-// ---------- Component: MaintenanceMode ----------
-function MaintenanceModeManager({ isEnabled, onToggle, showToast }) {
-  const [toggling, setToggling] = useState(false);
-  const [message, setMessage] = useState('');
-  const [savingMessage, setSavingMessage] = useState(false);
-
-  useEffect(() => {
-    if (isEnabled?.message) setMessage(isEnabled.message);
-  }, [isEnabled]);
-
-  const handleToggle = async () => {
-    setToggling(true);
-    try {
-      await onToggle(!isEnabled.enabled);
-    } finally {
-      setToggling(false);
-    }
-  };
-
-  const handleSaveMessage = async () => {
-    setSavingMessage(true);
-    try {
-      await adminApi.saveSettings({ keys: { maintenance_message: message } });
-      showToast('Maintenance message saved');
-    } catch (err) {
-      showToast(err.message, true);
-    } finally {
-      setSavingMessage(false);
-    }
-  };
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div>
-          <strong>Maintenance Mode</strong>
-          <p style={{ fontSize: 12, color: 'var(--txt-2)', marginTop: 4 }}>
-            When enabled, only admins can access the site. Regular users will see a maintenance page.
-          </p>
-        </div>
-        <button
-          onClick={handleToggle}
-          disabled={toggling}
-          style={{
-            padding: '10px 20px',
-            borderRadius: 30,
-            border: 'none',
-            cursor: 'pointer',
-            fontWeight: 600,
-            background: isEnabled?.enabled ? '#ef4444' : '#10b981',
-            color: '#fff',
-          }}
-        >
-          {toggling ? '...' : isEnabled?.enabled ? 'Disable Maintenance' : 'Enable Maintenance'}
-        </button>
-      </div>
-      
-      {isEnabled?.enabled && (
-        <div style={{ marginTop: 20 }}>
-          <label className="fl">Maintenance Message (shown to users)</label>
-          <textarea
-            className="fi"
-            rows="3"
-            value={message}
-            onChange={e => setMessage(e.target.value)}
-            placeholder="We're currently performing scheduled maintenance. Please check back soon!"
-          />
-          <button className="btn btn-g" onClick={handleSaveMessage} disabled={savingMessage}>
-            {savingMessage ? 'Saving...' : 'Save Message'}
-          </button>
-          <div style={{ marginTop: 12, padding: 12, background: 'var(--amber-l)', borderRadius: 8, fontSize: 12 }}>
-            <strong>Preview:</strong> Users will see: "{message || 'We are currently under maintenance. Please check back later.'}"
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------- Main AdminDashboard ----------
+// ── Main AdminDashboard ───────────────────────────
 export default function AdminDashboard() {
   injectStyles();
 
@@ -606,26 +839,32 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [dataLoading, setDataLoading] = useState(false);
   const [darkMode, setDarkMode] = useState(localStorage.getItem('hb_darkmode') === 'true');
-  const [settingsTab, setSettingsTab] = useState('theme');
-  const [themeSettings, setThemeSettings] = useState({
-    '--primary': '#e8531e',
-    '--primary-dark': '#c4400f',
-    '--secondary': '#27a96c',
-    '--dark': '#1a1a2e',
-  });
-  
-  const [integrationKeys, setIntegrationKeys] = useState({
-    smtp_host: '', smtp_port: '', smtp_user: '', smtp_pass: '',
-    cloudinary_cloud_name: '', cloudinary_api_key: '', cloudinary_api_secret: '',
-    recaptcha_site_key: '', recaptcha_secret_key: '',
-    maintenance_message: '',
-  });
-  
-  const [socialLinks, setSocialLinks] = useState({
-    facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '',
-  });
+  const [settingsTab, setSettingsTab] = useState('security');
 
-  // Data states
+  const [themeSettings, setThemeSettings] = useState({ '--primary': '#e8531e', '--primary-dark': '#c4400f', '--secondary': '#27a96c', '--dark': '#1a1a2e' });
+  const [integrationKeys, setIntegrationKeys] = useState({ smtp_host: '', smtp_port: '', smtp_user: '', smtp_pass: '', recaptcha_site_key: '', recaptcha_secret_key: '', maintenance_message: '' });
+  const [socialLinks, setSocialLinks] = useState({ facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '' });
+
+  // Toggles
+  const [maintenanceMode, setMaintenanceMode] = useState({ enabled: false, message: '' });
+  const [verificationEnabled, setVerificationEnabled] = useState(true);
+  const [recaptchaEnabled, setRecaptchaEnabled] = useState(false);
+  const [pushNotificationsEnabled, setPushNotificationsEnabled] = useState(true);
+  const [togglingMaintenance, setTogglingMaintenance] = useState(false);
+  const [togglingVerification, setTogglingVerification] = useState(false);
+  const [togglingRecaptcha, setTogglingRecaptcha] = useState(false);
+
+  // New feature data states
+  const [payouts, setPayouts] = useState([]);
+  const [feeSettings, setFeeSettings] = useState({ percentage: 0, fixed_amount: 0, min_fee: 0, max_fee: null, withdrawal_fee: 0, minimum_withdrawal: 10 });
+  const [notificationHistory, setNotificationHistory] = useState([]);
+  const [creatorVerifications, setCreatorVerifications] = useState([]);
+  const [topDonors, setTopDonors] = useState([]);
+  const [recurringSubscriptions, setRecurringSubscriptions] = useState([]);
+  const [donorAnalytics, setDonorAnalytics] = useState({});
+  const [auditLogs, setAuditLogs] = useState([]);
+
+  // Data
   const [stats, setStats] = useState({ total_raised: 0, total_campaigns: 0, pending_campaigns: 0, total_users: 0 });
   const [campaigns, setCampaigns] = useState([]);
   const [users, setUsers] = useState([]);
@@ -633,101 +872,62 @@ export default function AdminDashboard() {
   const [depositRequests, setDepositRequests] = useState([]);
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
   const [completionRequests, setCompletionRequests] = useState([]);
-  const [maintenanceMode, setMaintenanceMode] = useState({ enabled: false, message: '' });
-  const [verificationEnabled, setVerificationEnabled] = useState(true);
-  const [content, setContent] = useState({
-    hero_title: 'Together We Can',
-    hero_subtitle: 'Support the causes you care about and make a real difference.',
-    hero_badge: 'HopeBridge',
-    impact_title: 'Our Impact',
-    impact_subtitle: 'Every donation counts',
-    impact_stats: { raised: '$0', campaigns: '0', donors: '0' },
-    banner_image: '',
-    notification_message: '',
-    social_links: { facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '' }
-  });
+  const [content, setContent] = useState({ hero_title: 'Together We Can', hero_subtitle: 'Support the causes you care about.', hero_badge: 'HopeBridge', impact_title: 'Our Impact', impact_subtitle: 'Every donation counts', impact_stats: { raised: '$0', campaigns: '0', donors: '0' }, banner_image: '', notification_message: '', social_links: { facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '' } });
 
-  // Dark mode effect
-  useEffect(() => {
-    document.body.classList.toggle('dark-mode', darkMode);
-    localStorage.setItem('hb_darkmode', darkMode);
-  }, [darkMode]);
+  useEffect(() => { document.body.classList.toggle('dark-mode', darkMode); localStorage.setItem('hb_darkmode', darkMode); }, [darkMode]);
 
-  // Apply theme CSS variables
-  useEffect(() => {
-    const root = document.documentElement;
-    Object.entries(themeSettings).forEach(([key, value]) => {
-      root.style.setProperty(key, value);
-    });
-  }, [themeSettings]);
-
-  // Auth check
   useEffect(() => {
     if (sessionLoading) return;
-    if (!currentUser) {
-      showToast('Please log in first', true);
-      navigate('/');
-      return;
-    }
-    if (currentUser.role !== 'admin') {
-      showToast('Access denied – admin only', true);
-      navigate('/');
-      return;
-    }
+    if (!currentUser) { showToast('Please log in first', true); navigate('/'); return; }
+    if (currentUser.role !== 'admin') { showToast('Access denied', true); navigate('/'); return; }
     setAuthChecked(true);
-  }, [sessionLoading, currentUser, navigate, showToast]);
+  }, [sessionLoading, currentUser]);
 
-  // Fetch verification status
-  const fetchVerificationStatus = async () => {
+  const fetchNewFeatures = async () => {
     try {
-      const data = await adminApi.getVerificationSetting();
-      setVerificationEnabled(data.enabled);
-    } catch (err) {
-      console.error('Failed to fetch verification status:', err);
-    }
+      const [payoutRes, feeRes, notifHistory, verifications, topDonorRes, subsRes, analyticsRes, auditRes] = await Promise.all([
+        safeGet(() => adminApi.getPayouts?.(), { payouts: [] }),
+        safeGet(() => adminApi.getFeeSettings?.(), { percentage: 0, fixed_amount: 0, min_fee: 0, max_fee: null, withdrawal_fee: 0, minimum_withdrawal: 10 }),
+        safeGet(() => adminApi.getNotificationHistory?.(), { notifications: [] }),
+        safeGet(() => adminApi.getCreatorVerifications?.(), { verifications: [] }),
+        safeGet(() => adminApi.getTopDonors?.(), { donors: [] }),
+        safeGet(() => adminApi.getRecurringDonations?.(), { subscriptions: [] }),
+        safeGet(() => adminApi.getDonorAnalytics?.(), { total_donors: 0, new_donors_month: 0, active_donors_week: 0, retention: {} }),
+        safeGet(() => adminApi.getAuditLogs?.(), { logs: [] }),
+      ]);
+      setPayouts(payoutRes.payouts || []);
+      setFeeSettings(feeRes);
+      setNotificationHistory(notifRes.notifications || []);
+      setCreatorVerifications(verifications.verifications || []);
+      setTopDonors(topDonorRes.donors || []);
+      setRecurringSubscriptions(subsRes.subscriptions || []);
+      setDonorAnalytics(analyticsRes);
+      setAuditLogs(auditRes.logs || []);
+    } catch (err) { console.error('Failed to fetch new features', err); }
   };
 
-  // Toggle verification
-  const toggleVerification = async () => {
+  const fetchToggles = async () => {
     try {
-      const newStatus = !verificationEnabled;
-      await adminApi.updateVerificationSetting({ enabled: newStatus });
-      setVerificationEnabled(newStatus);
-      showToast(`Email verification ${newStatus ? 'enabled' : 'disabled'}`);
-    } catch (err) {
-      showToast(err.message, true);
-    }
+      const [verRes, sett, notifSettings] = await Promise.all([
+        safeGet(() => adminApi.getVerificationSetting?.(), { enabled: true }),
+        safeGet(() => adminApi.getSettings(), { settings: null }),
+        safeGet(() => adminApi.getNotificationSettings?.(), { enabled: true }),
+      ]);
+      setVerificationEnabled(verRes.enabled !== false);
+      setPushNotificationsEnabled(notifSettings.enabled !== false);
+      if (sett?.settings?.keys) {
+        const k = sett.settings.keys;
+        setMaintenanceMode({ enabled: k.maintenance_mode === 'true', message: k.maintenance_message || '' });
+        setRecaptchaEnabled(k.recaptcha_enabled === 'true');
+        setIntegrationKeys(prev => ({ ...prev, ...k }));
+      }
+    } catch (err) { console.error('Failed to fetch toggles', err); }
   };
 
-  // Fetch maintenance status
-  const fetchMaintenanceStatus = async () => {
-    try {
-      const settings = await adminApi.getSettings();
-      const enabled = settings.settings?.keys?.maintenance_mode === 'true';
-      const message = settings.settings?.keys?.maintenance_message || '';
-      setMaintenanceMode({ enabled, message });
-    } catch (err) {
-      console.error('Failed to fetch maintenance status:', err);
-    }
-  };
-
-  // Toggle maintenance mode
-  const toggleMaintenance = async (enabled) => {
-    try {
-      await adminApi.saveSettings({ keys: { maintenance_mode: enabled ? 'true' : 'false' } });
-      setMaintenanceMode(prev => ({ ...prev, enabled }));
-      showToast(`Maintenance mode ${enabled ? 'enabled' : 'disabled'}`);
-    } catch (err) {
-      showToast(err.message, true);
-      throw err;
-    }
-  };
-
-  // Fetch all data
   const fetchAll = async () => {
     setDataLoading(true);
     try {
-      const [s, c, u, don, dep, withdraw, compl, sett, cont] = await Promise.all([
+      const [s, c, u, don, dep, withdraw, compl, cont] = await Promise.all([
         safeGet(() => adminApi.getStats(), { stats: {} }),
         safeGet(() => adminApi.getCampaigns(), { campaigns: [] }),
         safeGet(() => adminApi.getUsers(), { users: [] }),
@@ -735,227 +935,82 @@ export default function AdminDashboard() {
         safeGet(() => adminApi.getDepositRequests?.(), { requests: [] }),
         safeGet(() => adminApi.getWithdrawalRequests?.(), { withdrawals: [] }),
         safeGet(() => adminApi.getCompletionRequests?.(), { campaigns: [] }),
-        safeGet(() => adminApi.getSettings(), { settings: null }),
         safeGet(() => adminApi.getContent(), { content: null }),
       ]);
-
-      const parsedStats = { ...(s.stats || {}) };
-      ['total_raised', 'total_campaigns', 'pending_campaigns', 'total_users'].forEach(key => {
-        if (parsedStats[key] !== undefined) parsedStats[key] = toNumber(parsedStats[key]);
-      });
-      setStats(parsedStats);
-
-      const parsedCampaigns = (c.campaigns || []).map(camp => ({
-        ...camp,
-        goal: toNumber(camp.goal),
-        raised: toNumber(camp.raised)
-      }));
-      setCampaigns(parsedCampaigns);
-
-      const parsedUsers = (u.users || []).map(user => ({
-        ...user,
-        wallet_balance: toNumber(user.wallet_balance)
-      }));
-      setUsers(parsedUsers);
-
-      const parsedDonations = (don.donations || []).map(d => ({
-        ...d,
-        amount: toNumber(d.amount)
-      }));
-      setDonations(parsedDonations);
-
-      const parsedDeposits = (dep.requests || []).map(req => ({
-        ...req,
-        amount: toNumber(req.amount)
-      }));
-      setDepositRequests(parsedDeposits);
-
-      const parsedWithdrawals = (withdraw.withdrawals || []).map(w => ({
-        ...w,
-        amount: toNumber(w.amount)
-      }));
-      setWithdrawalRequests(parsedWithdrawals);
+      const ps = { ...(s.stats || {}) };
+      ['total_raised','total_campaigns','pending_campaigns','total_users'].forEach(k => { if (ps[k] !== undefined) ps[k] = toNumber(ps[k]); });
+      setStats(ps);
+      setCampaigns((c.campaigns || []).map(x => ({ ...x, goal: toNumber(x.goal), raised: toNumber(x.raised) })));
+      setUsers((u.users || []).map(x => ({ ...x, wallet_balance: toNumber(x.wallet_balance) })));
+      setDonations((don.donations || []).map(x => ({ ...x, amount: toNumber(x.amount) })));
+      setDepositRequests((dep.requests || []).map(x => ({ ...x, amount: toNumber(x.amount) })));
+      setWithdrawalRequests((withdraw.withdrawals || []).map(x => ({ ...x, amount: toNumber(x.amount) })));
       setCompletionRequests(compl.campaigns || []);
-
-      if (sett?.settings) {
-        if (sett.settings.theme) setThemeSettings(prev => ({ ...prev, ...sett.settings.theme }));
-        if (sett.settings.keys) {
-          setIntegrationKeys(prev => ({ ...prev, ...sett.settings.keys }));
-          const maintenanceEnabled = sett.settings.keys.maintenance_mode === 'true';
-          const maintenanceMsg = sett.settings.keys.maintenance_message || '';
-          setMaintenanceMode({ enabled: maintenanceEnabled, message: maintenanceMsg });
-        }
-      }
-      if (cont?.content) {
-        setContent(prev => ({
-          ...prev,
-          ...cont.content,
-          social_links: { ...prev.social_links, ...(cont.content.social_links || {}) }
-        }));
-        if (cont.content.social_links) setSocialLinks(cont.content.social_links);
-      }
-    } catch (err) {
-      console.error(err);
-      showToast('Failed to load admin data', true);
-    } finally {
-      setDataLoading(false);
-    }
+      if (cont?.content) setContent(prev => ({ ...prev, ...cont.content, social_links: { ...prev.social_links, ...(cont.content.social_links || {}) } }));
+    } catch (err) { console.error(err); showToast('Failed to load data', true); }
+    finally { setDataLoading(false); }
   };
 
-  useEffect(() => {
-    if (authChecked) {
-      fetchAll();
-      fetchVerificationStatus();
-      fetchMaintenanceStatus();
-    }
-  }, [authChecked]);
+  useEffect(() => { if (authChecked) { fetchAll(); fetchToggles(); fetchNewFeatures(); } }, [authChecked]);
 
-  // Handlers
-  const handleApproveCampaign = async (id) => {
-    try {
-      await adminApi.updateCampaign(id, { status: 'approved' });
-      showToast('Campaign approved');
-      fetchAll();
-    } catch (err) { showToast(err.message, true); }
+  // Toggle handlers
+  const handleToggleMaintenance = async (val) => {
+    setTogglingMaintenance(true);
+    try { await adminApi.saveSettings({ keys: { maintenance_mode: val ? 'true' : 'false' } }); setMaintenanceMode(prev => ({ ...prev, enabled: val })); showToast(`Maintenance mode ${val ? 'enabled' : 'disabled'}`); } catch (err) { showToast(err.message, true); }
+    finally { setTogglingMaintenance(false); }
   };
 
-  const handleRejectCampaign = async (id) => {
-    try {
-      await adminApi.updateCampaign(id, { status: 'rejected' });
-      showToast('Campaign rejected');
-      fetchAll();
-    } catch (err) { showToast(err.message, true); }
+  const handleToggleVerification = async (val) => {
+    setTogglingVerification(true);
+    try { await adminApi.updateVerificationSetting?.({ enabled: val }); setVerificationEnabled(val); showToast(`Email verification ${val ? 'enabled' : 'disabled'}`); } catch (err) { showToast(err.message, true); }
+    finally { setTogglingVerification(false); }
   };
 
-  const handleDeleteCampaign = async (id) => {
-    if (!window.confirm('Delete campaign permanently? This cannot be undone.')) return;
-    try {
-      await campaignApi.delete(id);
-      showToast('Campaign deleted');
-      fetchAll();
-    } catch (err) { showToast(err.message, true); }
+  const handleToggleRecaptcha = async (val) => {
+    setTogglingRecaptcha(true);
+    try { await adminApi.saveSettings({ keys: { recaptcha_enabled: val ? 'true' : 'false' } }); setRecaptchaEnabled(val); showToast(`reCAPTCHA ${val ? 'enabled' : 'disabled'}`); } catch (err) { showToast(err.message, true); }
+    finally { setTogglingRecaptcha(false); }
   };
 
-  const handleToggleUser = async (id) => {
-    try {
-      await adminApi.toggleUser(id);
-      showToast('User status updated');
-      fetchAll();
-    } catch (err) { showToast(err.message, true); }
+  // New feature handlers
+  const handleSaveFeeSettings = async (data) => {
+    try { await adminApi.updateFeeSettings?.(data); setFeeSettings(data); showToast('Fee settings saved'); } catch (err) { showToast(err.message, true); }
+  };
+  const handleMarkPayoutPaid = async (id) => {
+    try { await adminApi.markPayoutAsPaid?.(id, {}); showToast('Payout marked as paid'); fetchNewFeatures(); } catch (err) { showToast(err.message, true); }
+  };
+  const handleSaveNotificationSettings = async (data) => {
+    try { await adminApi.updateNotificationSettings?.(data); setPushNotificationsEnabled(data.enabled); showToast('Notification settings saved'); } catch (err) { showToast(err.message, true); }
+  };
+  const handleSendPushNotification = async (data) => {
+    try { await adminApi.sendPushNotification?.(data); showToast('Notification sent'); fetchNewFeatures(); } catch (err) { showToast(err.message, true); }
+  };
+  const handleReviewCreatorVerification = async (id, status, notes) => {
+    try { await adminApi.reviewCreatorVerification?.(id, { status, notes }); showToast(`Verification ${status}`); fetchNewFeatures(); } catch (err) { showToast(err.message, true); }
+  };
+  const handleSubscriptionAction = async (id, status) => {
+    try { await adminApi.updateSubscriptionStatus?.(id, status); showToast(`Subscription ${status}`); fetchNewFeatures(); } catch (err) { showToast(err.message, true); }
   };
 
-  const handleApproveDeposit = async (id, amount) => {
-    try {
-      await adminApi.updateDepositRequest?.(id, { status: 'approved' });
-      showToast(`Deposit $${toNumber(amount).toFixed(2)} approved`);
-      fetchAll();
-    } catch (err) { showToast(err.message, true); }
-  };
+  // Campaign handlers
+  const handleApproveCampaign = async (id) => { try { await adminApi.updateCampaign(id, { status: 'approved' }); showToast('Campaign approved'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleRejectCampaign = async (id) => { try { await adminApi.updateCampaign(id, { status: 'rejected' }); showToast('Campaign rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleDeleteCampaign = async (id) => { if (!window.confirm('Delete permanently?')) return; try { await campaignApi.delete(id); showToast('Campaign deleted'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleToggleUser = async (id) => { try { await adminApi.toggleUser(id); showToast('User status updated'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleApproveDeposit = async (id, amount) => { try { await adminApi.updateDepositRequest?.(id, { status: 'approved' }); showToast(`Deposit approved`); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleRejectDeposit = async (id) => { try { await adminApi.updateDepositRequest?.(id, { status: 'rejected' }); showToast('Deposit rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleProvideInstructions = async (id, instructions) => { try { await adminApi.updateDepositRequest?.(id, { admin_instructions: instructions, status: 'instructions_sent' }); showToast('Instructions sent'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleApproveWithdrawal = async (id) => { try { await adminApi.approveWithdrawal(id); showToast('Withdrawal approved'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleRejectWithdrawal = async (id) => { const reason = prompt('Reason for rejection:'); if (!reason) return; try { await adminApi.rejectWithdrawal(id, reason); showToast('Withdrawal rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleReleaseEscrow = async (id) => { try { await adminApi.releaseCampaignEscrow(id); showToast('Escrow released'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleRefundEscrow = async (id) => { try { await adminApi.refundCampaignEscrow(id); showToast('Escrow refunded'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleSaveContent = async (c) => { try { await adminApi.saveContent(c); setContent(c); showToast('Content updated'); } catch (err) { showToast(err.message, true); } };
+  const handleSaveSettings = async () => { try { await adminApi.saveSettings({ theme: themeSettings, keys: integrationKeys }); showToast('Settings saved'); } catch (err) { showToast(err.message, true); } };
+  const handleLogout = () => { logout(); navigate('/'); };
 
-  const handleRejectDeposit = async (id) => {
-    try {
-      await adminApi.updateDepositRequest?.(id, { status: 'rejected' });
-      showToast('Deposit rejected');
-      fetchAll();
-    } catch (err) { showToast(err.message, true); }
-  };
+  if (sessionLoading || !authChecked) return <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>Loading admin panel…</div>;
 
-  const handleProvideInstructions = async (id, instructions) => {
-    try {
-      await adminApi.updateDepositRequest?.(id, { 
-        admin_instructions: instructions, 
-        status: 'instructions_sent' 
-      });
-      showToast('Instructions sent. Waiting for donor to upload proof.');
-      fetchAll();
-    } catch (err) { 
-      showToast(err.message, true); 
-    }
-  };
-
-  const handleApproveWithdrawal = async (id) => {
-    try {
-      await adminApi.approveWithdrawal(id);
-      showToast('Withdrawal approved and wallet debited');
-      fetchAll();
-    } catch (err) { 
-      showToast(err.message, true); 
-    }
-  };
-
-  const handleRejectWithdrawal = async (id) => {
-    const reason = prompt('Reason for rejection:', 'Insufficient funds or invalid details');
-    if (!reason) return;
-    try {
-      await adminApi.rejectWithdrawal(id, reason);
-      showToast('Withdrawal rejected');
-      fetchAll();
-    } catch (err) { 
-      showToast(err.message, true); 
-    }
-  };
-
-  const handleReleaseEscrow = async (id) => {
-    try {
-      await adminApi.releaseCampaignEscrow(id);
-      showToast('Escrow released successfully');
-      fetchAll();
-    } catch (err) {
-      showToast(err.message, true);
-    }
-  };
-
-  const handleRefundEscrow = async (id) => {
-    try {
-      await adminApi.refundCampaignEscrow(id);
-      showToast('Escrow refunded to donors');
-      fetchAll();
-    } catch (err) {
-      showToast(err.message, true);
-    }
-  };
-
-  const handleSaveContent = async (newContent) => {
-    try {
-      await adminApi.saveContent(newContent);
-      setContent(newContent);
-      if (newContent.social_links) setSocialLinks(newContent.social_links);
-      showToast('Content updated');
-    } catch (err) {
-      showToast(err.message, true);
-    }
-  };
-
-  const handleSaveSettings = async () => {
-    try {
-      await adminApi.saveSettings({ theme: themeSettings, keys: integrationKeys });
-      showToast('Settings saved');
-    } catch (err) {
-      showToast(err.message, true);
-    }
-  };
-
-  const handleSaveSocialLinks = async () => {
-    try {
-      const updatedContent = { ...content, social_links: socialLinks };
-      await adminApi.saveContent(updatedContent);
-      setContent(updatedContent);
-      showToast('Social links saved');
-    } catch (err) {
-      showToast(err.message, true);
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
-  if (sessionLoading || !authChecked) {
-    return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading admin panel...</div>;
-  }
-
-  const totalRaised = campaigns.reduce((sum, c) => sum + c.raised, 0);
+  const totalRaised = campaigns.reduce((s, c) => s + c.raised, 0);
   const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'approved').length;
   const pendingCampaigns = campaigns.filter(c => c.status === 'pending' || c.status === 'review').length;
   const donorsCount = users.filter(u => u.role === 'donor').length;
@@ -963,16 +1018,18 @@ export default function AdminDashboard() {
   const pendingWithdrawals = withdrawalRequests.filter(w => w.status === 'pending').length;
   const pendingCompletions = completionRequests.length;
 
-  const tabs = ['overview', 'campaigns', 'users', 'donations', 'deposits', 'withdrawals', 'completions', 'massmail', 'content', 'settings', 'maintenance'];
+  const navItems = [
+    { id: 'overview', label: 'Dashboard', icon: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></> },
+    { id: 'campaigns', label: 'Campaigns', icon: <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></>, badge: pendingCampaigns },
+    { id: 'users', label: 'Users', icon: <><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></> },
+  ];
 
   return (
     <div className="shell">
       <aside className="sidebar">
         <div className="sb-logo">
           <div className="logo-mark">
-            <div className="logo-icon">
-              <svg viewBox="0 0 24 24"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
-            </div>
+            <div className="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg></div>
             <div><div className="logo-text">HopeBridge</div><div className="logo-sub">Admin Console</div></div>
           </div>
         </div>
@@ -982,450 +1039,157 @@ export default function AdminDashboard() {
         </div>
         <nav className="sb-nav">
           <div className="nav-sec">Main</div>
-          {['overview', 'campaigns', 'users'].map(tab => (
-            <button key={tab} className={`nl ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
-              {tab === 'overview' && <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>}
-              {tab === 'campaigns' && <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>}
-              {tab === 'users' && <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>}
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              {tab === 'campaigns' && pendingCampaigns > 0 && <span className="nb">{pendingCampaigns}</span>}
-            </button>
-          ))}
+          {navItems.map(({ id, label, icon, badge }) => (<button key={id} className={`nl ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}><svg viewBox="0 0 24 24">{icon}</svg>{label}{badge > 0 && <span className="nb">{badge}</span>}</button>))}
           <div className="nav-sec">Finance</div>
-          {['donations', 'deposits', 'withdrawals'].map(tab => (
-            <button key={tab} className={`nl ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
-              {tab === 'donations' && <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>}
-              {tab === 'deposits' && <svg viewBox="0 0 24 24"><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>}
-              {tab === 'withdrawals' && <svg viewBox="0 0 24 24"><polyline points="7,1 3,5 7,9"/><path d="M21 11V9a4 4 0 0 0-4-4H3"/><polyline points="17,23 21,19 17,15"/><path d="M3 13v2a4 4 0 0 0 4 4h14"/></svg>}
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              {tab === 'withdrawals' && pendingWithdrawals > 0 && <span className="nb am">{pendingWithdrawals}</span>}
-            </button>
-          ))}
+          {[{ id: 'donations', label: 'Donations', icon: <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/> },
+            { id: 'deposits', label: 'Deposits', icon: <><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></> },
+            { id: 'withdrawals', label: 'Withdrawals', icon: <><polyline points="7,1 3,5 7,9"/><path d="M21 11V9a4 4 0 0 0-4-4H3"/><polyline points="17,23 21,19 17,15"/><path d="M3 13v2a4 4 0 0 0 4 4h14"/></>, badge: pendingWithdrawals, badgeClass: 'am' },
+            { id: 'payouts', label: 'Payouts', icon: <><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></> }].map(({ id, label, icon, badge, badgeClass }) => (<button key={id} className={`nl ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}><svg viewBox="0 0 24 24">{icon}</svg>{label}{badge > 0 && <span className={`nb ${badgeClass || ''}`}>{badge}</span>}</button>))}
           <div className="nav-sec">Operations</div>
-          <button className={`nl ${activeTab === 'completions' ? 'active' : ''}`} onClick={() => setActiveTab('completions')}>
-            <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            Completions
-            {pendingCompletions > 0 && <span className="nb am">{pendingCompletions}</span>}
-          </button>
-          <button className={`nl ${activeTab === 'maintenance' ? 'active' : ''}`} onClick={() => setActiveTab('maintenance')}>
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            Maintenance
-            {maintenanceMode.enabled && <span className="nb am">ON</span>}
-          </button>
+          {[{ id: 'completions', label: 'Completions', icon: <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></> },
+            { id: 'creator-verifications', label: 'Verifications', icon: <><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></> },
+            { id: 'donor-management', label: 'Donors', icon: <><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></> },
+            { id: 'maintenance', label: 'Maintenance', icon: <><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></> }].map(({ id, label, icon }) => (<button key={id} className={`nl ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}><svg viewBox="0 0 24 24">{icon}</svg>{label}</button>))}
           <div className="nav-sec">Admin</div>
-          {['massmail', 'content', 'settings'].map(tab => (
-            <button key={tab} className={`nl ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
-              {tab === 'massmail' && <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}
-              {tab === 'content' && <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>}
-              {tab === 'settings' && <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>}
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-          <button className="nl" onClick={() => setDarkMode(!darkMode)} style={{ marginTop: 8 }}>
-            <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-            {darkMode ? 'Light Mode' : 'Dark Mode'}
-          </button>
+          {[{ id: 'email_templates', label: 'Email Templates', icon: <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></> },
+            { id: 'notifications', label: 'Notifications', icon: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></> },
+            { id: 'massmail', label: 'Mass Mail', icon: <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><line x1="12" y1="12" x2="12" y2="20"/><line x1="8" y1="16" x2="16" y2="16"/></> },
+            { id: 'content', label: 'Content', icon: <><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></> },
+            { id: 'fees', label: 'Fee Settings', icon: <><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></> },
+            { id: 'audit-logs', label: 'Audit Logs', icon: <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></> },
+            { id: 'settings', label: 'Settings', icon: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></> }].map(({ id, label, icon }) => (<button key={id} className={`nl ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}><svg viewBox="0 0 24 24">{icon}</svg>{label}</button>))}
+          <button className="nl" onClick={() => setDarkMode(!darkMode)} style={{ marginTop: 8 }}><svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>{darkMode ? 'Light Mode' : 'Dark Mode'}</button>
         </nav>
-        <div className="sb-footer">
-          <button className="nl" style={{ color: 'var(--red)' }} onClick={handleLogout}>
-            <svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Sign Out
-          </button>
-        </div>
+        <div className="sb-footer"><button className="nl" style={{ color: 'var(--red)' }} onClick={handleLogout}><svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</button></div>
       </aside>
 
       <div className="main">
-        <div className="topbar">
-          <div className="tb-title">{tabs.find(t => t === activeTab)?.charAt(0).toUpperCase() + activeTab.slice(1)}</div>
-          <div className="tb-actions">
-            <div className="tb-btn" onClick={() => showToast('Search feature coming')}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-            <div className="tb-btn" onClick={() => showToast('Notifications')} style={{ position: 'relative' }}><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div className="ndot"></div></div>
-            <div className="tb-btn" style={{ overflow: 'hidden', padding: 0 }}><div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12, color: '#fff' }}>SA</div></div>
-          </div>
+        <div className="topbar"><div className="tb-title">{activeTab === 'email_templates' ? 'Email Templates' : activeTab === 'creator-verifications' ? 'Creator Verifications' : activeTab === 'donor-management' ? 'Donor Management' : activeTab === 'audit-logs' ? 'Audit Logs' : activeTab === 'fees' ? 'Fee Settings' : activeTab === 'notifications' ? 'Notifications' : activeTab === 'payouts' ? 'Payouts' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</div>
+          <div className="tb-actions"><div className="tb-btn" onClick={() => showToast('Notifications')} style={{ position: 'relative' }}><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div className="ndot" /></div><div className="tb-btn" style={{ overflow: 'hidden', padding: 0 }}><div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12, color: '#fff' }}>SA</div></div></div>
         </div>
-        <div className="mob-top">
-          <div className="mob-logo">HopeBridge</div>
-          <div className="tb-btn" onClick={() => showToast('Search')}><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-          <div className="tb-btn" onClick={() => showToast('Notifications')} style={{ position: 'relative' }}><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div className="ndot"></div></div>
-        </div>
+        <div className="mob-top"><div className="mob-logo">HopeBridge</div></div>
 
         <div className="page">
-          {dataLoading && <div style={{ padding: '8px 16px', background: 'var(--green)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>Loading data...</div>}
+          {dataLoading && <div style={{ padding: '8px 16px', background: 'var(--green)', color: '#fff', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>Loading data…</div>}
 
-          {/* Overview Tab */}
+          {/* ── Overview Tab ── */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
-            <div className="ov-hero">
-              <div className="hero-row">
-                <div>
-                  <div className="hero-g">Good morning, Administrator</div>
-                  <div className="hero-t">HopeBridge<br /><em>Admin Console</em></div>
-                  <div className="hero-s">{pendingCampaigns} campaigns awaiting review</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>Platform Status</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', background: maintenanceMode.enabled ? 'var(--amber)' : 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.2)' }}>
-                    {maintenanceMode.enabled ? '🔧 Maintenance' : '● Live'}
-                  </div>
-                </div>
-              </div>
-              <div className="hero-stats">
-                <div className="hst"><div className="hst-v">{donorsCount}</div><div className="hst-l">Donors</div></div>
-                <div className="hst"><div className="hst-v">{creatorsCount}</div><div className="hst-l">Creators</div></div>
-                <div className="hst"><div className="hst-v">${(totalRaised / 1000).toFixed(0)}k</div><div className="hst-l">Raised</div></div>
-                <div className="hst"><div className="hst-v">{campaigns.length}</div><div className="hst-l">Campaigns</div></div>
-              </div>
+            <div className="ov-hero"><div className="hero-row"><div><div className="hero-g">Good morning, Administrator</div><div className="hero-t">HopeBridge<br /><em>Admin Console</em></div><div className="hero-s">{pendingCampaigns} campaigns awaiting review</div></div><div style={{ textAlign: 'right' }}><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>Platform Status</div><div style={{ fontSize: 14, fontWeight: 700, color: '#fff', background: maintenanceMode.enabled ? 'rgba(239,159,39,0.4)' : 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.2)' }}>{maintenanceMode.enabled ? '🔧 Maintenance' : '● Live'}</div></div></div>
+              <div className="hero-stats"><div className="hst"><div className="hst-v">{donorsCount}</div><div className="hst-l">Donors</div></div><div className="hst"><div className="hst-v">{creatorsCount}</div><div className="hst-l">Creators</div></div><div className="hst"><div className="hst-v">${(totalRaised / 1000).toFixed(0)}k</div><div className="hst-l">Raised</div></div><div className="hst"><div className="hst-v">{campaigns.length}</div><div className="hst-l">Campaigns</div></div></div>
             </div>
 
             <div className="stats-grid">
-              <div className="sc"><div className="si si-g"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg></div><div className="sv">{stats.total_users || users.length}</div><div className="sl">Total Users</div></div>
+              <div className="sc"><div className="si si-g"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div><div className="sv">{users.length}</div><div className="sl">Total Users</div></div>
               <div className="sc"><div className="si si-b"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg></div><div className="sv">{activeCampaigns}</div><div className="sl">Active Campaigns</div></div>
               <div className="sc"><div className="si si-a"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg></div><div className="sv">${(totalRaised / 1000).toFixed(0)}k</div><div className="sl">Total Raised</div></div>
               <div className="sc"><div className="si si-r"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div className="sv">{pendingCompletions}</div><div className="sl">Pending Completions</div></div>
             </div>
 
-            <div className="sh"><div className="sht">Quick Actions</div></div>
+            <div className="sh" style={{ marginBottom: 12 }}><div className="sht">Quick Toggles</div></div>
+            <div className="qt-grid">
+              <div className="qt-card"><div><div className="qt-label">Maintenance Mode</div><div className="qt-sub"><span className={`status-pill ${maintenanceMode.enabled ? 'on' : 'off'}`}><span className="status-dot" />{maintenanceMode.enabled ? 'Enabled' : 'Disabled'}</span></div></div><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><div className="qt-icon" style={{ background: maintenanceMode.enabled ? 'var(--amber-l)' : 'var(--surface-2)' }}><svg viewBox="0 0 24 24" style={{ stroke: maintenanceMode.enabled ? '#854F0B' : 'var(--txt-3)' }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><Toggle checked={maintenanceMode.enabled} onChange={handleToggleMaintenance} danger disabled={togglingMaintenance} /></div></div>
+              <div className="qt-card"><div><div className="qt-label">Email Verification</div><div className="qt-sub"><span className={`status-pill ${verificationEnabled ? 'on' : 'off'}`}><span className="status-dot" />{verificationEnabled ? 'Required' : 'Skipped'}</span></div></div><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><div className="qt-icon" style={{ background: verificationEnabled ? 'var(--green-l)' : 'var(--surface-2)' }}><svg viewBox="0 0 24 24" style={{ stroke: verificationEnabled ? 'var(--green-d)' : 'var(--txt-3)' }}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><Toggle checked={verificationEnabled} onChange={handleToggleVerification} disabled={togglingVerification} /></div></div>
+              <div className="qt-card"><div><div className="qt-label">reCAPTCHA</div><div className="qt-sub"><span className={`status-pill ${recaptchaEnabled ? 'on' : 'off'}`}><span className="status-dot" />{recaptchaEnabled ? 'Active' : 'Inactive'}</span></div></div><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><div className="qt-icon" style={{ background: recaptchaEnabled ? 'var(--blue-l)' : 'var(--surface-2)' }}><svg viewBox="0 0 24 24" style={{ stroke: recaptchaEnabled ? '#185FA5' : 'var(--txt-3)' }}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><Toggle checked={recaptchaEnabled} onChange={handleToggleRecaptcha} disabled={togglingRecaptcha} /></div></div>
+              <div className="qt-card"><div><div className="qt-label">Dark Mode</div><div className="qt-sub"><span className={`status-pill ${darkMode ? 'on' : 'off'}`}><span className="status-dot" />{darkMode ? 'Dark' : 'Light'}</span></div></div><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><div className="qt-icon" style={{ background: 'var(--surface-2)' }}><svg viewBox="0 0 24 24" style={{ stroke: 'var(--txt-2)' }}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></div><Toggle checked={darkMode} onChange={setDarkMode} /></div></div>
+            </div>
+
+            <div className="sh" style={{ marginBottom: 12 }}><div className="sht">Quick Actions</div></div>
             <div className="qg">
-              {['campaigns', 'users', 'deposits', 'withdrawals', 'completions', 'maintenance', 'massmail', 'content', 'settings'].map(tab => (
-                <button key={tab} className="qb" onClick={() => setActiveTab(tab)}>
-                  <div className="qi">
-                    {tab === 'campaigns' && <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>}
-                    {tab === 'users' && <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg>}
-                    {tab === 'deposits' && <svg viewBox="0 0 24 24"><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>}
-                    {tab === 'withdrawals' && <svg viewBox="0 0 24 24"><polyline points="7,1 3,5 7,9"/><path d="M21 11V9a4 4 0 0 0-4-4H3"/><polyline points="17,23 21,19 17,15"/><path d="M3 13v2a4 4 0 0 0 4 4h14"/></svg>}
-                    {tab === 'completions' && <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>}
-                    {tab === 'maintenance' && <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>}
-                    {tab === 'massmail' && <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}
-                    {tab === 'content' && <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>}
-                    {tab === 'settings' && <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>}
-                  </div>
-                  <span className="ql">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
-                </button>
-              ))}
-              <button className="qb qx" onClick={handleLogout}>
-                <div className="qi"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
-                <span className="ql">Sign Out</span>
-              </button>
+              {[{ id: 'campaigns', label: 'Campaigns', icon: <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></> },
+                { id: 'users', label: 'Users', icon: <><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></> },
+                { id: 'deposits', label: 'Deposits', icon: <><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></> },
+                { id: 'withdrawals', label: 'Withdrawals', icon: <><polyline points="7,1 3,5 7,9"/><path d="M21 11V9a4 4 0 0 0-4-4H3"/><polyline points="17,23 21,19 17,15"/><path d="M3 13v2a4 4 0 0 0 4 4h14"/></> },
+                { id: 'payouts', label: 'Payouts', icon: <><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></> },
+                { id: 'completions', label: 'Completions', icon: <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></> },
+                { id: 'fees', label: 'Fees', icon: <><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></> },
+                { id: 'notifications', label: 'Push', icon: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></> },
+                { id: 'creator-verifications', label: 'Verify', icon: <><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></> },
+                { id: 'donor-management', label: 'Donors', icon: <><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></> },
+                { id: 'audit-logs', label: 'Audit', icon: <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></> },
+                { id: 'email_templates', label: 'Email', icon: <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></> },
+                { id: 'massmail', label: 'Mass Mail', icon: <><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9"/></> },
+                { id: 'content', label: 'Content', icon: <><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></> },
+                { id: 'settings', label: 'Settings', icon: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></> },
+                { id: 'logout', label: 'Sign Out', icon: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></>, danger: true }].map(({ id, label, icon, danger }) => (<button key={id} className={`qb ${danger ? 'qx' : ''}`} onClick={() => id === 'logout' ? handleLogout() : setActiveTab(id)}><div className="qi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{icon}</svg></div><span className="ql">{label}</span></button>))}
             </div>
 
             <div className="three-col">
-              <div className="card">
-                <div className="card-h"><div className="card-t">Pending Approvals</div><button className="card-a" onClick={() => setActiveTab('campaigns')}>View all →</button></div>
-                <div className="card-b">
-                  {campaigns.filter(c => c.status === 'pending' || c.status === 'review').slice(0, 3).map(c => (
-                    <div key={c.id} className="cr">
-                      <div className="ct" style={{ background: '#E1F5EE' }}>🌱</div>
-                      <div className="ci">
-                        <div className="cn">{c.title}</div>
-                        <div className="cm">Goal: ${c.goal.toLocaleString()} · {c.creator_name}</div>
-                        <div className="pb"><div className="pf" style={{ width: `${((c.raised) / c.goal) * 100}%` }}></div></div>
-                      </div>
-                      <span className="badge bp">{c.status}</span>
-                      <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>Approve</button>
-                    </div>
-                  ))}
-                  {pendingCampaigns === 0 && <div>No pending campaigns</div>}
-                </div>
-              </div>
+              <div className="card"><div className="card-h"><div className="card-t">Pending Approvals</div><button className="card-a" onClick={() => setActiveTab('campaigns')}>View all →</button></div><div className="card-b">{campaigns.filter(c => c.status === 'pending').slice(0, 3).map(c => (<div key={c.id} className="cr"><div className="ct" style={{ background: 'var(--green-l)' }}>🌱</div><div className="ci"><div className="cn">{c.title}</div><div className="cm">Goal: ${c.goal.toLocaleString()} · {c.creator_name}</div><div className="pb"><div className="pf" style={{ width: `${(c.raised / c.goal) * 100}%` }} /></div></div><span className="badge bp">pending</span><button className="db dba" onClick={() => handleApproveCampaign(c.id)}>Approve</button></div>))}{pendingCampaigns === 0 && <div style={{ color: 'var(--txt-3)', fontSize: 13 }}>No pending campaigns</div>}</div></div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <div className="card">
-                  <div className="card-h"><div className="card-t">Completion Requests</div><button className="card-a" onClick={() => setActiveTab('completions')}>Manage →</button></div>
-                  <div className="card-b">
-                    {completionRequests.slice(0, 3).map(req => (
-                      <div key={req.id} className="di">
-                        <div className="uav ava" style={{ width: 32, height: 32, fontSize: 11 }}>{req.title?.charAt(0) || 'C'}</div>
-                        <div className="di-info"><div className="di-user">{req.title}</div><div className="di-amt">Requested {new Date(req.completion_requested_at).toLocaleDateString()}</div></div>
-                        <div className="di-acts">
-                          <button className="db dba" onClick={() => setActiveTab('completions')}>Review</button>
-                        </div>
-                      </div>
-                    ))}
-                    {pendingCompletions === 0 && <div>No completion requests</div>}
-                  </div>
-                </div>
-                <div className="card">
-                  <div className="card-h"><div className="card-t">Withdrawal Queue</div><button className="card-a" onClick={() => setActiveTab('withdrawals')}>Manage →</button></div>
-                  <div className="card-b">
-                    {withdrawalRequests.filter(w => w.status === 'pending').slice(0, 3).map(req => (
-                      <div key={req.id} className="di">
-                        <div className="uav ava" style={{ width: 32, height: 32, fontSize: 11 }}>{req.name?.[0] || 'U'}</div>
-                        <div className="di-info"><div className="di-user">{req.name}</div><div className="di-amt">${req.amount.toFixed(2)}</div></div>
-                        <div className="di-acts">
-                          <button className="db dba" onClick={() => handleApproveWithdrawal(req.id)}>Approve</button>
-                          <button className="db dbr" onClick={() => handleRejectWithdrawal(req.id)}>Reject</button>
-                        </div>
-                      </div>
-                    ))}
-                    {pendingWithdrawals === 0 && <div>No pending withdrawal requests</div>}
-                  </div>
-                </div>
+                <div className="card"><div className="card-h"><div className="card-t">Completion Requests</div><button className="card-a" onClick={() => setActiveTab('completions')}>Manage →</button></div><div className="card-b">{completionRequests.slice(0, 2).map(req => (<div key={req.id} className="di"><div className="uav ava" style={{ width: 32, height: 32, fontSize: 11 }}>{req.title?.charAt(0) || 'C'}</div><div className="di-info"><div className="di-user">{req.title}</div><div className="di-amt">{new Date(req.completion_requested_at).toLocaleDateString()}</div></div><button className="db dba" onClick={() => setActiveTab('completions')}>Review</button></div>))}{pendingCompletions === 0 && <div style={{ color: 'var(--txt-3)', fontSize: 13 }}>No completion requests</div>}</div></div>
+                <div className="card"><div className="card-h"><div className="card-t">Withdrawal Queue</div><button className="card-a" onClick={() => setActiveTab('withdrawals')}>Manage →</button></div><div className="card-b">{withdrawalRequests.filter(w => w.status === 'pending').slice(0, 2).map(req => (<div key={req.id} className="di"><div className="uav ava" style={{ width: 32, height: 32, fontSize: 11 }}>{req.name?.[0] || 'U'}</div><div className="di-info"><div className="di-user">{req.name}</div><div className="di-amt">${req.amount.toFixed(2)}</div></div><div className="di-acts"><button className="db dba" onClick={() => handleApproveWithdrawal(req.id)}>Approve</button><button className="db dbr" onClick={() => handleRejectWithdrawal(req.id)}>Reject</button></div></div>))}{pendingWithdrawals === 0 && <div style={{ color: 'var(--txt-3)', fontSize: 13 }}>No pending withdrawals</div>}</div></div>
               </div>
             </div>
           </div>
 
-          {/* Campaigns Tab */}
-          <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
-            <div className="sh"><div className="sht">Campaign Management</div></div>
-            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut" style={{ width: '100%' }}><thead><tr><th style={{ paddingLeft: 20 }}>Campaign</th><th>Creator</th><th>Goal</th><th>Progress</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{campaigns.map(c => (<tr key={c.id}><td style={{ paddingLeft: 20 }}><div style={{ fontWeight: 600 }}>{c.title}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{c.creator_name}</div></td><td>${c.goal.toLocaleString()}</td><td><div className="pb" style={{ width: 80 }}><div className="pf" style={{ width: `${((c.raised) / c.goal) * 100}%` }}></div></div>{Math.round(((c.raised) / c.goal) * 100)}%</td><td><span className={`badge ${c.status === 'active' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td><td style={{ paddingRight: 20 }}><div style={{ display: 'flex', gap: 6 }}>{c.status === 'pending' && <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>Approve</button>}<button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}>Delete</button></div></td></tr>))}</tbody></table></div></div>
-          </div>
+          {/* ── Campaigns Tab ── */}
+          <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}><div className="sh"><div className="sht">Campaign Management</div></div><div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th style={{ paddingLeft: 20 }}>Campaign</th><th>Goal</th><th>Raised</th><th>Progress</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{campaigns.map(c => (<tr key={c.id}><td style={{ paddingLeft: 20 }}><div style={{ fontWeight: 600 }}>{c.title}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{c.creator_name}</div></td><td>${c.goal.toLocaleString()}</td><td>${c.raised.toLocaleString()}</td><td><div className="pb" style={{ width: 80 }}><div className="pf" style={{ width: `${(c.raised / c.goal) * 100}%` }} /></div>{Math.round((c.raised / c.goal) * 100)}%</td><td><span className={`badge ${c.status === 'approved' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td><td style={{ paddingRight: 20 }}><div style={{ display: 'flex', gap: 6 }}>{c.status === 'pending' && <><button className="db dba" onClick={() => handleApproveCampaign(c.id)}>Approve</button><button className="db dbr" onClick={() => handleRejectCampaign(c.id)}>Reject</button></>}<button className="db" style={{ background: 'var(--red-l)', color: 'var(--red)' }} onClick={() => handleDeleteCampaign(c.id)}>Delete</button></div></td></tr>))}</tbody></table></div></div></div>
 
-          {/* Users Tab */}
-          <div className={`ps ${activeTab === 'users' ? 'active' : ''}`}>
-            <div className="sh"><div className="sht">User Management</div></div>
-            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th style={{ paddingLeft: 20 }}>User</th><th>Role</th><th>Joined</th><th>Wallet</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{users.map(u => (<tr key={u.id}><td style={{ paddingLeft: 20 }}><div className="uc"><div className={`uav avg`}>{u.name?.charAt(0)}</div><div><div style={{ fontWeight: 600 }}>{u.name}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{u.email}</div></div></div></td><td><span className="badge br">{u.role}</span></td><td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td><td style={{ fontWeight: 600 }}>${u.wallet_balance?.toFixed(2) || '0.00'}</td><td><span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span></td><td style={{ paddingRight: 20 }}><button className="db dbv" onClick={() => handleToggleUser(u.id)}>{u.is_active ? 'Suspend' : 'Restore'}</button></td></tr>))}</tbody></table></div></div>
-          </div>
+          {/* ── Users Tab ── */}
+          <div className={`ps ${activeTab === 'users' ? 'active' : ''}`}><div className="sh"><div className="sht">User Management</div></div><div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th style={{ paddingLeft: 20 }}>User</th><th>Role</th><th>Joined</th><th>Wallet</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead><tbody>{users.map(u => (<tr key={u.id}><td style={{ paddingLeft: 20 }}><div className="uc"><div className="uav avg">{u.name?.charAt(0)}</div><div><div style={{ fontWeight: 600 }}>{u.name}</div><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{u.email}</div></div></div></td><td><span className="badge br">{u.role}</span></td><td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td><td style={{ fontWeight: 600 }}>${u.wallet_balance?.toFixed(2) || '0.00'}</td><td><span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span></td><td style={{ paddingRight: 20 }}><button className="db dbv" onClick={() => handleToggleUser(u.id)}>{u.is_active ? 'Suspend' : 'Restore'}</button></td></tr>))}</tbody></table></div></div></div>
 
-          {/* Donations Tab */}
-          <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
-            <div className="sh"><div className="sht">All Donations</div></div>
-            <div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Monthly</th><th>Date</th></tr></thead><tbody>{donations.map(d => (<tr key={d.id}><td>{d.donor_name}</td><td>{d.campaign_title}</td><td>${d.amount.toLocaleString()}</td><td>{d.is_monthly ? '✅' : '—'}</td><td>{new Date(d.created_at).toLocaleDateString()}</td></tr>))}</tbody></table></div></div>
-          </div>
+          {/* ── Donations Tab ── */}
+          <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}><div className="sh"><div className="sht">All Donations</div></div><div className="card"><div className="card-b" style={{ padding: 0 }}><table className="ut"><thead><tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Monthly</th><th>Date</th></tr></thead><tbody>{donations.map(d => (<tr key={d.id}><td>{d.donor_name}</td><td>{d.campaign_title}</td><td>${d.amount.toLocaleString()}</td><td>{d.is_monthly ? '✅' : '—'}</td><td>{new Date(d.created_at).toLocaleDateString()}</td></tr>))}</tbody></table></div></div></div>
 
-          {/* Deposits Tab */}
-          <div className={`ps ${activeTab === 'deposits' ? 'active' : ''}`}>
-            <div className="sh"><div className="sht">Deposit Requests</div></div>
-            <div className="card"><div className="card-b">
-              <DepositRequestsManager
-                requests={depositRequests}
-                onApprove={handleApproveDeposit}
-                onReject={handleRejectDeposit}
-                onProvideInstructions={handleProvideInstructions}
-                showToast={showToast}
-              />
-            </div></div>
-          </div>
+          {/* ── Deposits Tab ── */}
+          <div className={`ps ${activeTab === 'deposits' ? 'active' : ''}`}><div className="sh"><div className="sht">Deposit Requests</div></div><div className="card"><div className="card-b"><DepositRequestsManager requests={depositRequests} onApprove={handleApproveDeposit} onReject={handleRejectDeposit} onProvideInstructions={handleProvideInstructions} showToast={showToast} /></div></div></div>
 
-          {/* Withdrawals Tab */}
-          <div className={`ps ${activeTab === 'withdrawals' ? 'active' : ''}`}>
-            <div className="sh"><div className="sht">Withdrawal Requests</div></div>
-            <div className="card"><div className="card-b">
-              <WithdrawalRequestsManager
-                requests={withdrawalRequests}
-                onApprove={handleApproveWithdrawal}
-                onReject={handleRejectWithdrawal}
-                showToast={showToast}
-              />
-            </div></div>
-          </div>
+          {/* ── Withdrawals Tab ── */}
+          <div className={`ps ${activeTab === 'withdrawals' ? 'active' : ''}`}><div className="sh"><div className="sht">Withdrawal Requests</div></div><div className="card"><div className="card-b"><WithdrawalRequestsManager requests={withdrawalRequests} onApprove={handleApproveWithdrawal} onReject={handleRejectWithdrawal} /></div></div></div>
 
-          {/* Completions Tab */}
-          <div className={`ps ${activeTab === 'completions' ? 'active' : ''}`}>
-            <div className="sh"><div className="sht">Campaign Completion Requests</div></div>
-            <div className="card"><div className="card-b">
-              <CompletionRequestsManager
-                requests={completionRequests}
-                onRelease={handleReleaseEscrow}
-                onRefund={handleRefundEscrow}
-                showToast={showToast}
-              />
-            </div></div>
-          </div>
+          {/* ── Completions Tab ── */}
+          <div className={`ps ${activeTab === 'completions' ? 'active' : ''}`}><div className="sh"><div className="sht">Campaign Completion Requests</div></div><div className="card"><div className="card-b"><CompletionRequestsManager requests={completionRequests} onRelease={handleReleaseEscrow} onRefund={handleRefundEscrow} /></div></div></div>
 
-          {/* Mass Mail Tab */}
-          <div className={`ps ${activeTab === 'massmail' ? 'active' : ''}`}>
-            <div className="card"><div className="card-h"><div className="card-t">Broadcast Email</div></div><div className="card-b">
-              <MassMailForm onSend={() => {}} showToast={showToast} />
-            </div></div>
-          </div>
+          {/* ── Payouts Tab ── */}
+          <div className={`ps ${activeTab === 'payouts' ? 'active' : ''}`}><div className="sh"><div className="sht">Payout Reconciliation</div></div><div className="card"><div className="card-b"><PayoutsManager payouts={payouts} onMarkPaid={handleMarkPayoutPaid} showToast={showToast} /></div></div></div>
 
-          {/* Content Tab */}
-          <div className={`ps ${activeTab === 'content' ? 'active' : ''}`}>
-            <div className="card"><div className="card-h"><div className="card-t">Platform Content</div></div><div className="card-b">
-              <ContentEditor content={content} onSave={handleSaveContent} showToast={showToast} />
-            </div></div>
-          </div>
+          {/* ── Fee Settings Tab ── */}
+          <div className={`ps ${activeTab === 'fees' ? 'active' : ''}`}><div className="sh"><div className="sht">Transaction Fee Settings</div></div><div className="card"><div className="card-b"><FeeSettings fees={feeSettings} onSave={handleSaveFeeSettings} showToast={showToast} /></div></div></div>
 
-          {/* Settings Tab */}
-          <div className={`ps ${activeTab === 'settings' ? 'active' : ''}`}>
-            <div className="card"><div className="card-h"><div className="card-t">System Settings</div></div><div className="card-b">
-              <div className="settings-tabs">
-                <button className={`role-tab ${settingsTab === 'theme' ? 'active' : ''}`} onClick={() => setSettingsTab('theme')}>Theme Colours</button>
-                <button className={`role-tab ${settingsTab === 'keys' ? 'active' : ''}`} onClick={() => setSettingsTab('keys')}>Integration Keys</button>
-                <button className={`role-tab ${settingsTab === 'social' ? 'active' : ''}`} onClick={() => setSettingsTab('social')}>Social Links</button>
-                <button className={`role-tab ${settingsTab === 'security' ? 'active' : ''}`} onClick={() => setSettingsTab('security')}>Security</button>
-              </div>
-              {settingsTab === 'theme' && (
-                <div className="theme-settings">
-                  {Object.entries(themeSettings).map(([key, value]) => (
-                    <div className="auth-field" key={key}>
-                      <label className="fl">{key}</label>
-                      <div style={{ display: 'flex', gap: 10 }}>
-                        <input type="color" value={value} onChange={e => setThemeSettings(prev => ({ ...prev, [key]: e.target.value }))} style={{ width: 50, padding: 0, border: 'none' }} />
-                        <input type="text" className="fi" value={value} onChange={e => setThemeSettings(prev => ({ ...prev, [key]: e.target.value }))} />
-                      </div>
-                    </div>
-                  ))}
-                  <button className="btn btn-g" onClick={handleSaveSettings}>Save Theme</button>
-                </div>
-              )}
-              {settingsTab === 'keys' && (
-                <div className="keys-settings">
-                  <h5 style={{ marginBottom: 12 }}>SMTP Settings (Email)</h5>
-                  <div className="auth-field">
-                    <label className="fl">SMTP Host</label>
-                    <input type="text" className="fi" value={integrationKeys.smtp_host || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, smtp_host: e.target.value }))} placeholder="smtp.gmail.com" />
-                  </div>
-                  <div className="auth-field">
-                    <label className="fl">SMTP Port</label>
-                    <input type="text" className="fi" value={integrationKeys.smtp_port || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, smtp_port: e.target.value }))} placeholder="587" />
-                  </div>
-                  <div className="auth-field">
-                    <label className="fl">SMTP User</label>
-                    <input type="text" className="fi" value={integrationKeys.smtp_user || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, smtp_user: e.target.value }))} placeholder="your-email@gmail.com" />
-                  </div>
-                  <div className="auth-field">
-                    <label className="fl">SMTP Password</label>
-                    <input type="password" className="fi" value={integrationKeys.smtp_pass || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, smtp_pass: e.target.value }))} placeholder="app-specific password" />
-                  </div>
+          {/* ── Notifications Tab ── */}
+          <div className={`ps ${activeTab === 'notifications' ? 'active' : ''}`}><div className="sh"><div className="sht">Push Notifications</div></div><div className="card"><div className="card-b"><NotificationManager settings={{ enabled: pushNotificationsEnabled }} onSave={handleSaveNotificationSettings} onSend={handleSendPushNotification} history={notificationHistory} showToast={showToast} /></div></div></div>
 
-                  <h5 style={{ marginTop: 20, marginBottom: 12 }}>Cloudinary (Image Storage)</h5>
-                  <div className="auth-field">
-                    <label className="fl">Cloud Name</label>
-                    <input type="text" className="fi" value={integrationKeys.cloudinary_cloud_name || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, cloudinary_cloud_name: e.target.value }))} placeholder="your-cloud-name" />
-                  </div>
-                  <div className="auth-field">
-                    <label className="fl">API Key</label>
-                    <input type="text" className="fi" value={integrationKeys.cloudinary_api_key || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, cloudinary_api_key: e.target.value }))} placeholder="123456789" />
-                  </div>
-                  <div className="auth-field">
-                    <label className="fl">API Secret</label>
-                    <input type="password" className="fi" value={integrationKeys.cloudinary_api_secret || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, cloudinary_api_secret: e.target.value }))} placeholder="your-api-secret" />
-                  </div>
+          {/* ── Creator Verifications Tab ── */}
+          <div className={`ps ${activeTab === 'creator-verifications' ? 'active' : ''}`}><div className="sh"><div className="sht">Creator Verification Requests</div></div><div className="card"><div className="card-b"><CreatorVerificationManager verifications={creatorVerifications} onReview={handleReviewCreatorVerification} showToast={showToast} /></div></div></div>
 
-                  <h5 style={{ marginTop: 20, marginBottom: 12 }}>reCAPTCHA (Optional)</h5>
-                  <div className="auth-field">
-                    <label className="fl">Site Key</label>
-                    <input type="text" className="fi" value={integrationKeys.recaptcha_site_key || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, recaptcha_site_key: e.target.value }))} placeholder="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" />
-                  </div>
-                  <div className="auth-field">
-                    <label className="fl">Secret Key</label>
-                    <input type="password" className="fi" value={integrationKeys.recaptcha_secret_key || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, recaptcha_secret_key: e.target.value }))} placeholder="6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe" />
-                  </div>
+          {/* ── Donor Management Tab ── */}
+          <div className={`ps ${activeTab === 'donor-management' ? 'active' : ''}`}><div className="sh"><div className="sht">Donor Management</div></div><div className="card"><div className="card-b"><DonorManagement topDonors={topDonors} subscriptions={recurringSubscriptions} analytics={donorAnalytics} onSubscriptionAction={handleSubscriptionAction} showToast={showToast} /></div></div></div>
 
-                  <button className="btn btn-g" onClick={handleSaveSettings}>Save Keys</button>
-                </div>
-              )}
-              {settingsTab === 'social' && (
-                <div className="social-links-settings">
-                  {['facebook', 'twitter', 'instagram', 'youtube', 'linkedin'].map(platform => (
-                    <div className="auth-field" key={platform}>
-                      <label className="fl">{platform.charAt(0).toUpperCase() + platform.slice(1)} URL</label>
-                      <input type="text" className="fi" value={socialLinks[platform]} onChange={e => setSocialLinks(prev => ({ ...prev, [platform]: e.target.value }))} placeholder={`https://${platform}.com/...`} />
-                    </div>
-                  ))}
-                  <button className="btn btn-g" onClick={handleSaveSocialLinks}>Save Social Links</button>
-                </div>
-              )}
-              {settingsTab === 'security' && (
-                <div>
-                  <div className="card" style={{ marginBottom: 20 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                      <div>
-                        <strong>Email Verification</strong>
-                        <p style={{ fontSize: 12, color: 'var(--txt-2)', marginTop: 4 }}>
-                          When enabled, all new users must verify their email before logging in
-                        </p>
-                      </div>
-                      <button
-                        onClick={toggleVerification}
-                        style={{
-                          padding: '10px 20px',
-                          borderRadius: 30,
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontWeight: 600,
-                          background: verificationEnabled ? '#ef4444' : '#10b981',
-                          color: '#fff',
-                        }}
-                      >
-                        {verificationEnabled ? 'Disable Verification' : 'Enable Verification'}
-                      </button>
-                    </div>
-                    <div style={{
-                      background: verificationEnabled ? '#fef3c7' : '#d1fae5',
-                      padding: 12,
-                      borderRadius: 8,
-                      fontSize: 13,
-                      color: verificationEnabled ? '#92400e' : '#065f46',
-                    }}>
-                      <i className={`fas ${verificationEnabled ? 'fa-shield-alt' : 'fa-envelope-open-text'}`}></i>
-                      {verificationEnabled 
-                        ? ' Email verification is ON. New users will receive a 6-digit code to verify their email address.'
-                        : ' Email verification is OFF. New users can sign in immediately after registration.'}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div></div>
-          </div>
+          {/* ── Audit Logs Tab ── */}
+          <div className={`ps ${activeTab === 'audit-logs' ? 'active' : ''}`}><div className="sh"><div className="sht">Audit Logs</div></div><div className="card"><div className="card-b"><AuditLogs logs={auditLogs} showToast={showToast} /></div></div></div>
 
-          {/* Maintenance Tab */}
-          <div className={`ps ${activeTab === 'maintenance' ? 'active' : ''}`}>
-            <div className="card"><div className="card-h"><div className="card-t">Maintenance Mode</div></div><div className="card-b">
-              <MaintenanceModeManager
-                isEnabled={maintenanceMode}
-                onToggle={toggleMaintenance}
-                showToast={showToast}
-              />
-            </div></div>
-          </div>
+          {/* ── Email Templates Tab ── */}
+          <div className={`ps ${activeTab === 'email_templates' ? 'active' : ''}`}><div className="sh"><div className="sht">Email Templates</div><div style={{ fontSize: 13, color: 'var(--txt-3)' }}>Customise every transactional email</div></div><div className="card"><div className="card-b"><EmailTemplateEditor showToast={showToast} /></div></div></div>
+
+          {/* ── Mass Mail Tab ── */}
+          <div className={`ps ${activeTab === 'massmail' ? 'active' : ''}`}><div className="card"><div className="card-h"><div className="card-t">Broadcast Email</div></div><div className="card-b"><MassMailForm onSend={() => {}} showToast={showToast} /></div></div></div>
+
+          {/* ── Content Tab ── */}
+          <div className={`ps ${activeTab === 'content' ? 'active' : ''}`}><div className="card"><div className="card-h"><div className="card-t">Platform Content</div></div><div className="card-b"><ContentEditor content={content} onSave={handleSaveContent} showToast={showToast} /></div></div></div>
+
+          {/* ── Settings Tab ── */}
+          <div className={`ps ${activeTab === 'settings' ? 'active' : ''}`}><div className="card"><div className="card-h"><div className="card-t">System Settings</div></div><div className="card-b"><div className="settings-tabs">{['security', 'theme', 'keys', 'social'].map(t => (<button key={t} className={`role-tab ${settingsTab === t ? 'active' : ''}`} onClick={() => setSettingsTab(t)}>{t === 'security' ? 'Security' : t === 'theme' ? 'Theme' : t === 'keys' ? 'Integration Keys' : 'Social Links'}</button>))}</div>
+            {settingsTab === 'security' && (<div><div className="toggle-row"><div className="toggle-info"><strong>Email Verification</strong><p>Require new users to verify their email before logging in</p></div><Toggle checked={verificationEnabled} onChange={handleToggleVerification} disabled={togglingVerification} /></div><div className="toggle-row"><div className="toggle-info"><strong>reCAPTCHA Protection</strong><p>Enable Google reCAPTCHA on login and registration forms</p></div><Toggle checked={recaptchaEnabled} onChange={handleToggleRecaptcha} disabled={togglingRecaptcha} /></div><div className="toggle-row"><div className="toggle-info"><strong>Maintenance Mode</strong><p>Only admins can access the site</p></div><Toggle checked={maintenanceMode.enabled} onChange={handleToggleMaintenance} danger disabled={togglingMaintenance} /></div>{maintenanceMode.enabled && (<div style={{ marginTop: 20 }}><label className="fl">Maintenance Message</label><textarea className="fi" rows="3" value={maintenanceMode.message} onChange={e => setMaintenanceMode(prev => ({ ...prev, message: e.target.value }))} placeholder="We're under maintenance. Please check back soon!" /><button className="btn btn-g" onClick={async () => { try { await adminApi.saveSettings({ keys: { maintenance_message: maintenanceMode.message } }); showToast('Message saved'); } catch (err) { showToast(err.message, true); } }}>Save Message</button><div style={{ marginTop: 12, padding: 12, background: 'var(--amber-l)', borderRadius: 8, fontSize: 12, color: '#854F0B' }}>Preview: "{maintenanceMode.message || 'We are currently under maintenance.'}"</div></div>)}{recaptchaEnabled && (<div style={{ marginTop: 24, padding: 16, background: 'var(--surface-2)', borderRadius: 'var(--r-md)' }}><div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>reCAPTCHA Keys</div><label className="fl">Site Key</label><input type="text" className="fi" value={integrationKeys.recaptcha_site_key || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, recaptcha_site_key: e.target.value }))} placeholder="6LeIxAcT..." /><label className="fl">Secret Key</label><input type="password" className="fi" value={integrationKeys.recaptcha_secret_key || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, recaptcha_secret_key: e.target.value }))} placeholder="6LeIxAcT..." /><button className="btn btn-g" onClick={handleSaveSettings}>Save reCAPTCHA Keys</button></div>)}</div>)}
+            {settingsTab === 'theme' && (<div>{Object.entries(themeSettings).map(([key, value]) => (<div key={key} style={{ marginBottom: 16 }}><label className="fl">{key}</label><div style={{ display: 'flex', gap: 10 }}><input type="color" value={value} onChange={e => setThemeSettings(prev => ({ ...prev, [key]: e.target.value }))} style={{ width: 50, height: 42, padding: 2, border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer' }} /><input type="text" className="fi" value={value} onChange={e => setThemeSettings(prev => ({ ...prev, [key]: e.target.value }))} style={{ marginBottom: 0 }} /></div></div>))}<button className="btn btn-g" onClick={handleSaveSettings}>Save Theme</button></div>)}
+            {settingsTab === 'keys' && (<div><div style={{ fontWeight: 700, marginBottom: 12 }}>SMTP Settings</div>{[['smtp_host', 'SMTP Host', 'smtp.sendgrid.net'], ['smtp_port', 'SMTP Port', '587'], ['smtp_user', 'SMTP User', 'apikey'], ['smtp_pass', 'SMTP Password', '••••••••']].map(([k, label, ph]) => (<div key={k}><label className="fl">{label}</label><input type={k === 'smtp_pass' ? 'password' : 'text'} className="fi" value={integrationKeys[k] || ''} onChange={e => setIntegrationKeys(prev => ({ ...prev, [k]: e.target.value }))} placeholder={ph} /></div>))}<button className="btn btn-g" onClick={handleSaveSettings} style={{ marginBottom: 24 }}>Save SMTP</button></div>)}
+            {settingsTab === 'social' && (<div>{['facebook', 'twitter', 'instagram', 'youtube', 'linkedin'].map(p => (<div key={p}><label className="fl">{p.charAt(0).toUpperCase() + p.slice(1)}</label><input type="text" className="fi" value={socialLinks[p] || ''} onChange={e => setSocialLinks(prev => ({ ...prev, [p]: e.target.value }))} placeholder={`https://${p}.com/...`} /></div>))}<button className="btn btn-g" onClick={async () => { try { await adminApi.saveContent({ ...content, social_links: socialLinks }); showToast('Social links saved'); } catch (err) { showToast(err.message, true); } }}>Save Social Links</button></div>)}
+          </div></div></div>
+
+          {/* ── Maintenance Tab ── */}
+          <div className={`ps ${activeTab === 'maintenance' ? 'active' : ''}`}><div className="sh"><div className="sht">Maintenance Mode</div></div><div className="card"><div className="card-b"><div className="toggle-row"><div className="toggle-info"><strong>Enable Maintenance Mode</strong><p>When on, only admins can access the site</p></div><Toggle checked={maintenanceMode.enabled} onChange={handleToggleMaintenance} danger disabled={togglingMaintenance} /></div>{maintenanceMode.enabled && (<div style={{ marginTop: 20 }}><label className="fl">Message shown to users</label><textarea className="fi" rows="3" value={maintenanceMode.message} onChange={e => setMaintenanceMode(prev => ({ ...prev, message: e.target.value }))} placeholder="We're performing scheduled maintenance. Please check back soon!" /><div style={{ display: 'flex', gap: 10 }}><button className="btn btn-g" onClick={async () => { try { await adminApi.saveSettings({ keys: { maintenance_message: maintenanceMode.message } }); showToast('Message saved'); } catch (err) { showToast(err.message, true); } }}>Save Message</button></div><div style={{ marginTop: 16, padding: 14, background: 'var(--amber-l)', borderRadius: 'var(--r-md)', fontSize: 13, color: '#854F0B' }}><strong>Preview:</strong> "{maintenanceMode.message || 'We are currently under maintenance. Please check back later.'}"</div></div>)}{!maintenanceMode.enabled && (<div style={{ marginTop: 16, padding: 14, background: 'var(--green-l)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--green-d)' }}>✅ Site is live — all users can access HopeBridge normally.</div>)}</div></div></div>
         </div>
       </div>
 
       <button className="fab" onClick={() => setActiveTab('campaigns')}><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
 
-      <nav className="bnav">
-        <div className="bnav-inner">
-          {['overview', 'campaigns', 'deposits', 'withdrawals', 'completions'].map(tab => (
-            <button 
-              key={tab} 
-              className={`bni ${activeTab === tab ? 'active' : ''}`} 
-              onClick={() => setActiveTab(tab)}
-            >
-              <div className="bni-icon">
-                {tab === 'overview' && (
-                  <svg viewBox="0 0 24 24" width="24" height="24">
-                    <rect x="3" y="3" width="7" height="7" rx="1"/>
-                    <rect x="14" y="3" width="7" height="7" rx="1"/>
-                    <rect x="3" y="14" width="7" height="7" rx="1"/>
-                    <rect x="14" y="14" width="7" height="7" rx="1"/>
-                  </svg>
-                )}
-                {tab === 'campaigns' && (
-                  <svg viewBox="0 0 24 24" width="24" height="24">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                    <polyline points="9,22 9,12 15,12 15,22"/>
-                  </svg>
-                )}
-                {tab === 'deposits' && (
-                  <svg viewBox="0 0 24 24" width="24" height="24">
-                    <polyline points="17,1 21,5 17,9"/>
-                    <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-                    <polyline points="7,23 3,19 7,15"/>
-                    <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-                  </svg>
-                )}
-                {tab === 'withdrawals' && (
-                  <svg viewBox="0 0 24 24" width="24" height="24">
-                    <polyline points="7,1 3,5 7,9"/>
-                    <path d="M21 11V9a4 4 0 0 0-4-4H3"/>
-                    <polyline points="17,23 21,19 17,15"/>
-                    <path d="M3 13v2a4 4 0 0 0 4 4h14"/>
-                  </svg>
-                )}
-                {tab === 'completions' && (
-                  <svg viewBox="0 0 24 24" width="24" height="24">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                    <polyline points="22 4 12 14.01 9 11.01"/>
-                  </svg>
-                )}
-              </div>
-              <span className="bni-lbl">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
-            </button>
-          ))}
-        </div>
-      </nav>
-
-      <div id="toast" className="toast" style={{ display: 'none' }}></div>
+      <nav className="bnav"><div className="bnav-inner">{[
+        { id: 'overview', icon: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></> },
+        { id: 'campaigns', icon: <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></> },
+        { id: 'deposits', icon: <><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></> },
+        { id: 'withdrawals', icon: <><polyline points="7,1 3,5 7,9"/><path d="M21 11V9a4 4 0 0 0-4-4H3"/><polyline points="17,23 21,19 17,15"/><path d="M3 13v2a4 4 0 0 0 4 4h14"/></> },
+        { id: 'notifications', icon: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></> },
+        { id: 'settings', icon: <><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></> },
+      ].map(({ id, icon }) => (<button key={id} className={`bni ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}><div className="bni-icon"><svg viewBox="0 0 24 24">{icon}</svg></div><span className="bni-lbl">{id.charAt(0).toUpperCase() + id.slice(1)}</span></button>))}</div></nav>
     </div>
   );
 }

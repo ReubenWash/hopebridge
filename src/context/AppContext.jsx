@@ -17,6 +17,7 @@ export function AppProvider({ children }) {
   const [loading, setLoading]           = useState(true)
   const [theme, setTheme]               = useState({})
   const [walletBalance, setWalletBalance] = useState(0)
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState(null)
 
   const sessionRestored = useRef(false)
 
@@ -110,18 +111,38 @@ export function AppProvider({ children }) {
   }
   const closeAuth = () => setAuthOpen(false)
 
+  // Updated register function for verification flow
   const register = async (name, email, password, role, recaptchaToken) => {
     const data = await authApi.register({ name, email, password, role, recaptchaToken })
-    saveToken(data.token)
-    setCurrentUser(data.user)
+    
+    if (data.needsVerification) {
+      // Account NOT created yet - waiting for verification
+      setPendingVerificationEmail(email)
+      showToast(data.message)
+      return { needsVerification: true, email: data.email }
+    }
+    
+    // Verification disabled - account created immediately
+    if (data.token) {
+      saveToken(data.token)
+    }
+    if (data.user) {
+      setCurrentUser(data.user)
+    }
     showToast(data.message)
     return data.user
   }
 
+  // Updated login function
   const login = async (email, password) => {
     const data = await authApi.login({ email, password })
-    saveToken(data.token)
-    setCurrentUser(data.user)
+    
+    if (data.token) {
+      saveToken(data.token)
+    }
+    if (data.user) {
+      setCurrentUser(data.user)
+    }
     showToast(data.message)
     return data.user
   }
@@ -131,6 +152,7 @@ export function AppProvider({ children }) {
     setCurrentUser(null)
     setMyCampaigns([])
     setWalletBalance(0)
+    setPendingVerificationEmail(null)
     showToast('Logged out successfully')
   }
 
@@ -296,6 +318,7 @@ export function AppProvider({ children }) {
       showToast,
       theme, saveTheme, fetchTheme,
       walletBalance, refreshWallet: fetchWalletBalance,
+      pendingVerificationEmail,
     }}>
       {children}
     </AppContext.Provider>

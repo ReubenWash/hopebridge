@@ -32,7 +32,6 @@ async function multipart(method, path, formData) {
   const token = getToken()
   
   // IMPORTANT: Do NOT set Content-Type header for FormData
-  // The browser will set the correct multipart boundary automatically
   const headers = {}
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
@@ -94,6 +93,10 @@ export const authApi = {
   resendCode: (email) => request('/auth/resend-code', {
     method: 'POST', body: JSON.stringify({ email }),
   }),
+  // Save FCM token for push notifications
+  saveFCMToken: (token) => request('/auth/save-fcm-token', {
+    method: 'POST', body: JSON.stringify({ token }),
+  }),
 }
 
 // ── Campaigns ─────────────────────────────────────────────────────
@@ -108,7 +111,6 @@ export const campaignApi = {
   getRelated: (id, category) => request(`/campaigns/${id}/related?category=${category}`),
   getCreator: (userId) => request(`/users/${userId}`),
   create:  (formData) => {
-    // Ensure formData is properly formatted
     if (!(formData instanceof FormData)) {
       console.error('createCampaign called without FormData:', formData)
       throw new Error('Invalid form data for campaign creation')
@@ -214,7 +216,7 @@ export const adminApi = {
     method: 'PUT', body: JSON.stringify(data),
   }),
 
-  // FCM / Push Notifications
+  // FCM / Push Notifications (Legacy - for regular users)
   saveFCMToken: (token) => request('/admin/fcm-token', {
     method: 'POST', body: JSON.stringify({ token }),
   }),
@@ -250,7 +252,7 @@ export const adminApi = {
     method: 'PUT', body: JSON.stringify(data),
   }),
 
-  // Withdrawal requests
+  // Withdrawal requests (Legacy)
   getWithdrawalRequests: () => request('/admin/withdrawal-requests'),
   approveWithdrawal: (id) => request(`/admin/withdrawal-requests/${id}/approve`, {
     method: 'PUT',
@@ -277,6 +279,72 @@ export const adminApi = {
   // Disputes (keep for reference but not used in UI)
   getDisputes:    () => request('/admin/disputes'),
   resolveDispute: (id) => request(`/admin/disputes/${id}/resolve`, { method: 'PATCH' }),
+
+  // ============ NEW FEATURES ============
+
+  // ── Payout Reconciliation ──────────────────────────────────────
+  getPayouts: (params) => {
+    const qs = new URLSearchParams(params || {}).toString()
+    return request(`/admin/payouts${qs ? `?${qs}` : ''}`)
+  },
+  getPayoutSummary: () => request('/admin/payouts/summary'),
+  markPayoutAsPaid: (id, data) => request(`/admin/payouts/${id}/mark-paid`, {
+    method: 'PUT', body: JSON.stringify(data),
+  }),
+
+  // ── Transaction Fee Management ─────────────────────────────────
+  getFeeSettings: () => request('/admin/fees'),
+  updateFeeSettings: (data) => request('/admin/fees', {
+    method: 'PUT', body: JSON.stringify(data),
+  }),
+  calculateFee: (data) => request('/admin/fees/calculate', {
+    method: 'POST', body: JSON.stringify(data),
+  }),
+
+  // ── Push Notifications Management ──────────────────────────────
+  sendNotification: (data) => request('/admin/send-notification', {
+    method: 'POST', body: JSON.stringify(data),
+  }),
+  getNotificationHistory: (params) => {
+    const qs = new URLSearchParams(params || {}).toString()
+    return request(`/admin/notification-history${qs ? `?${qs}` : ''}`)
+  },
+  getNotificationSettings: () => request('/admin/notification-settings'),
+  updateNotificationSettings: (data) => request('/admin/notification-settings', {
+    method: 'PUT', body: JSON.stringify(data),
+  }),
+  testNotification: (token) => request('/admin/test-notification', {
+    method: 'POST', body: JSON.stringify({ token }),
+  }),
+
+  // ── Creator Onboarding/Verification ────────────────────────────
+  getCreatorVerifications: (params) => {
+    const qs = new URLSearchParams(params || {}).toString()
+    return request(`/admin/creator-verifications${qs ? `?${qs}` : ''}`)
+  },
+  reviewCreatorVerification: (id, data) => request(`/admin/creator-verifications/${id}/review`, {
+    method: 'PUT', body: JSON.stringify(data),
+  }),
+
+  // ── Donor Management ───────────────────────────────────────────
+  getTopDonors: (params) => {
+    const qs = new URLSearchParams(params || {}).toString()
+    return request(`/admin/top-donors${qs ? `?${qs}` : ''}`)
+  },
+  getRecurringDonations: (params) => {
+    const qs = new URLSearchParams(params || {}).toString()
+    return request(`/admin/recurring-donations${qs ? `?${qs}` : ''}`)
+  },
+  updateSubscriptionStatus: (id, status) => request(`/admin/recurring-donations/${id}/status`, {
+    method: 'PUT', body: JSON.stringify({ status }),
+  }),
+  getDonorAnalytics: () => request('/admin/donor-analytics'),
+
+  // ── Audit Logs ──────────────────────────────────────────────────
+  getAuditLogs: (params) => {
+    const qs = new URLSearchParams(params || {}).toString()
+    return request(`/admin/audit-logs${qs ? `?${qs}` : ''}`)
+  },
 }
 
 // ── Public ────────────────────────────────────────────────────────

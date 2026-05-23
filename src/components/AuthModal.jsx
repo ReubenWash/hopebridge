@@ -18,6 +18,7 @@ export default function AuthModal() {
   const [verifyEmail, setVerifyEmail] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [verificationEnabled, setVerificationEnabled] = useState(true);
+  const [pendingEmail, setPendingEmail] = useState('');
 
   // Check if email verification is enabled
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function AuthModal() {
     setMode(m);
     if (r) setRole(r);
     setName(''); setEmail(''); setPassword(''); setCode('');
+    setNeedsVerify(false);
   };
 
   const handleSubmit = async (e) => {
@@ -41,17 +43,20 @@ export default function AuthModal() {
     setBusy(true);
     try {
       if (mode === 'register') {
-        const user = await register(name, email, password, role, null);
+        const response = await authApi.register({ name, email, password, role, recaptchaToken: null });
         
-        // Check if verification is needed
-        if (user.needsVerification || (verificationEnabled && role !== 'admin')) {
+        if (response.needsVerification) {
+          // Account NOT created yet - waiting for verification
           setVerifyEmail(email);
+          setPendingEmail(email);
           setNeedsVerify(true);
           setMode('verify');
-          showToast('Please check your email for verification code!');
+          showToast('Verification code sent! Please check your email to complete registration.');
         } else {
+          // Verification disabled - account created immediately
+          // You need to update your register function to handle this
           closeAuth();
-          showToast(`Welcome to HopeBridge, ${user.name}! 🎉`);
+          showToast(`Welcome to HopeBridge, ${name}! 🎉`);
           
           // Check for pending donation after successful registration
           const pendingDonation = sessionStorage.getItem('pendingDonation');
@@ -78,6 +83,7 @@ export default function AuthModal() {
     } catch (err) {
       if (err.data?.needsVerification) {
         setVerifyEmail(email);
+        setPendingEmail(email);
         setNeedsVerify(true);
         setMode('verify');
         showToast('Please verify your email first.', true);
@@ -93,12 +99,27 @@ export default function AuthModal() {
     e.preventDefault();
     setBusy(true);
     try {
-      await authApi.verifyCode({ email: verifyEmail, code });
-      showToast('Email verified! You can now log in.');
-      setMode('login');
-      setNeedsVerify(false);
-      setCode('');
-      setEmail(verifyEmail);
+      const response = await authApi.verifyCode({ email: verifyEmail, code });
+      // Account is now created!
+      if (response.token && response.user) {
+        // Save the token and user to context
+        const { saveToken } = await import('../services/api');
+        saveToken(response.token);
+        // You need to update your AppContext to set the user
+        // For now, we'll close and show success
+        showToast('Email verified! Your account has been created. Please login.');
+        setMode('login');
+        setNeedsVerify(false);
+        setCode('');
+        setEmail(verifyEmail);
+        setPassword('');
+      } else {
+        showToast('Email verified! You can now log in.');
+        setMode('login');
+        setNeedsVerify(false);
+        setCode('');
+        setEmail(verifyEmail);
+      }
     } catch (err) {
       showToast(err.message, true);
     } finally {
@@ -109,7 +130,7 @@ export default function AuthModal() {
   const handleResendCode = async () => {
     try {
       await authApi.resendCode(verifyEmail);
-      showToast('Verification code resent!');
+      showToast('Verification code resent! Please check your email.');
     } catch (err) {
       showToast(err.message, true);
     }
@@ -192,6 +213,9 @@ export default function AuthModal() {
             <p style={{ fontSize: '0.88rem', color: '#6b7280', textAlign: 'center', marginBottom: 20 }}>
               We sent a 6-digit code to <strong>{verifyEmail}</strong>
             </p>
+            <p style={{ fontSize: '0.8rem', color: '#e8531e', textAlign: 'center', marginBottom: 16 }}>
+              ⚠️ Your account will be created ONLY after successful verification
+            </p>
             <form onSubmit={handleVerify}>
               <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
                 Verification Code
@@ -212,7 +236,7 @@ export default function AuthModal() {
                 }}
               />
               <button type="submit" style={btnStyle} disabled={busy}>
-                {busy ? 'Verifying...' : 'Verify Email'}
+                {busy ? 'Verifying...' : 'Verify & Create Account'}
               </button>
             </form>
             <div style={{ textAlign: 'center', marginTop: 14, fontSize: '0.88rem', color: '#6b7280' }}>
@@ -226,7 +250,7 @@ export default function AuthModal() {
             </div>
             <div style={{ textAlign: 'center', marginTop: 10, fontSize: '0.85rem' }}>
               <span
-                onClick={() => setMode('login')}
+                onClick={() => switchMode('login', 'donor')}
                 style={{ color: '#6b7280', cursor: 'pointer' }}
               >
                 ← Back to login
@@ -273,7 +297,7 @@ export default function AuthModal() {
                     background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16,
                   }}
                 >
-                  
+                  {showPass ? '🙈' : '👁️'}
                 </button>
               </div>
               <button type="submit" style={btnStyle} disabled={busy}>
@@ -339,7 +363,8 @@ export default function AuthModal() {
                 background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10,
                 padding: '10px 14px', fontSize: '0.82rem', color: '#1e40af', marginBottom: 16,
               }}>
-                <i className="fas fa-envelope"></i> We'll send a verification code to your email
+                <i className="fas fa-envelope"></i> We'll send a verification code to your email.<br />
+                <strong>Your account will be created only after verification.</strong>
               </div>
             )}
 
@@ -365,7 +390,7 @@ export default function AuthModal() {
                 style={inputStyle}
               />
               <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
-                Password
+                Password (min 6 characters)
               </label>
               <div style={{ position: 'relative', marginBottom: 14 }}>
                 <input
@@ -384,7 +409,7 @@ export default function AuthModal() {
                     background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16,
                   }}
                 >
-                  
+                  {showPass ? '🙈' : '👁️'}
                 </button>
               </div>
 
@@ -394,14 +419,14 @@ export default function AuthModal() {
                   ? 'linear-gradient(135deg,#27a96c,#059669)'
                   : 'linear-gradient(135deg,#e8531e,#f47c50)',
               }} disabled={busy}>
-                {busy ? 'Creating...' : role === 'donor' ? '❤ Join as Donor' : '🚀 Start Campaigning'}
+                {busy ? 'Sending code...' : role === 'donor' ? '❤ Join as Donor' : '🚀 Start Campaigning'}
               </button>
             </form>
 
             <div style={{ textAlign: 'center', marginTop: 16, fontSize: '0.88rem', color: '#6b7280' }}>
               Already have an account?{' '}
               <span
-                onClick={() => switchMode('login')}
+                onClick={() => switchMode('login', 'donor')}
                 style={{ color: '#e8531e', fontWeight: 700, cursor: 'pointer' }}
               >
                 Sign in

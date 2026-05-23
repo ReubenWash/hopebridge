@@ -11,15 +11,24 @@ import VerifyEmail from './pages/VerifyEmail'
 import AuthModal from './components/AuthModal'
 import Toast from './components/Toast'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
+import PushNotificationSetup from './components/PushNotificationSetup'
 
 /* ── Error Boundary ─────────────────────────────── */
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
-    this.state = { hasError: false }
+    this.state = { hasError: false, error: null }
   }
-  static getDerivedStateFromError() { return { hasError: true } }
-  componentDidCatch(error, info) { console.error('ErrorBoundary:', error, info) }
+  
+  static getDerivedStateFromError(error) { 
+    return { hasError: true, error: error.message } 
+  }
+  
+  componentDidCatch(error, info) { 
+    console.error('ErrorBoundary caught:', error, info)
+    // You could send this to an error tracking service
+  }
+  
   render() {
     if (this.state.hasError) {
       return (
@@ -27,18 +36,32 @@ class ErrorBoundary extends Component {
           minHeight: '100vh', display: 'flex', alignItems: 'center',
           justifyContent: 'center', flexDirection: 'column', padding: 20, textAlign: 'center',
         }}>
-          <h2 style={{ marginBottom: 12 }}>Something went wrong</h2>
-          <p style={{ color: '#6b7280', marginBottom: 20 }}>
-            Please refresh the page or contact support.
+          <div style={{ fontSize: '3rem', marginBottom: 16 }}>😞</div>
+          <h2 style={{ marginBottom: 12, color: '#1a1a2e' }}>Something went wrong</h2>
+          <p style={{ color: '#6b7280', marginBottom: 20, maxWidth: 400 }}>
+            {this.state.error || 'An unexpected error occurred. Please try again.'}
           </p>
           <button
             onClick={() => window.location.reload()}
             style={{
               padding: '10px 24px', background: '#1D9E75', color: '#fff',
               border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700,
+              transition: 'all 0.2s',
             }}
+            onMouseEnter={(e) => e.target.style.opacity = '0.9'}
+            onMouseLeave={(e) => e.target.style.opacity = '1'}
           >
             Refresh Page
+          </button>
+          <button
+            onClick={() => window.location.href = '/'}
+            style={{
+              marginTop: 12,
+              padding: '10px 24px', background: 'transparent', color: '#6b7280',
+              border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontWeight: 500,
+            }}
+          >
+            Go to Homepage
           </button>
         </div>
       )
@@ -55,13 +78,22 @@ function useBackendWarmup() {
   useEffect(() => {
     const ping = async () => {
       try {
-        await fetch(HEALTH_URL, { method: 'GET' })
-        console.log('🏓 Backend warmed up')
+        const response = await fetch(HEALTH_URL, { method: 'GET' })
+        if (response.ok) {
+          console.log('🏓 Backend warmed up successfully')
+        } else {
+          console.log('🏓 Backend warming up (status:', response.status, ')')
+        }
       } catch {
         // Silently ignore — server may still be starting
+        console.log('🏓 Backend warming up...')
       }
     }
     ping()
+    
+    // Optional: Set up periodic warmup (every 5 minutes)
+    const interval = setInterval(ping, 5 * 60 * 1000)
+    return () => clearInterval(interval)
   }, [])
 }
 
@@ -78,11 +110,28 @@ function HomeRoute() {
 /* ── Protected route wrapper ────────────────────── */
 function RoleRoute({ children, allowedRoles }) {
   const { currentUser, loading } = useApp()
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      Loading…
-    </div>
-  )
+  
+  if (loading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', display: 'flex', alignItems: 'center', 
+        justifyContent: 'center', flexDirection: 'column', gap: 16 
+      }}>
+        <div style={{ 
+          width: 40, height: 40, border: '3px solid #e5e7eb', 
+          borderTopColor: '#1D9E75', borderRadius: '50%', 
+          animation: 'spin 1s linear infinite' 
+        }} />
+        <p style={{ color: '#6b7280' }}>Loading...</p>
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    )
+  }
+  
   if (!currentUser) return <Navigate to="/" replace />
   if (!allowedRoles.includes(currentUser.role)) return <Navigate to="/" replace />
   return children
@@ -98,6 +147,7 @@ function AppContent() {
   return (
     <>
       <PWAInstallPrompt />
+      <PushNotificationSetup />
 
       <Routes>
         {/* Landing page */}
