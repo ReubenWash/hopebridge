@@ -616,18 +616,41 @@ function PayoutsManager({ payouts, onMarkPaid, showToast }) {
       <div className="ut">
         <table className="ut">
           <thead>
-            <tr><th>User</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th><th>Actions</th></tr>
+            <tr>
+              <th>User</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
           </thead>
           <tbody>
             {filtered.map(p => (
               <tr key={p.id}>
-                <td>{p.user_name}<br/><small style={{ fontSize: 11, color: 'var(--txt-3)' }}>{p.user_email}</small></td>
+                <td>
+                  {p.user_name}<br/>
+                  <small style={{ fontSize: 11, color: 'var(--txt-3)' }}>{p.user_email}</small>
+                </td>
                 <td><strong>${toNumber(p.amount).toFixed(2)}</strong></td>
-                <td>{p.payment_method}<br/><small>{p.payment_details?.substring(0, 30)}</small></td>
-                <td><span className={`badge ${p.status === 'paid' ? 'ba' : p.status === 'approved' ? 'bp' : 'bx'}`}>{p.status}</span></span></td>
+                <td>
+                  {p.payment_method}<br/>
+                  <small>{p.payment_details?.substring(0, 30)}</small>
+                </td>
+                <td>
+                  <span className={`badge ${p.status === 'paid' ? 'ba' : p.status === 'approved' ? 'bp' : 'bx'}`}>
+                    {p.status}
+                  </span>
+                </td>
                 <td>{new Date(p.created_at).toLocaleDateString()}</td>
-                <td>{p.status === 'approved' && <button className="db dba" onClick={() => onMarkPaid(p.id)}><CheckCircle size={12} /> Mark Paid</button>}</td>
-              <tr>
+                <td>
+                  {p.status === 'approved' && (
+                    <button className="db dba" onClick={() => onMarkPaid(p.id)}>
+                      <CheckCircle size={12} /> Mark Paid
+                    </button>
+                  )}
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
