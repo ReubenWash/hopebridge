@@ -921,7 +921,15 @@ function AuditLogs({ logs, showToast }) {
       </div>
       <div className="ut">
         <table className="ut">
-          <thead><tr><th>Admin</th><th>Action</th><th>Entity</th><th>Details</th><th>Time</th></td></thead>
+          <thead>
+            <tr>
+              <th>Admin</th>
+              <th>Action</th>
+              <th>Entity</th>
+              <th>Details</th>
+              <th>Time</th>
+            </tr>
+          </thead>
           <tbody>
             {filtered.map(log => (
               <tr key={log.id}>
