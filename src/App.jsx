@@ -1,17 +1,20 @@
-import { useEffect, Component } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect, Component, useState } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
+import { publicApi } from './services/api'
 import Navbar from './components/Navbar'
 import HomePage from './pages/HomePage'
 import DonorDashboard from './pages/DonorDashboard'
 import CreatorDashboard from './pages/CreatorDashboard'
 import AdminDashboard from './pages/AdminDashboard'
+import AdminLogin from './pages/AdminLogin'
 import CampaignProfile from './pages/CampaignProfile'
 import VerifyEmail from './pages/VerifyEmail'
 import AuthModal from './components/AuthModal'
 import Toast from './components/Toast'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import PushNotificationSetup from './components/PushNotificationSetup'
+import MaintenancePage from './components/MaintenancePage'
 
 /* ── Error Boundary ─────────────────────────────── */
 class ErrorBoundary extends Component {
@@ -26,7 +29,6 @@ class ErrorBoundary extends Component {
   
   componentDidCatch(error, info) { 
     console.error('ErrorBoundary caught:', error, info)
-    // You could send this to an error tracking service
   }
   
   render() {
@@ -85,13 +87,11 @@ function useBackendWarmup() {
           console.log('🏓 Backend warming up (status:', response.status, ')')
         }
       } catch {
-        // Silently ignore — server may still be starting
         console.log('🏓 Backend warming up...')
       }
     }
     ping()
     
-    // Optional: Set up periodic warmup (every 5 minutes)
     const interval = setInterval(ping, 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
@@ -137,68 +137,96 @@ function RoleRoute({ children, allowedRoles }) {
   return children
 }
 
+/* ── Component to check if route should be blocked by maintenance ── */
+function MaintenanceWrapper({ children }) {
+  const { currentUser } = useApp()
+  const location = useLocation()
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [maintenanceMessage, setMaintenanceMessage] = useState('')
+  const [checkingMaintenance, setCheckingMaintenance] = useState(true)
+
+  useEffect(() => {
+    const checkMaintenance = async () => {
+      try {
+        const data = await publicApi.getMaintenanceStatus()
+        setMaintenanceMode(data.maintenance_mode === true || data.enabled === true)
+        setMaintenanceMessage(data.message || 'We are currently performing scheduled maintenance. Please check back soon!')
+      } catch (err) {
+        console.error('Failed to check maintenance status:', err)
+      } finally {
+        setCheckingMaintenance(false)
+      }
+    }
+    checkMaintenance()
+  }, [])
+
+  // Routes that should NEVER be blocked (even during maintenance)
+  const allowedRoutes = ['/admin-login', '/verify-email']
+  const isAllowedRoute = allowedRoutes.includes(location.pathname)
+  
+  // Admin users can access everything
+  const isAdmin = currentUser?.role === 'admin'
+
+  if (checkingMaintenance) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#1a1a2e'
+      }}>
+        <div style={{
+          width: 48,
+          height: 48,
+          border: '3px solid rgba(255,255,255,0.1)',
+          borderTopColor: '#e8531e',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    )
+  }
+
+  // Show maintenance page for non-admin users when maintenance mode is enabled
+  // EXCEPT on allowed routes
+  if (maintenanceMode && !isAdmin && !isAllowedRoute) {
+    return <MaintenancePage message={maintenanceMessage} />
+  }
+
+  return children
+}
+
 /* ── App content ────────────────────────────────── */
 function AppContent() {
   const { toast } = useApp()
 
-  // Warm up the backend on first load so it's ready when the user interacts
   useBackendWarmup()
 
   return (
-    <>
+    <MaintenanceWrapper>
       <PWAInstallPrompt />
       <PushNotificationSetup />
 
       <Routes>
-        {/* Landing page */}
         <Route path="/" element={<HomeRoute />} />
-
-        {/* Campaign profile — public */}
-        <Route
-          path="/campaign/:id"
-          element={<><Navbar /><CampaignProfile /></>}
-        />
-
-        {/* Donor dashboard */}
-        <Route
-          path="/donor-dashboard"
-          element={
-            <RoleRoute allowedRoles={['donor']}>
-              <DonorDashboard />
-            </RoleRoute>
-          }
-        />
-
-        {/* Creator dashboard */}
-        <Route
-          path="/creator-dashboard"
-          element={
-            <RoleRoute allowedRoles={['creator']}>
-              <CreatorDashboard />
-            </RoleRoute>
-          }
-        />
-
-        {/* Admin dashboard */}
-        <Route
-          path="/admin-dashboard"
-          element={
-            <RoleRoute allowedRoles={['admin']}>
-              <AdminDashboard />
-            </RoleRoute>
-          }
-        />
-
-        {/* Email verification */}
+        <Route path="/campaign/:id" element={<><Navbar /><CampaignProfile /></>} />
+        <Route path="/donor-dashboard" element={<RoleRoute allowedRoles={['donor']}><DonorDashboard /></RoleRoute>} />
+        <Route path="/creator-dashboard" element={<RoleRoute allowedRoles={['creator']}><CreatorDashboard /></RoleRoute>} />
+        <Route path="/admin-dashboard" element={<RoleRoute allowedRoles={['admin']}><AdminDashboard /></RoleRoute>} />
+        <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
-
-        {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
       <AuthModal />
       {toast && <Toast msg={toast.msg} error={toast.error} />}
-    </>
+    </MaintenanceWrapper>
   )
 }
 
