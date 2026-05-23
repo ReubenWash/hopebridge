@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { publicApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { Lock, Key, Mail, Shield, AlertTriangle, Loader, RefreshCw, Clock, Tool, X, LogIn } from 'lucide-react';
 
 // Direct API call without going through the regular authApi
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -70,7 +71,7 @@ export default function MaintenancePage() {
         
         setShowAdminLogin(false);
         
-        // Force navigate to admin dashboard
+        // Force redirect to admin dashboard
         window.location.href = '/admin-dashboard';
       } else {
         setAdminError(data.message || 'Invalid email or password');
@@ -93,14 +94,7 @@ export default function MaintenancePage() {
         background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
         color: '#fff'
       }}>
-        <div style={{
-          width: 48,
-          height: 48,
-          border: '3px solid rgba(255,255,255,0.1)',
-          borderTopColor: '#e8531e',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }} />
+        <Loader size={48} style={{ animation: 'spin 1s linear infinite' }} />
         <style>{`
           @keyframes spin {
             to { transform: rotate(360deg); }
@@ -150,7 +144,7 @@ export default function MaintenancePage() {
             e.target.style.background = 'rgba(255,255,255,0.1)';
           }}
         >
-          <span>🔑</span>
+          <Key size={18} />
           Admin Login
         </button>
 
@@ -174,7 +168,7 @@ export default function MaintenancePage() {
             justifyContent: 'center',
             margin: '0 auto 24px'
           }}>
-            <span style={{ fontSize: '40px', color: '#e8531e' }}>🔧</span>
+            <Tool size={40} color="#e8531e" />
           </div>
           <h1 style={{
             fontSize: '28px',
@@ -198,9 +192,14 @@ export default function MaintenancePage() {
           }}></div>
           <p style={{
             fontSize: '14px',
-            color: 'rgba(255,255,255,0.5)'
+            color: 'rgba(255,255,255,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
           }}>
-            <span>⏱️</span> Estimated completion: within 2 hours
+            <Clock size={14} />
+            Estimated completion: within 2 hours
           </p>
           <button
             onClick={() => window.location.reload()}
@@ -214,12 +213,17 @@ export default function MaintenancePage() {
               fontWeight: '600',
               cursor: 'pointer',
               fontSize: '14px',
-              transition: 'transform 0.2s'
+              transition: 'transform 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              margin: '32px auto 0'
             }}
             onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
             onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
           >
-            <span>🔄</span> Check Again
+            <RefreshCw size={16} />
+            Check Again
           </button>
         </div>
       </div>
@@ -264,15 +268,15 @@ export default function MaintenancePage() {
                 right: '20px',
                 background: 'none',
                 border: 'none',
-                fontSize: '28px',
                 cursor: 'pointer',
                 color: '#999',
-                transition: 'color 0.2s'
+                transition: 'color 0.2s',
+                padding: '4px'
               }}
               onMouseEnter={(e) => e.target.style.color = '#333'}
               onMouseLeave={(e) => e.target.style.color = '#999'}
             >
-              ×
+              <X size={24} />
             </button>
 
             {/* Icon */}
@@ -287,7 +291,7 @@ export default function MaintenancePage() {
                 justifyContent: 'center',
                 marginBottom: '20px'
               }}>
-                <span style={{ fontSize: '32px', color: '#fff' }}>🛡️</span>
+                <Shield size={32} color="#fff" />
               </div>
               <h2 style={{
                 fontSize: '24px',
@@ -315,9 +319,14 @@ export default function MaintenancePage() {
                 borderRadius: '12px',
                 marginBottom: '24px',
                 fontSize: '14px',
-                textAlign: 'center'
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
               }}>
-                <span>⚠️</span> {adminError}
+                <AlertTriangle size={16} />
+                {adminError}
               </div>
             )}
 
@@ -331,26 +340,29 @@ export default function MaintenancePage() {
                   fontWeight: '500',
                   fontSize: '14px'
                 }}>
-                  <span>📧</span> Email
+                  Email
                 </label>
-                <input
-                  type="email"
-                  value={adminEmail}
-                  onChange={(e) => setAdminEmail(e.target.value)}
-                  required
-                  placeholder="admin@hopebridge.com"
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '2px solid #e0e0e0',
-                    borderRadius: '12px',
-                    fontSize: '14px',
-                    transition: 'border-color 0.2s',
-                    outline: 'none'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#e8531e'}
-                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                />
+                <div style={{ position: 'relative' }}>
+                  <Mail size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
+                  <input
+                    type="email"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    required
+                    placeholder="admin@hopebridge.com"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px 12px 40px',
+                      border: '2px solid #e0e0e0',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      transition: 'border-color 0.2s',
+                      outline: 'none'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#e8531e'}
+                    onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                  />
+                </div>
               </div>
 
               <div style={{ marginBottom: '28px' }}>
@@ -361,26 +373,29 @@ export default function MaintenancePage() {
                   fontWeight: '500',
                   fontSize: '14px'
                 }}>
-                  <span>🔒</span> Password
+                  Password
                 </label>
-                <input
-                  type="password"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    border: '2px solid #e0e0e0',
-                    borderRadius: '12px',
-                    fontSize: '14px',
-                    transition: 'border-color 0.2s',
-                    outline: 'none'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#e8531e'}
-                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                />
+                <div style={{ position: 'relative' }}>
+                  <Lock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#999' }} />
+                  <input
+                    type="password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    required
+                    placeholder="••••••••"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px 12px 40px',
+                      border: '2px solid #e0e0e0',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      transition: 'border-color 0.2s',
+                      outline: 'none'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#e8531e'}
+                    onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                  />
+                </div>
               </div>
 
               <button
@@ -397,7 +412,11 @@ export default function MaintenancePage() {
                   fontWeight: '600',
                   cursor: adminLoading ? 'not-allowed' : 'pointer',
                   opacity: adminLoading ? 0.7 : 1,
-                  transition: 'transform 0.2s'
+                  transition: 'transform 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
                 }}
                 onMouseEnter={(e) => {
                   if (!adminLoading) e.target.style.transform = 'translateY(-2px)';
@@ -408,11 +427,13 @@ export default function MaintenancePage() {
               >
                 {adminLoading ? (
                   <>
-                    <span>⏳</span> Logging in...
+                    <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                    Logging in...
                   </>
                 ) : (
                   <>
-                    <span>🔐</span> Emergency Login
+                    <LogIn size={18} />
+                    Emergency Login
                   </>
                 )}
               </button>
@@ -422,9 +443,14 @@ export default function MaintenancePage() {
               textAlign: 'center',
               marginTop: '20px',
               fontSize: '12px',
-              color: '#999'
+              color: '#999',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
             }}>
-              <span>🛡️</span> Secure emergency access
+              <Shield size={12} />
+              Secure emergency access
             </p>
           </div>
         </div>
