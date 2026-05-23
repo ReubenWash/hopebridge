@@ -832,7 +832,14 @@ function DonorManagement({ topDonors, subscriptions, analytics, onSubscriptionAc
           </div>
           <div className="ut">
             <table className="ut">
-              <thead><tr><th>Donor</th><th>Total Donated</th><th>Donations</th><th>Last Donation</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Donor</th>
+                  <th>Total Donated</th>
+                  <th>Donations</th>
+                  <th>Last Donation</th>
+                </tr>
+              </thead>
               <tbody>
                 {topDonors.map(d => (
                   <tr key={d.id}>
@@ -856,7 +863,16 @@ function DonorManagement({ topDonors, subscriptions, analytics, onSubscriptionAc
           </div>
           <div className="ut">
             <table className="ut">
-              <thead><tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Frequency</th><th>Status</th><th>Actions</th></td></thead>
+              <thead>
+                <tr>
+                  <th>Donor</th>
+                  <th>Campaign</th>
+                  <th>Amount</th>
+                  <th>Frequency</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
               <tbody>
                 {subscriptions.map(sub => (
                   <tr key={sub.id}>
