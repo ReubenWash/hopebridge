@@ -3,21 +3,10 @@ import { publicApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { 
-  Lock, 
-  Key, 
-  Mail, 
-  Shield, 
-  AlertTriangle, 
-  Loader, 
-  RefreshCw, 
-  Clock, 
-  Wrench, 
-  X, 
-  LogIn,
-  Settings
+  Lock, Key, Mail, Shield, AlertTriangle, Loader, 
+  RefreshCw, Clock, Wrench, X, LogIn
 } from 'lucide-react';
 
-// Direct API call without going through the regular authApi
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export default function MaintenancePage() {
@@ -29,8 +18,16 @@ export default function MaintenancePage() {
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminError, setAdminError] = useState('');
   
-  const { setCurrentUser, setToast } = useApp();
+  const { setCurrentUser, setToast, currentUser } = useApp();
   const navigate = useNavigate();
+
+  // Check if user is already logged in as admin
+  useEffect(() => {
+    if (currentUser && currentUser.role === 'admin') {
+      console.log('Admin already logged in, redirecting...');
+      window.location.href = '/admin-dashboard';
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     const checkMaintenance = async () => {
@@ -84,8 +81,18 @@ export default function MaintenancePage() {
         
         setShowAdminLogin(false);
         
-        // Force redirect to admin dashboard
-        window.location.href = '/admin-dashboard';
+        // Method 1: Try React Router navigation
+        navigate('/admin-dashboard');
+        
+        // Method 2: Force hard redirect after a short delay
+        setTimeout(() => {
+          window.location.href = '/admin-dashboard';
+        }, 100);
+        
+        // Method 3: Also try replacing the current URL
+        setTimeout(() => {
+          window.location.replace('/admin-dashboard');
+        }, 200);
       } else {
         setAdminError(data.message || 'Invalid email or password');
       }
@@ -129,7 +136,6 @@ export default function MaintenancePage() {
         padding: '20px',
         position: 'relative'
       }}>
-        {/* Admin Login Button */}
         <button
           onClick={() => setShowAdminLogin(true)}
           style={{
@@ -161,7 +167,6 @@ export default function MaintenancePage() {
           Admin Login
         </button>
 
-        {/* Maintenance Content */}
         <div style={{
           textAlign: 'center',
           maxWidth: '500px',
@@ -241,7 +246,6 @@ export default function MaintenancePage() {
         </div>
       </div>
 
-      {/* Admin Login Modal */}
       {showAdminLogin && (
         <div
           style={{
@@ -272,7 +276,6 @@ export default function MaintenancePage() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
             <button
               onClick={() => setShowAdminLogin(false)}
               style={{
@@ -292,7 +295,6 @@ export default function MaintenancePage() {
               <X size={24} />
             </button>
 
-            {/* Icon */}
             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
               <div style={{
                 width: '70px',
@@ -323,7 +325,6 @@ export default function MaintenancePage() {
               </p>
             </div>
 
-            {/* Error Message */}
             {adminError && (
               <div style={{
                 background: '#fee',
@@ -343,7 +344,6 @@ export default function MaintenancePage() {
               </div>
             )}
 
-            {/* Login Form */}
             <form onSubmit={handleAdminLogin}>
               <div style={{ marginBottom: '20px' }}>
                 <label style={{
