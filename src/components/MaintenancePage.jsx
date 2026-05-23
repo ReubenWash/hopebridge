@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
-import { publicApi, authApi } from '../services/api';
+import { publicApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+
+// Direct API call without going through the regular authApi (which might be blocked)
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export default function MaintenancePage() {
   const [message, setMessage] = useState('We are currently performing scheduled maintenance. Please check back soon!');
@@ -35,19 +38,37 @@ export default function MaintenancePage() {
     setAdminError('');
 
     try {
-      const response = await authApi.login({ email: adminEmail, password: adminPassword });
-      
-      if (response.user && response.user.role === 'admin') {
-        setCurrentUser(response.user);
-        localStorage.setItem('token', response.token);
+      // Use the emergency login endpoint that bypasses maintenance mode
+      const response = await fetch(`${API_URL}/admin/emergency-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email: adminEmail, 
+          password: adminPassword 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success && data.user && data.user.role === 'admin') {
+        // Store token and user data
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        setCurrentUser(data.user);
         setToast({ msg: 'Welcome back, Admin!', error: false });
         setShowAdminLogin(false);
-        navigate('/admin-dashboard');
+        
+        // Force navigate to admin dashboard
+        window.location.href = '/admin-dashboard';
       } else {
-        setAdminError('Access denied. Admin privileges required.');
+        setAdminError(data.message || 'Invalid email or password');
       }
     } catch (err) {
-      setAdminError(err.response?.data?.message || 'Invalid credentials');
+      console.error('Login error:', err);
+      setAdminError('Network error. Please try again.');
     } finally {
       setAdminLoading(false);
     }
@@ -92,40 +113,7 @@ export default function MaintenancePage() {
         padding: '20px',
         position: 'relative'
       }}>
-        {/* Admin Login Icon Button */}
-        <button
-          onClick={() => setShowAdminLogin(true)}
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.1)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.3s ease',
-            backdropFilter: 'blur(10px)',
-            zIndex: 1000,
-            color: '#fff'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.background = 'rgba(255,255,255,0.2)';
-            e.target.style.transform = 'scale(1.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = 'rgba(255,255,255,0.1)';
-            e.target.style.transform = 'scale(1)';
-          }}
-        >
-          <i className="fas fa-lock" style={{ fontSize: '24px' }}></i>
-        </button>
-
-        {/* Admin Login Button Text Version - Optional */}
+        {/* Admin Login Button */}
         <button
           onClick={() => setShowAdminLogin(true)}
           style={{
@@ -298,14 +286,14 @@ export default function MaintenancePage() {
                 margin: 0,
                 color: '#1a1a2e'
               }}>
-                Admin Access
+                Emergency Admin Access
               </h2>
               <p style={{
                 color: '#666',
                 marginTop: '8px',
                 fontSize: '14px'
               }}>
-                Enter your admin credentials to continue
+                Enter your admin credentials to access the dashboard
               </p>
             </div>
 
@@ -415,11 +403,20 @@ export default function MaintenancePage() {
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-sign-in-alt"></i> Login as Admin
+                    <i className="fas fa-sign-in-alt"></i> Emergency Login
                   </>
                 )}
               </button>
             </form>
+            
+            <p style={{
+              textAlign: 'center',
+              marginTop: '20px',
+              fontSize: '12px',
+              color: '#999'
+            }}>
+              <i className="fas fa-shield-alt"></i> Secure emergency access
+            </p>
           </div>
         </div>
       )}
