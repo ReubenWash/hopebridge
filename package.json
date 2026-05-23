@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.2.0",
     "@imagekit/react": "^5.0.2",
     "bootstrap": "^5.3.3",
     "firebase": "^12.12.1",

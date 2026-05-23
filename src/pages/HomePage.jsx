@@ -4,53 +4,20 @@ import { useApp } from '../context/AppContext'
 import { publicApi } from '../services/api'
 import CauseCard from '../components/CauseCard'
 import DonationForm from '../components/DonationForm'
-import {
-  Star,
-  Heart,
-  HandHeart,
-  Search,
-  Info,
-  Gift,
-  Quote,
-  Plus,
-  ArrowRight,
-  Shield,
-  CheckCircle,
-  Eye,
-  Receipt,
-  BarChart,
-  Users,
-  Award,
-  Globe,
-  Twitter,
-  facebook,
-  Instagram,
-  Linkedin,
-  Mail,
-  Phone,
-  MapPin,
-  DollarSign,
-  Clock,
-  TrendingUp,
-  Zap,
-  Sparkles,
-  Target,
-  ChevronRight
-} from 'lucide-react'
 
 // Static content that doesn't need to be dynamic
 const HOW_STEPS = [
-  { n: 1, title: 'Browse Causes', desc: 'Explore verified campaigns across education, health, and environment.', icon: <Search size={24} /> },
-  { n: 2, title: 'Choose Amount', desc: 'Pick any amount — every dollar directly helps those in need.', icon: <DollarSign size={24} /> },
-  { n: 3, title: 'Donate Securely', desc: 'Your donation is processed with full security and transparency.', icon: <Shield size={24} /> },
-  { n: 4, title: 'See the Change', desc: 'Track your impact and get updates from the campaigns you support.', icon: <TrendingUp size={24} /> },
+  { n: 1, title: 'Browse Causes', desc: 'Explore verified campaigns across education, health, and environment.', icon: 'fa-search' },
+  { n: 2, title: 'Choose Amount', desc: 'Pick any amount — every dollar directly helps those in need.', icon: 'fa-dollar-sign' },
+  { n: 3, title: 'Donate Securely', desc: 'Your donation is processed with full security and transparency.', icon: 'fa-shield-alt' },
+  { n: 4, title: 'See the Change', desc: 'Track your impact and get updates from the campaigns you support.', icon: 'fa-chart-line' },
 ]
 
 const TRUST_ITEMS = [
-  { icon: <Shield size={20} />, title: '100% Secure', desc: 'Your payment info is encrypted and protected.' },
-  { icon: <CheckCircle size={20} />, title: 'Verified Campaigns', desc: 'All campaigns are reviewed by our admin team.' },
-  { icon: <Eye size={20} />, title: 'Full Transparency', desc: 'See exactly where your money goes.' },
-  { icon: <Receipt size={20} />, title: 'Tax Receipt', desc: 'Get a receipt for your donation instantly.' },
+  { icon: 'fa-shield-alt', title: '100% Secure', desc: 'Your payment info is encrypted and protected.' },
+  { icon: 'fa-check-circle', title: 'Verified Campaigns', desc: 'All campaigns are reviewed by our admin team.' },
+  { icon: 'fa-eye', title: 'Full Transparency', desc: 'See exactly where your money goes.' },
+  { icon: 'fa-receipt', title: 'Tax Receipt', desc: 'Get a receipt for your donation instantly.' },
 ]
 
 const TESTIMONIALS = [
@@ -504,7 +471,7 @@ export default function HomePage() {
         <div className="hero-inner">
           <div className="hero-content">
             <div className="hero-badge">
-              <Sparkles size={14} /> {content.hero_badge}
+              <i className="fas fa-star"></i> {content.hero_badge}
             </div>
             <h1>{content.hero_title.split(' ').map((word, i) => 
               word.toLowerCase() === 'tomorrow' || word.toLowerCase() === 'difference' 
@@ -530,10 +497,10 @@ export default function HomePage() {
             </div>
             <div className="hero-cta">
               <button className="btn-hero-primary" onClick={() => scrollTo('donate')}>
-                <HandHeart size={18} /> Donate Now
+                <i className="fas fa-hand-holding-heart"></i> Donate Now
               </button>
               <button className="btn-hero-outline" onClick={() => scrollTo('causes')}>
-                <Search size={16} /> Browse Causes
+                <i className="fas fa-search"></i> Browse Causes
               </button>
             </div>
           </div>
@@ -557,7 +524,7 @@ export default function HomePage() {
       <section id="how-it-works" className="section-wrap">
         <div className="container-inner">
           <div className="text-center">
-            <div className="section-tag"><Info size={14} /> How It Works</div>
+            <div className="section-tag"><i className="fas fa-info-circle"></i> How It Works</div>
             <h2 className="section-title">Simple Steps to <span className="accent">Make an Impact</span></h2>
             <div className="section-divider mx-auto"></div>
           </div>
@@ -578,7 +545,7 @@ export default function HomePage() {
       {/* CAUSES */}
       <section id="causes" className="section-wrap bg-light">
         <div className="container-inner">
-          <div className="section-tag"><Heart size={14} /> Active Causes</div>
+          <div className="section-tag"><i className="fas fa-heart"></i> Active Causes</div>
           <h2 className="section-title">Urgent Causes <span className="accent">You Can Change</span></h2>
           <div className="section-divider"></div>
           <p className="section-sub">Every donation goes directly to verified campaigns.</p>
@@ -597,11 +564,11 @@ export default function HomePage() {
       {/* IMPACT PARALLAX */}
       <section id="impact" className="parallax-banner">
         <div className="parallax-content container-inner">
-          <div className="parallax-tag"><BarChart size={14} /> {content.impact_title}</div>
+          <div className="parallax-tag"><i className="fas fa-chart-line"></i> {content.impact_title}</div>
           <h2>{content.impact_subtitle} <span style={{ color: 'var(--primary-light)' }}>Goes</span></h2>
           <p>We operate with 100% transparency. Every cent is tracked and reported.</p>
           <button className="btn-hero-primary" onClick={() => scrollTo('donate')}>
-            <Heart size={16} /> Donate Now
+            <i className="fas fa-heart"></i> Donate Now
           </button>
           <div className="parallax-stats">
             <div className="pstat">
@@ -627,7 +594,7 @@ export default function HomePage() {
       {/* DONATION FORM */}
       <section id="donate" className="donation-section">
         <div className="container-inner">
-          <div className="section-tag"><Gift size={14} /> Make A Donation</div>
+          <div className="section-tag"><i className="fas fa-gift"></i> Make A Donation</div>
           <h2 className="section-title mb-0">Give <span className="accent">Today</span></h2>
           <div className="section-divider"></div>
           <div className="donation-wrapper">
@@ -637,7 +604,7 @@ export default function HomePage() {
               <div className="trust-items">
                 {TRUST_ITEMS.map(t => (
                   <div key={t.title} className="trust-item">
-                    <div className="trust-icon">{t.icon}</div>
+                    <div className="trust-icon"><i className={`fas ${t.icon}`}></i></div>
                     <div className="trust-text"><strong>{t.title}</strong><span>{t.desc}</span></div>
                   </div>
                 ))}
@@ -652,7 +619,7 @@ export default function HomePage() {
       <section className="testimonial-section">
         <div className="container-inner">
           <div className="text-center mb-5">
-            <div className="section-tag"><Quote size={14} /> Testimonials</div>
+            <div className="section-tag"><i className="fas fa-quote-right"></i> Testimonials</div>
             <h2 className="section-title">What Our <span className="accent">Donors Say</span></h2>
             <div className="section-divider mx-auto"></div>
           </div>
@@ -682,10 +649,10 @@ export default function HomePage() {
               style={{ borderColor: 'rgba(255,255,255,.8)' }} 
               onClick={() => openAuth('register', 'creator')}
             >
-              <Plus size={16} /> Start a Campaign
+              <i className="fas fa-plus"></i> Start a Campaign
             </button>
             <button className="cta-strip-btn-white" onClick={() => scrollTo('donate')}>
-              Donate Now <ArrowRight size={16} />
+              Donate Now <i className="fas fa-arrow-right"></i>
             </button>
           </div>
         </div>
@@ -695,13 +662,13 @@ export default function HomePage() {
       <footer className="site-footer">
         <div className="footer-inner">
           <div>
-            <div className="footer-logo"><Heart size={20} /> HopeBridge</div>
+            <div className="footer-logo"><i className="fas fa-heart"></i> HopeBridge</div>
             <p style={{ fontSize: '.88rem', lineHeight: 1.8, maxWidth: 240 }}>Empowering communities through transparent giving.</p>
             <div className="social-icons">
-              <a href={content.social_links?.facebook || '#'} target="_blank" rel="noopener noreferrer"><Facebook size={16} /></a>
-              <a href={content.social_links?.twitter || '#'} target="_blank" rel="noopener noreferrer"><Twitter size={16} /></a>
-              <a href={content.social_links?.instagram || '#'} target="_blank" rel="noopener noreferrer"><Instagram size={16} /></a>
-              <a href={content.social_links?.linkedin || '#'} target="_blank" rel="noopener noreferrer"><Linkedin size={16} /></a>
+              <a href={content.social_links?.facebook || '#'} target="_blank" rel="noopener noreferrer"><i className="fab fa-facebook-f"></i></a>
+              <a href={content.social_links?.twitter || '#'} target="_blank" rel="noopener noreferrer"><i className="fab fa-twitter"></i></a>
+              <a href={content.social_links?.instagram || '#'} target="_blank" rel="noopener noreferrer"><i className="fab fa-instagram"></i></a>
+              <a href={content.social_links?.linkedin || '#'} target="_blank" rel="noopener noreferrer"><i className="fab fa-linkedin-in"></i></a>
             </div>
           </div>
           <div>
@@ -722,8 +689,8 @@ export default function HomePage() {
           <div>
             <h4>Contact</h4>
             <ul className="footer-links">
-              <li><a href="mailto:hello@hopebridge.org"><Mail size={12} /> hello@hopebridge.org</a></li>
-              <li><a href="tel:+15551234567"><Phone size={12} /> +1 (555) 123-4567</a></li>
+              <li><a href="mailto:hello@hopebridge.org"><i className="fas fa-envelope"></i> hello@hopebridge.org</a></li>
+              <li><a href="tel:+15551234567"><i className="fas fa-phone"></i> +1 (555) 123-4567</a></li>
             </ul>
           </div>
         </div>
