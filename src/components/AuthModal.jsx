@@ -2,6 +2,28 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { authApi } from '../services/api';
+import {
+  X,
+  Heart,
+  Mail,
+  Lock,
+  User,
+  Eye,
+  EyeOff,
+  Shield,
+  CheckCircle,
+  AlertCircle,
+  Send,
+  UserPlus,
+  LogIn,
+  ArrowRight,
+  ArrowLeft,
+  Users,
+  Target,
+  RefreshCw,
+  Zap,
+  Star
+} from 'lucide-react';
 
 export default function AuthModal() {
   const { authOpen, authMode, authRole, closeAuth, login, register, showToast, openAuth } = useApp();
@@ -20,7 +42,6 @@ export default function AuthModal() {
   const [verificationEnabled, setVerificationEnabled] = useState(true);
   const [pendingEmail, setPendingEmail] = useState('');
 
-  // Check if email verification is enabled
   useEffect(() => {
     if (authOpen) {
       authApi.getVerificationStatus().then(data => {
@@ -46,19 +67,15 @@ export default function AuthModal() {
         const response = await authApi.register({ name, email, password, role, recaptchaToken: null });
         
         if (response.needsVerification) {
-          // Account NOT created yet - waiting for verification
           setVerifyEmail(email);
           setPendingEmail(email);
           setNeedsVerify(true);
           setMode('verify');
           showToast('Verification code sent! Please check your email to complete registration.');
         } else {
-          // Verification disabled - account created immediately
-          // You need to update your register function to handle this
           closeAuth();
-          showToast(`Welcome to HopeBridge, ${name}! 🎉`);
+          showToast(`Welcome to HopeBridge, ${name}!`);
           
-          // Check for pending donation after successful registration
           const pendingDonation = sessionStorage.getItem('pendingDonation');
           if (pendingDonation) {
             sessionStorage.removeItem('pendingDonation');
@@ -69,7 +86,6 @@ export default function AuthModal() {
         await login(email, password);
         closeAuth();
         
-        // Check for pending donation after successful login
         const pendingDonation = sessionStorage.getItem('pendingDonation');
         const redirectPath = sessionStorage.getItem('redirectAfterAuth');
         
@@ -100,13 +116,9 @@ export default function AuthModal() {
     setBusy(true);
     try {
       const response = await authApi.verifyCode({ email: verifyEmail, code });
-      // Account is now created!
       if (response.token && response.user) {
-        // Save the token and user to context
         const { saveToken } = await import('../services/api');
         saveToken(response.token);
-        // You need to update your AppContext to set the user
-        // For now, we'll close and show success
         showToast('Email verified! Your account has been created. Please login.');
         setMode('login');
         setNeedsVerify(false);
@@ -191,20 +203,27 @@ export default function AuthModal() {
         boxShadow: '0 30px 80px rgba(0,0,0,0.22)',
         fontFamily: "'DM Sans',sans-serif",
       }}>
-        <button onClick={closeAuth} style={{
-          position: 'absolute', top: 16, right: 18,
-          background: '#f3f4f6', border: 'none', borderRadius: '50%',
-          width: 32, height: 32, cursor: 'pointer', fontSize: 16, color: '#6b7280',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>×</button>
+        <button 
+          onClick={closeAuth} 
+          style={{
+            position: 'absolute', top: 16, right: 18,
+            background: '#f3f4f6', border: 'none', borderRadius: '50%',
+            width: 32, height: 32, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#6b7280',
+          }}
+        >
+          <X size={16} />
+        </button>
 
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
-          <div style={{ fontSize: '2.2rem', color: '#e8531e' }}>❤</div>
-          <div style={{ fontFamily: 'Raleway,sans-serif', fontSize: '1.5rem', fontWeight: 900, color: '#1a1a2e' }}>
+          <Heart size={36} color="#e8531e" style={{ margin: '0 auto' }} />
+          <div style={{ fontFamily: 'Raleway,sans-serif', fontSize: '1.5rem', fontWeight: 900, color: '#1a1a2e', marginTop: 8 }}>
             HopeBridge
           </div>
         </div>
 
+        {/* Verify Mode */}
         {mode === 'verify' && (
           <>
             <h2 style={{ fontSize: '1.3rem', color: '#1a1a2e', marginBottom: 6, textAlign: 'center' }}>
@@ -213,9 +232,10 @@ export default function AuthModal() {
             <p style={{ fontSize: '0.88rem', color: '#6b7280', textAlign: 'center', marginBottom: 20 }}>
               We sent a 6-digit code to <strong>{verifyEmail}</strong>
             </p>
-            <p style={{ fontSize: '0.8rem', color: '#e8531e', textAlign: 'center', marginBottom: 16 }}>
-              ⚠️ Your account will be created ONLY after successful verification
-            </p>
+            <div style={{ fontSize: '0.8rem', color: '#e8531e', textAlign: 'center', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <Shield size={14} />
+              <span>Your account will be created only after successful verification</span>
+            </div>
             <form onSubmit={handleVerify}>
               <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
                 Verification Code
@@ -236,29 +256,37 @@ export default function AuthModal() {
                 }}
               />
               <button type="submit" style={btnStyle} disabled={busy}>
-                {busy ? 'Verifying...' : 'Verify & Create Account'}
+                {busy ? 'Verifying...' : (
+                  <>
+                    <CheckCircle size={16} style={{ marginRight: 8 }} />
+                    Verify & Create Account
+                  </>
+                )}
               </button>
             </form>
             <div style={{ textAlign: 'center', marginTop: 14, fontSize: '0.88rem', color: '#6b7280' }}>
               Didn't receive it?{' '}
               <span
                 onClick={handleResendCode}
-                style={{ color: '#e8531e', fontWeight: 700, cursor: 'pointer' }}
+                style={{ color: '#e8531e', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
               >
+                <RefreshCw size={12} />
                 Resend code
               </span>
             </div>
             <div style={{ textAlign: 'center', marginTop: 10, fontSize: '0.85rem' }}>
               <span
                 onClick={() => switchMode('login', 'donor')}
-                style={{ color: '#6b7280', cursor: 'pointer' }}
+                style={{ color: '#6b7280', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
               >
-                ← Back to login
+                <ArrowLeft size={14} />
+                Back to login
               </span>
             </div>
           </>
         )}
 
+        {/* Login Mode */}
         {mode === 'login' && (
           <>
             <h2 style={{ fontSize: '1.4rem', color: '#1a1a2e', marginBottom: 6, textAlign: 'center' }}>
@@ -271,59 +299,72 @@ export default function AuthModal() {
               <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
                 Email Address
               </label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                style={inputStyle}
-              />
+              <div style={{ position: 'relative', marginBottom: 14 }}>
+                <Mail size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  style={{ ...inputStyle, paddingLeft: 40 }}
+                />
+              </div>
               <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
                 Password
               </label>
               <div style={{ position: 'relative', marginBottom: 14 }}>
+                <Lock size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
                 <input
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
-                  style={{ ...inputStyle, marginBottom: 0, paddingRight: 44 }}
+                  style={{ ...inputStyle, paddingLeft: 40, paddingRight: 44 }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(s => !s)}
                   style={{
                     position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16,
+                    background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af',
                   }}
                 >
-                  {showPass ? '🙈' : '👁️'}
+                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
               <button type="submit" style={btnStyle} disabled={busy}>
-                {busy ? 'Signing in...' : 'Sign In'}
+                {busy ? 'Signing in...' : (
+                  <>
+                    <LogIn size={16} style={{ marginRight: 8 }} />
+                    Sign In
+                  </>
+                )}
               </button>
             </form>
             <div style={{ textAlign: 'center', marginTop: 16, fontSize: '0.88rem', color: '#6b7280' }}>
               No account?{' '}
               <span
                 onClick={() => switchMode('register', 'donor')}
-                style={{ color: '#e8531e', fontWeight: 700, cursor: 'pointer' }}
+                style={{ color: '#e8531e', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
               >
+                <UserPlus size={14} />
                 Create one free
               </span>
             </div>
             <div style={{ textAlign: 'center', marginTop: 8, fontSize: '0.85rem' }}>
               <span
                 onClick={() => switchMode('register', 'creator')}
-                style={{ color: '#27a96c', fontWeight: 700, cursor: 'pointer' }}
+                style={{ color: '#27a96c', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
               >
-                Start a campaign →
+                <Zap size={14} />
+                Start a campaign
+                <ArrowRight size={14} />
               </span>
             </div>
           </>
         )}
 
+        {/* Register Mode */}
         {mode === 'register' && (
           <>
             <h2 style={{ fontSize: '1.3rem', color: '#1a1a2e', marginBottom: 6, textAlign: 'center' }}>
@@ -332,9 +373,9 @@ export default function AuthModal() {
 
             <div style={{ display: 'flex', gap: 8, marginBottom: 20, marginTop: 6 }}>
               {[
-                { r: 'donor', label: ' Donor', sub: 'Give to causes' },
-                { r: 'creator', label: 'Creator', sub: 'Run campaigns' },
-              ].map(({ r, label, sub }) => (
+                { r: 'donor', label: 'Donor', sub: 'Give to causes', icon: <Heart size={14} /> },
+                { r: 'creator', label: 'Creator', sub: 'Run campaigns', icon: <Target size={14} /> },
+              ].map(({ r, label, sub, icon }) => (
                 <button
                   key={r}
                   type="button"
@@ -350,8 +391,11 @@ export default function AuthModal() {
                     fontFamily: 'inherit',
                   }}
                 >
-                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: role === r ? (r === 'donor' ? '#e8531e' : '#27a96c') : '#374151' }}>
-                    {label}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    {icon}
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: role === r ? (r === 'donor' ? '#e8531e' : '#27a96c') : '#374151' }}>
+                      {label}
+                    </div>
                   </div>
                   <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: 2 }}>{sub}</div>
                 </button>
@@ -362,9 +406,13 @@ export default function AuthModal() {
               <div style={{
                 background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10,
                 padding: '10px 14px', fontSize: '0.82rem', color: '#1e40af', marginBottom: 16,
+                display: 'flex', alignItems: 'center', gap: 8,
               }}>
-                <i className="fas fa-envelope"></i> We'll send a verification code to your email.<br />
-                <strong>Your account will be created only after verification.</strong>
+                <Mail size={14} />
+                <div>
+                  We'll send a verification code to your email.<br />
+                  <strong>Your account will be created only after verification.</strong>
+                </div>
               </div>
             )}
 
@@ -372,44 +420,53 @@ export default function AuthModal() {
               <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
                 Full Name
               </label>
-              <input
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                required
-                style={inputStyle}
-              />
+              <div style={{ position: 'relative', marginBottom: 14 }}>
+                <User size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  required
+                  style={{ ...inputStyle, paddingLeft: 40 }}
+                />
+              </div>
+
               <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
                 Email Address
               </label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                style={inputStyle}
-              />
+              <div style={{ position: 'relative', marginBottom: 14 }}>
+                <Mail size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  style={{ ...inputStyle, paddingLeft: 40 }}
+                />
+              </div>
+
               <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#374151', display: 'block', marginBottom: 6 }}>
                 Password (min 6 characters)
               </label>
               <div style={{ position: 'relative', marginBottom: 14 }}>
+                <Lock size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
                 <input
                   type={showPass ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  style={{ ...inputStyle, marginBottom: 0, paddingRight: 44 }}
+                  style={{ ...inputStyle, paddingLeft: 40, paddingRight: 44 }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(s => !s)}
                   style={{
                     position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 16,
+                    background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af',
                   }}
                 >
-                  {showPass ? '🙈' : '👁️'}
+                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
 
@@ -419,7 +476,12 @@ export default function AuthModal() {
                   ? 'linear-gradient(135deg,#27a96c,#059669)'
                   : 'linear-gradient(135deg,#e8531e,#f47c50)',
               }} disabled={busy}>
-                {busy ? 'Sending code...' : role === 'donor' ? '❤ Join as Donor' : '🚀 Start Campaigning'}
+                {busy ? 'Sending code...' : (
+                  <>
+                    {role === 'donor' ? <Heart size={16} style={{ marginRight: 8 }} /> : <Zap size={16} style={{ marginRight: 8 }} />}
+                    {role === 'donor' ? 'Join as Donor' : 'Start Campaigning'}
+                  </>
+                )}
               </button>
             </form>
 
@@ -427,8 +489,9 @@ export default function AuthModal() {
               Already have an account?{' '}
               <span
                 onClick={() => switchMode('login', 'donor')}
-                style={{ color: '#e8531e', fontWeight: 700, cursor: 'pointer' }}
+                style={{ color: '#e8531e', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
               >
+                <LogIn size={14} />
                 Sign in
               </span>
             </div>

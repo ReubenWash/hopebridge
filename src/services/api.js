@@ -27,25 +27,23 @@ async function request(path, options = {}) {
   return data
 }
 
-// Multipart (file uploads) - IMPROVED VERSION
+// Multipart (file uploads)
 async function multipart(method, path, formData) {
   const token = getToken()
   
-  // IMPORTANT: Do NOT set Content-Type header for FormData
   const headers = {}
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
   }
   
-  console.log(`📤 ${method} ${path} - Sending multipart request`)
+  console.log(`[Multipart] ${method} ${path}`)
   
-  // Debug: Log FormData contents
   if (formData instanceof FormData) {
     for (let pair of formData.entries()) {
       if (pair[1] instanceof File) {
-        console.log(`   📎 File: ${pair[0]} = ${pair[1].name} (${pair[1].size} bytes, ${pair[1].type})`)
+        console.log(`   File: ${pair[0]} = ${pair[1].name} (${pair[1].size} bytes)`)
       } else {
-        console.log(`   📋 Field: ${pair[0]} = ${String(pair[1]).substring(0, 100)}`)
+        console.log(`   Field: ${pair[0]} = ${String(pair[1]).substring(0, 100)}`)
       }
     }
   }
@@ -59,14 +57,14 @@ async function multipart(method, path, formData) {
   const data = await res.json()
   
   if (!res.ok) {
-    console.error(`❌ ${method} ${path} failed:`, data)
+    console.error(`[Multipart] ${method} ${path} failed:`, data)
     const err = new Error(data?.error || `Request failed: ${res.status}`)
     err.status = res.status
     err.data = data
     throw err
   }
   
-  console.log(`✅ ${method} ${path} succeeded`)
+  console.log(`[Multipart] ${method} ${path} succeeded`)
   return data
 }
 
@@ -93,7 +91,6 @@ export const authApi = {
   resendCode: (email) => request('/auth/resend-code', {
     method: 'POST', body: JSON.stringify({ email }),
   }),
-  // Save FCM token for push notifications
   saveFCMToken: (token) => request('/auth/save-fcm-token', {
     method: 'POST', body: JSON.stringify({ token }),
   }),
@@ -130,18 +127,16 @@ export const campaignApi = {
   }),
 }
 
-// ── Donations (wallet‑only, no PayPal) ────────────────────────────
+// ── Donations ─────────────────────────────────────────────────────
 export const donationApi = {
   getMyDonations:  () => request('/donations/my'),
   getCampaignDons: (id) => request(`/donations/campaign/${id}`),
 
-  // Creator payment methods (for withdrawals)
   getCreatorPaymentMethod:  () => request('/donations/creator/payment-method'),
   saveCreatorPaymentMethod: (data) => request('/donations/creator/payment-method', {
     method: 'PUT', body: JSON.stringify(data),
   }),
 
-  // Creator wallet and payouts (for creator dashboard)
   getCreatorWallet: () => request('/donations/creator/wallet'),
   getMyPayoutRequests: () => request('/donations/creator/payout-requests'),
   requestPayout: (data) => request('/donations/creator/request-payout', {
@@ -187,6 +182,12 @@ export const adminApi = {
   getStats:       () => request('/admin/stats'),
   getUsers:       () => request('/admin/users'),
   toggleUser:     (id) => request(`/admin/users/${id}/toggle`, { method: 'PATCH' }),
+  addUser:        (data) => request('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
+  deleteUser:     (id) => request(`/admin/users/${id}`, { method: 'DELETE' }),
+  verifyUser:     (id) => request(`/admin/users/${id}/verify`, { method: 'PATCH' }),
+  unverifyUser:   (id) => request(`/admin/users/${id}/unverify`, { method: 'PATCH' }),
+  addAdmin:       (data) => request('/admin/admins', { method: 'POST', body: JSON.stringify(data) }),
+  changePassword: (data) => request('/admin/change-password', { method: 'POST', body: JSON.stringify(data) }),
 
   // Campaign Management
   getCampaigns:   (params) => {
@@ -216,7 +217,7 @@ export const adminApi = {
     method: 'PUT', body: JSON.stringify(data),
   }),
 
-  // FCM / Push Notifications (Legacy - for regular users)
+  // FCM / Push Notifications (Legacy)
   saveFCMToken: (token) => request('/admin/fcm-token', {
     method: 'POST', body: JSON.stringify({ token }),
   }),
@@ -252,7 +253,7 @@ export const adminApi = {
     method: 'PUT', body: JSON.stringify(data),
   }),
 
-  // Withdrawal requests (Legacy)
+  // Withdrawal requests
   getWithdrawalRequests: () => request('/admin/withdrawal-requests'),
   approveWithdrawal: (id) => request(`/admin/withdrawal-requests/${id}/approve`, {
     method: 'PUT',
@@ -276,13 +277,13 @@ export const adminApi = {
     method: 'POST', body: JSON.stringify(data),
   }),
 
-  // Disputes (keep for reference but not used in UI)
+  // Disputes
   getDisputes:    () => request('/admin/disputes'),
   resolveDispute: (id) => request(`/admin/disputes/${id}/resolve`, { method: 'PATCH' }),
 
   // ============ NEW FEATURES ============
 
-  // ── Payout Reconciliation ──────────────────────────────────────
+  // Payout Reconciliation
   getPayouts: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
     return request(`/admin/payouts${qs ? `?${qs}` : ''}`)
@@ -292,7 +293,7 @@ export const adminApi = {
     method: 'PUT', body: JSON.stringify(data),
   }),
 
-  // ── Transaction Fee Management ─────────────────────────────────
+  // Transaction Fee Management
   getFeeSettings: () => request('/admin/fees'),
   updateFeeSettings: (data) => request('/admin/fees', {
     method: 'PUT', body: JSON.stringify(data),
@@ -301,7 +302,7 @@ export const adminApi = {
     method: 'POST', body: JSON.stringify(data),
   }),
 
-  // ── Push Notifications Management ──────────────────────────────
+  // Push Notifications Management
   sendNotification: (data) => request('/admin/send-notification', {
     method: 'POST', body: JSON.stringify(data),
   }),
@@ -317,7 +318,7 @@ export const adminApi = {
     method: 'POST', body: JSON.stringify({ token }),
   }),
 
-  // ── Creator Onboarding/Verification ────────────────────────────
+  // Creator Onboarding/Verification
   getCreatorVerifications: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
     return request(`/admin/creator-verifications${qs ? `?${qs}` : ''}`)
@@ -326,7 +327,7 @@ export const adminApi = {
     method: 'PUT', body: JSON.stringify(data),
   }),
 
-  // ── Donor Management ───────────────────────────────────────────
+  // Donor Management
   getTopDonors: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
     return request(`/admin/top-donors${qs ? `?${qs}` : ''}`)
@@ -340,7 +341,7 @@ export const adminApi = {
   }),
   getDonorAnalytics: () => request('/admin/donor-analytics'),
 
-  // ── Audit Logs ──────────────────────────────────────────────────
+  // Audit Logs
   getAuditLogs: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
     return request(`/admin/audit-logs${qs ? `?${qs}` : ''}`)

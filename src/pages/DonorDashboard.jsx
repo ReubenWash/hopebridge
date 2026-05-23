@@ -3,6 +3,53 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { walletApi, campaignApi, donationApi } from '../services/api';
 import DonationForm from '../components/DonationForm';
+import {
+  Heart,
+  LayoutDashboard,
+  DollarSign,
+  Wallet,
+  Settings,
+  LogOut,
+  Bell,
+  TrendingUp,
+  Users,
+  CreditCard,
+  Plus,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  FileText,
+  ArrowRight,
+  ChevronRight,
+  Star,
+  Zap,
+  Shield,
+  Award,
+  Calendar,
+  MessageCircle,
+  Send,
+  Eye,
+  EyeOff,
+  MapPin,
+  Phone,
+  Mail,
+  User,
+  Building,
+  Banknote,
+  History,
+  Download,
+  RefreshCw,
+  X,
+  Menu,
+  Gift,
+  PiggyBank,
+  Landmark,
+  Smartphone,
+  Upload,
+  Image,
+  Copy,
+  ExternalLink
+} from 'lucide-react';
 
 // ---------- Helper Functions ----------
 const toNumber = (val, fallback = 0) => {
@@ -20,9 +67,9 @@ const statusColor = (s) => ({
 
 const statusLabel = (s) => ({
   pending: 'Pending',
-  instructions_sent: 'Instructions Sent ✉',
+  instructions_sent: 'Instructions Sent',
   awaiting_proof: 'Proof Uploaded',
-  approved: 'Approved ✓',
+  approved: 'Approved',
   rejected: 'Rejected',
 }[s] || s);
 
@@ -43,6 +90,10 @@ const injectStyles = () => {
       --sh-sm: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
       --fd: 'Instrument Serif', Georgia, serif; --fb: 'DM Sans', sans-serif; --tr: 0.2s ease;
     }
+    body.dark-mode {
+      --bg: #121212; --surface: #1E1E1E; --surface-2: #2A2A2A; --border: rgba(255,255,255,0.1);
+      --txt: #EEEEEE; --txt-2: #AAAAAA; --txt-3: #777777;
+    }
     body { font-family: var(--fb); background: var(--bg); color: var(--txt); min-height: 100vh; }
     .shell { display: flex; min-height: 100vh; }
     .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; z-index: 200; overflow-y: auto; }
@@ -54,7 +105,8 @@ const injectStyles = () => {
     .logo-sub { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); }
     .sb-user { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
     .user-av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--green-d)); display: flex; align-items: center; justify-content: center; font-weight: 600; color: #fff; }
-    .user-name { font-weight: 600; font-size: 14px; }
+    .user-name { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+    .verified-badge { color: #378ADD; }
     .user-badge { font-size: 11px; color: var(--txt-3); background: var(--green-l); padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 4px; }
     .sb-nav { flex: 1; padding: 10px; }
     .nav-sec { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); padding: 10px 10px 4px; }
@@ -83,10 +135,10 @@ const injectStyles = () => {
     .sd { font-size: 11px; font-weight: 700; margin-top: 8px; color: var(--green); }
     .card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--sh-sm); overflow: hidden; margin-bottom: 24px; }
     .card-h { display: flex; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
-    .card-t { font-family: var(--fd); font-size: 17px; }
-    .card-a { font-size: 12px; font-weight: 600; color: var(--green); background: none; border: none; cursor: pointer; }
+    .card-t { font-family: var(--fd); font-size: 17px; display: flex; align-items: center; gap: 8px; }
+    .card-a { font-size: 12px; font-weight: 600; color: var(--green); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px; }
     .card-b { padding: 16px 20px; }
-    .badge { font-size: 10px; font-weight: 700; padding: 4px 9px; border-radius: 20px; display: inline-block; }
+    .badge { font-size: 10px; font-weight: 700; padding: 4px 9px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; }
     .ba { background: var(--green-l); color: var(--green-d); }
     .bp { background: var(--amber-l); color: #854F0B; }
     .br { background: var(--blue-l); color: #185FA5; }
@@ -95,24 +147,24 @@ const injectStyles = () => {
     .cr:last-child { border-bottom: none; }
     .ci { flex: 1; }
     .cn { font-weight: 600; font-size: 14px; }
-    .cm { font-size: 11px; color: var(--txt-3); margin-top: 2px; }
+    .cm { font-size: 11px; color: var(--txt-3); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
     .pb { height: 4px; background: var(--bg); border-radius: 2px; margin-top: 6px; overflow: hidden; }
     .pf { height: 100%; background: var(--green); border-radius: 2px; }
     .ut { width: 100%; border-collapse: collapse; }
     .ut th { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--txt-3); text-align: left; padding: 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
     .ut td { padding: 14px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-    .db { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; transition: opacity var(--tr); }
+    .db { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; transition: opacity var(--tr); display: inline-flex; align-items: center; gap: 4px; }
     .dba { background: var(--green-l); color: var(--green-d); }
     .dbr { background: var(--red-l); color: var(--red); }
     .dbv { background: var(--blue-l); color: #185FA5; }
-    .btn { padding: 10px 18px; border-radius: var(--r-sm); font-weight: 600; border: none; cursor: pointer; }
+    .btn { padding: 10px 18px; border-radius: var(--r-sm); font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
     .btn-g { background: var(--green); color: #fff; }
     .btn-gh { background: var(--surface-2); border: 1px solid var(--border); }
     .fi { width: 100%; padding: 10px 12px; border: 1px solid var(--border-2); border-radius: var(--r-sm); margin-bottom: 16px; font-family: var(--fb); }
     .fl { font-size: 12px; font-weight: 700; color: var(--txt-2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; display: block; }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(17,19,24,0.93); color: #fff; padding: 10px 24px; border-radius: 40px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; pointer-events: none; }
     .toast.show { opacity: 1; }
-    .mob-top, .bnav, .fab { display: none; }
+    .mob-top, .bnav { display: none; }
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main { margin-left: 0; }
@@ -123,13 +175,60 @@ const injectStyles = () => {
       .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; }
       .bni.active .bni-icon svg { stroke: var(--green); }
       .bni-lbl { font-size: 10px; font-weight: 600; color: var(--txt-3); }
-      .fab { display: flex; position: fixed; right: 20px; bottom: 82px; width: 52px; height: 52px; background: var(--green); border-radius: 50%; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.2); z-index: 150; border: none; }
       .page { padding: 16px; padding-bottom: 90px; }
       .stats-grid { grid-template-columns: 1fr 1fr; }
     }
   `;
   document.head.appendChild(styleEl);
 };
+
+// Transaction History Component
+function TransactionHistory({ transactions, loading, onRefresh }) {
+  const [showAll, setShowAll] = useState(false);
+  const displayTransactions = showAll ? transactions : transactions.slice(0, 5);
+  
+  if (loading) {
+    return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt-3)' }}>Loading transactions...</div>;
+  }
+  
+  if (!transactions || transactions.length === 0) {
+    return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt-3)' }}>No transactions yet</div>;
+  }
+  
+  return (
+    <div>
+      {displayTransactions.map(tx => (
+        <div key={tx.id} className="cr">
+          <div className="ci">
+            <div className="cn" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {tx.type === 'deposit' && <CreditCard size={14} color="#378ADD" />}
+              {tx.type === 'donation_out' && <Heart size={14} color="#E24B4A" />}
+              {tx.type === 'withdrawal_out' && <Banknote size={14} color="#f59e0b" />}
+              {tx.type === 'escrow_refund' && <RefreshCw size={14} color="#1D9E75" />}
+              <span>{tx.description || tx.type.replace('_', ' ').toUpperCase()}</span>
+            </div>
+            <div className="cm">
+              <Calendar size={10} />
+              {new Date(tx.created_at).toLocaleDateString()}
+            </div>
+          </div>
+          <div style={{ fontWeight: 700, color: tx.amount > 0 ? 'var(--green)' : 'var(--red)' }}>
+            {tx.amount > 0 ? '+' : ''}{toNumber(tx.amount).toFixed(2)}
+          </div>
+        </div>
+      ))}
+      {transactions.length > 5 && (
+        <button className="card-a" onClick={() => setShowAll(!showAll)} style={{ marginTop: 12 }}>
+          {showAll ? 'Show less' : `View all (${transactions.length})`}
+          <ChevronRight size={12} />
+        </button>
+      )}
+      <button className="card-a" onClick={onRefresh} style={{ marginTop: 8 }}>
+        <RefreshCw size={12} /> Refresh
+      </button>
+    </div>
+  );
+}
 
 // ---------- Main Component ----------
 export default function DonorDashboard() {
@@ -141,6 +240,7 @@ export default function DonorDashboard() {
   // UI state
   const [activeTab, setActiveTab] = useState('overview');
   const [loadingData, setLoadingData] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
 
   // Data state
   const [donations, setDonations] = useState([]);
@@ -148,6 +248,7 @@ export default function DonorDashboard() {
   const [depositRequests, setDepositRequests] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [approvedCampaigns, setApprovedCampaigns] = useState([]);
 
   // Deposit form
@@ -166,6 +267,15 @@ export default function DonorDashboard() {
   // Polling refs
   const depositPollInterval = useRef(null);
   const walletRefreshInterval = useRef(null);
+
+  // Apply dark mode
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+  }, [darkMode]);
 
   // Auth guard
   useEffect(() => {
@@ -199,6 +309,18 @@ export default function DonorDashboard() {
     }
   };
 
+  const loadTransactions = async () => {
+    setTransactionsLoading(true);
+    try {
+      const data = await walletApi.getTransactions();
+      setTransactions(data.transactions || []);
+    } catch (err) {
+      console.warn('Failed to fetch transactions:', err.message);
+    } finally {
+      setTransactionsLoading(false);
+    }
+  };
+
   // Poll pending deposit request (every 3 seconds)
   useEffect(() => {
     const pending = depositRequests.find(r => ['pending', 'instructions_sent', 'awaiting_proof'].includes(r.status));
@@ -209,22 +331,16 @@ export default function DonorDashboard() {
 
     let lastStatus = pending.status;
     
-    // Clear any existing interval first
     if (depositPollInterval.current) clearInterval(depositPollInterval.current);
     
     depositPollInterval.current = setInterval(async () => {
       try {
-        // Add safety check for the API call
         let updated;
         try {
           const res = await walletApi.getDepositRequestById(pending.id);
           updated = res.request;
-          if (!updated) {
-            console.warn('No request data in response');
-            return;
-          }
+          if (!updated) return;
         } catch (apiErr) {
-          console.warn('API call failed:', apiErr.message);
           return;
         }
         
@@ -290,7 +406,10 @@ export default function DonorDashboard() {
 
   // Initial load on mount
   useEffect(() => {
-    if (currentUser) loadData();
+    if (currentUser) {
+      loadData();
+      loadTransactions();
+    }
   }, [currentUser]);
 
   // ----- Handlers -----
@@ -365,9 +484,7 @@ export default function DonorDashboard() {
 
   const initials = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   const pendingDeposit = depositRequests.find(r => ['pending', 'instructions_sent', 'awaiting_proof'].includes(r.status));
-
-  // Tabs array - added 'donate' tab
-  const tabs = ['overview', 'donations', 'donate', 'wallet', 'settings'];
+  const isVerified = currentUser?.is_verified === true;
 
   // ----- Render -----
   return (
@@ -376,46 +493,53 @@ export default function DonorDashboard() {
       <aside className="sidebar">
         <div className="sb-logo">
           <div className="logo-mark">
-            <div className="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg></div>
+            <div className="logo-icon"><Heart size={20} color="#fff" strokeWidth={2} /></div>
             <div><div className="logo-text">HopeBridge</div><div className="logo-sub">Donor Portal</div></div>
           </div>
         </div>
         <div className="sb-user">
           <div className="user-av">{initials}</div>
           <div>
-            <div className="user-name">{currentUser?.name}</div>
+            <div className="user-name">
+              {currentUser?.name}
+              {isVerified && <CheckCircle size={14} className="verified-badge" />}
+            </div>
             <div className="user-badge">Donor</div>
           </div>
         </div>
         <nav className="sb-nav">
           <div className="nav-sec">Main</div>
           <button className={`nl ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
-            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <LayoutDashboard size={18} />
             Dashboard
           </button>
           <button className={`nl ${activeTab === 'donations' ? 'active' : ''}`} onClick={() => setActiveTab('donations')}>
-            <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>
+            <DollarSign size={18} />
             My Donations
           </button>
           <button className={`nl ${activeTab === 'donate' ? 'active' : ''}`} onClick={() => setActiveTab('donate')}>
-            <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>
+            <Gift size={18} />
             Donate Now
           </button>
           <div className="nav-sec">Finance</div>
           <button className={`nl ${activeTab === 'wallet' ? 'active' : ''}`} onClick={() => setActiveTab('wallet')}>
-            <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <Wallet size={18} />
             Wallet
             {depositRequests.some(r => ['pending', 'instructions_sent'].includes(r.status)) && <span className="nb">!</span>}
           </button>
           <div className="nav-sec">Account</div>
           <button className={`nl ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <Settings size={18} />
             Settings
+          </button>
+          <button className="nl" onClick={() => setDarkMode(!darkMode)}>
+            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            {darkMode ? 'Light Mode' : 'Dark Mode'}
           </button>
         </nav>
         <div className="sb-footer">
           <button className="nl" style={{ color: 'var(--red)' }} onClick={handleLogout}>
-            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <LogOut size={18} />
             Sign Out
           </button>
         </div>
@@ -432,10 +556,10 @@ export default function DonorDashboard() {
           </div>
           <div className="tb-actions">
             <div className="tb-btn" onClick={() => showToast('Notifications coming soon')}>
-              <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <Bell size={18} />
             </div>
             <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
-              <svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <LogOut size={18} style={{ stroke: 'var(--red)' }} />
             </button>
             <div className="tb-btn" onClick={() => showToast('Profile')}>
               <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
@@ -447,7 +571,7 @@ export default function DonorDashboard() {
           <div className="mob-logo">HopeBridge</div>
           <div className="tb-actions">
             <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
-              <svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <LogOut size={18} style={{ stroke: 'var(--red)' }} />
             </button>
             <div className="tb-btn" onClick={() => showToast('Profile')}>
               <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
@@ -462,38 +586,38 @@ export default function DonorDashboard() {
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
             <div className="stats-grid">
               <div className="sc" onClick={() => setActiveTab('wallet')}>
-                <div className="si"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+                <div className="si"><Wallet size={18} /></div>
                 <div className="sv">${walletBalance.toLocaleString()}</div>
                 <div className="sl">Wallet Balance</div>
                 <div className="sd">Click to manage →</div>
               </div>
               <div className="sc" onClick={() => setActiveTab('donations')}>
-                <div className="si"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg></div>
+                <div className="si"><DollarSign size={18} /></div>
                 <div className="sv">${totalDonated.toLocaleString()}</div>
                 <div className="sl">Total Donated</div>
                 <div className="sd">Click to view →</div>
               </div>
               <div className="sc" onClick={() => setActiveTab('donations')}>
-                <div className="si"><svg viewBox="0 0 24 24"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg></div>
+                <div className="si"><Heart size={18} /></div>
                 <div className="sv">{donations.length}</div>
                 <div className="sl">Donations Made</div>
                 <div className="sd">Click to view →</div>
               </div>
               <div className="sc" onClick={handleBrowseCampaigns}>
-                <div className="si"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div>
+                <div className="si"><Users size={18} /></div>
                 <div className="sv">{approvedCampaigns.length}</div>
                 <div className="sl">Active Campaigns</div>
                 <div className="sd">Click to donate →</div>
               </div>
             </div>
             <div className="card">
-              <div className="card-h"><div className="card-t">Recent Donations</div><button className="card-a" onClick={() => setActiveTab('donations')}>View all →</button></div>
+              <div className="card-h"><div className="card-t"><History size={18} /> Recent Donations</div><button className="card-a" onClick={() => setActiveTab('donations')}>View all <ArrowRight size={14} /></button></div>
               <div className="card-b">
                 {donations.slice(0, 5).map(d => (
                   <div key={d.id} className="cr">
                     <div className="ci">
                       <div className="cn">{d.campaign_title || `Campaign #${d.campaign_id}`}</div>
-                      <div className="cm">{new Date(d.created_at).toLocaleDateString()}</div>
+                      <div className="cm"><Calendar size={10} /> {new Date(d.created_at).toLocaleDateString()}</div>
                     </div>
                     <div className="badge ba">+${toNumber(d.amount).toFixed(2)}</div>
                   </div>
@@ -502,7 +626,7 @@ export default function DonorDashboard() {
               </div>
             </div>
             <div className="card">
-              <div className="card-h"><div className="card-t">Support a Campaign</div><button className="card-a" onClick={handleBrowseCampaigns}>Browse all →</button></div>
+              <div className="card-h"><div className="card-t"><Target size={18} /> Support a Campaign</div><button className="card-a" onClick={handleBrowseCampaigns}>Browse all <ArrowRight size={14} /></button></div>
               <div className="card-b">
                 {approvedCampaigns.slice(0, 3).map(c => (
                   <div key={c.id} className="cr">
@@ -521,11 +645,11 @@ export default function DonorDashboard() {
           {/* ========== DONATIONS TAB ========== */}
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
             <div className="card">
-              <div className="card-h"><div className="card-t">All Donations</div></div>
+              <div className="card-h"><div className="card-t"><DollarSign size={18} /> All Donations</div></div>
               <div className="card-b" style={{ padding: 0 }}>
                 <table className="ut">
                   <thead>
-                    <tr><th>Campaign</th><th>Amount</th><th>Date</th><th>Status</th></tr>
+                    <tr><th>Campaign</th><th>Amount</th><th>Date</th><th>Status</th></td>
                   </thead>
                   <tbody>
                     {donations.map(d => (
@@ -546,7 +670,7 @@ export default function DonorDashboard() {
           {/* ========== DONATE TAB ========== */}
           <div className={`ps ${activeTab === 'donate' ? 'active' : ''}`}>
             <div className="card">
-              <div className="card-h"><div className="card-t">Make a Donation</div></div>
+              <div className="card-h"><div className="card-t"><Gift size={18} /> Make a Donation</div></div>
               <div className="card-b">
                 <DonationForm />
               </div>
@@ -557,7 +681,7 @@ export default function DonorDashboard() {
           <div className={`ps ${activeTab === 'wallet' ? 'active' : ''}`}>
             {/* Deposit Section */}
             <div className="card">
-              <div className="card-h"><div className="card-t">Deposit Funds</div></div>
+              <div className="card-h"><div className="card-t"><CreditCard size={18} /> Deposit Funds</div></div>
               <div className="card-b">
                 {pendingDeposit ? (
                   <div>
@@ -574,16 +698,23 @@ export default function DonorDashboard() {
                       <>
                         <input type="file" ref={proofInputRef} accept="image/*" style={{ display: 'none' }} onChange={e => setProofFile(e.target.files[0])} />
                         {proofFile ? (
-                          <div><span>📄 {proofFile.name}</span> <button className="db dbr" onClick={() => setProofFile(null)}>Remove</button></div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Image size={16} /> {proofFile.name}
+                            <button className="db dbr" onClick={() => setProofFile(null)}>Remove</button>
+                          </div>
                         ) : (
-                          <button className="db dba" onClick={() => proofInputRef.current?.click()}>Select Proof Image</button>
+                          <button className="db dba" onClick={() => proofInputRef.current?.click()}>
+                            <Upload size={12} /> Select Proof Image
+                          </button>
                         )}
                         {proofFile && (
-                          <button className="btn btn-g" onClick={handleUploadProof} disabled={proofUploading} style={{ marginTop: 12 }}>{proofUploading ? 'Uploading...' : 'Upload Proof'}</button>
+                          <button className="btn btn-g" onClick={handleUploadProof} disabled={proofUploading} style={{ marginTop: 12 }}>
+                            {proofUploading ? 'Uploading...' : <><Upload size={14} /> Upload Proof</>}
+                          </button>
                         )}
                       </>
                     )}
-                    {pendingDeposit.status === 'awaiting_proof' && <div>✅ Proof submitted, waiting for admin verification.</div>}
+                    {pendingDeposit.status === 'awaiting_proof' && <div><CheckCircle size={14} /> Proof submitted, waiting for admin verification.</div>}
                   </div>
                 ) : (
                   <form onSubmit={handleRequestDeposit}>
@@ -594,7 +725,9 @@ export default function DonorDashboard() {
                         <button key={a} type="button" onClick={() => setDepositAmount(a)} style={{ padding: '6px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6 }}>${a}</button>
                       ))}
                     </div>
-                    <button type="submit" className="btn btn-g" disabled={depositLoading}>{depositLoading ? 'Submitting...' : 'Request Deposit'}</button>
+                    <button type="submit" className="btn btn-g" disabled={depositLoading}>
+                      {depositLoading ? 'Submitting...' : <><Send size={14} /> Request Deposit</>}
+                    </button>
                   </form>
                 )}
               </div>
@@ -602,7 +735,7 @@ export default function DonorDashboard() {
 
             {/* Withdraw Section */}
             <div className="card">
-              <div className="card-h"><div className="card-t">Withdraw Funds</div></div>
+              <div className="card-h"><div className="card-t"><Banknote size={18} /> Withdraw Funds</div></div>
               <div className="card-b">
                 <div style={{ marginBottom: 12, background: '#fef9c3', padding: 12, borderRadius: 8 }}>Available: <strong>${walletBalance.toFixed(2)}</strong></div>
                 <form onSubmit={handleWithdraw}>
@@ -610,39 +743,30 @@ export default function DonorDashboard() {
                   <input type="number" min="1" step="0.01" max={walletBalance} value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} required className="fi" />
                   <label className="fl">Payment Method</label>
                   <select className="fi" value={withdrawMethod} onChange={e => setWithdrawMethod(e.target.value)}>
-                    <option value="bank">Bank Transfer</option>
-                    <option value="mobile_money">Mobile Money</option>
-                    <option value="paypal">PayPal</option>
+                    <option value="bank"><Landmark size={14} /> Bank Transfer</option>
+                    <option value="mobile_money"><Smartphone size={14} /> Mobile Money</option>
+                    <option value="paypal"><CreditCard size={14} /> PayPal</option>
                   </select>
                   <label className="fl">Payment Details</label>
                   <textarea className="fi" rows="2" placeholder={withdrawMethod === 'bank' ? 'Account name, number, bank name' : withdrawMethod === 'mobile_money' ? 'Phone number & network' : 'PayPal email'} value={withdrawDetails} onChange={e => setWithdrawDetails(e.target.value)} required />
-                  <button type="submit" className="btn btn-g" disabled={withdrawLoading}>{withdrawLoading ? 'Submitting...' : 'Request Withdrawal'}</button>
+                  <button type="submit" className="btn btn-g" disabled={withdrawLoading}>
+                    {withdrawLoading ? 'Submitting...' : <><Send size={14} /> Request Withdrawal</>}
+                  </button>
                 </form>
               </div>
             </div>
 
             {/* Transaction History */}
             <div className="card">
-              <div className="card-h"><div className="card-t">Transaction History</div></div>
+              <div className="card-h">
+                <div className="card-t"><History size={18} /> Transaction History</div>
+              </div>
               <div className="card-b">
-                {transactions.length === 0 ? (
-                  <div>No transactions yet</div>
-                ) : (
-                  <table className="ut">
-                    <thead>
-                      <tr><th>Date</th><th>Description</th><th>Amount</th></tr>
-                    </thead>
-                    <tbody>
-                      {transactions.slice(0, 10).map(tx => (
-                        <tr key={tx.id}>
-                          <td>{new Date(tx.created_at).toLocaleDateString()}</td>
-                          <td>{tx.description || tx.type}</td>
-                          <td style={{ color: tx.amount > 0 ? 'var(--green)' : 'var(--red)' }}>{tx.amount > 0 ? '+' : ''}{toNumber(tx.amount).toFixed(2)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+                <TransactionHistory 
+                  transactions={transactions} 
+                  loading={transactionsLoading} 
+                  onRefresh={loadTransactions}
+                />
               </div>
             </div>
           </div>
@@ -650,7 +774,7 @@ export default function DonorDashboard() {
           {/* ========== SETTINGS TAB ========== */}
           <div className={`ps ${activeTab === 'settings' ? 'active' : ''}`}>
             <div className="card">
-              <div className="card-h"><div className="card-t">Profile Settings</div></div>
+              <div className="card-h"><div className="card-t"><User size={18} /> Profile Settings</div></div>
               <div className="card-b">
                 <label className="fl">Display Name</label>
                 <input className="fi" type="text" defaultValue={currentUser?.name} />
@@ -663,27 +787,35 @@ export default function DonorDashboard() {
         </div>
       </div>
 
-      {/* Mobile Bottom Nav */}
+      {/* Mobile Bottom Nav - REMOVED FAB BUTTON */}
       <nav className="bnav">
         <div className="bnav-inner">
           {['overview', 'donations', 'donate', 'wallet'].map(tab => (
             <button key={tab} className={`bni ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
               <div className="bni-icon">
-                {tab === 'overview' && <svg width="20" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>}
-                {tab === 'donations' && <svg width="20" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>}
-                {tab === 'donate' && <svg width="20" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg>}
-                {tab === 'wallet' && <svg width="20" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>}
+                {tab === 'overview' && <LayoutDashboard size={20} />}
+                {tab === 'donations' && <DollarSign size={20} />}
+                {tab === 'donate' && <Gift size={20} />}
+                {tab === 'wallet' && <Wallet size={20} />}
               </div>
               <span className="bni-lbl">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
             </button>
           ))}
         </div>
       </nav>
-
-      {/* Floating Action Button (for quick deposit) */}
-      <button className="fab" onClick={() => setActiveTab('wallet')}>
-        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
     </div>
   );
+}
+
+// Add missing icon components
+function Sun(props) {
+  return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>;
+}
+
+function Moon(props) {
+  return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
+}
+
+function Target(props) {
+  return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
 }
