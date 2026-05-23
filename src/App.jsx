@@ -161,11 +161,16 @@ function MaintenanceWrapper({ children }) {
   }, [])
 
   // Routes that should NEVER be blocked (even during maintenance)
-  const allowedRoutes = ['/admin-login', '/verify-email']
+  const allowedRoutes = ['/admin-login', '/verify-email', '/admin-dashboard']
   const isAllowedRoute = allowedRoutes.includes(location.pathname)
   
   // Admin users can access everything
   const isAdmin = currentUser?.role === 'admin'
+
+  // If admin is logged in, don't show maintenance page
+  if (isAdmin) {
+    return children
+  }
 
   if (checkingMaintenance) {
     return (
@@ -204,7 +209,7 @@ function MaintenanceWrapper({ children }) {
 
 /* ── App content ────────────────────────────────── */
 function AppContent() {
-  const { toast } = useApp()
+  const { toast, currentUser } = useApp()
 
   useBackendWarmup()
 
