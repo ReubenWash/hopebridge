@@ -227,9 +227,8 @@ export default function AdminLogin() {
           color: '#6b7280',
           textAlign: 'center'
         }}>
-          <i className="fas fa-info-circle"></i> Demo Admin Credentials:<br />
-          Email: <strong>admin@hopebridge.com</strong><br />
-          Password: <strong>admin123</strong>
+          
+          
         </div>
       </div>
     </div>

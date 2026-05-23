@@ -257,37 +257,113 @@ function ChangePasswordModal({ isOpen, onClose, onSave, showToast }) {
   );
 }
 
-// ── Delete User Modal ─────────────────────────────
 function DeleteUserModal({ isOpen, onClose, onConfirm, userName, showToast }) {
   const [confirmText, setConfirmText] = useState('');
-  const [loading, setLoading]         = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleConfirm = async () => {
+    if (confirmText !== 'DELETE') { 
+      showToast('Type "DELETE" to confirm', true); 
+      return; 
+    }
+    setLoading(true);
+    try { 
+      await onConfirm(); 
+      onClose(); 
+    } catch (err) { 
+      showToast(err.message, true); 
+    } finally { 
+      setLoading(false); 
+    }
+  };
 
   if (!isOpen) return null;
 
-  const handleConfirm = async () => {
-    if (confirmText !== 'DELETE') { showToast('Type "DELETE" to confirm', true); return; }
-    setLoading(true);
-    try { await onConfirm(); onClose(); }
-    catch (err) { showToast(err.message, true); }
-    finally { setLoading(false); }
-  };
-
   return (
-    <div className="modal-bd open" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-t" style={{ color: 'var(--red)' }}>Delete User</div>
-        <div className="modal-s">Permanently delete <strong>{userName}</strong>? All their data will be removed and cannot be undone.</div>
-        <label className="fl">Type "DELETE" to confirm</label>
-        <input type="text" className="fi" value={confirmText} onChange={e => setConfirmText(e.target.value)} placeholder="DELETE" />
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn btn-r" onClick={handleConfirm} disabled={loading}>{loading ? 'Deleting…' : 'Permanently Delete'}</button>
-          <button className="btn btn-gh" onClick={onClose}>Cancel</button>
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        backdropFilter: 'blur(4px)'
+      }}
+      onClick={onClose}
+    >
+      <div 
+        style={{
+          backgroundColor: '#fff',
+          borderRadius: '16px',
+          padding: '28px',
+          width: '90%',
+          maxWidth: '450px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <h3 style={{ fontSize: '22px', marginBottom: '8px', color: '#dc2626' }}>Delete User</h3>
+        <p style={{ marginBottom: '20px', color: '#6b7280', lineHeight: '1.5' }}>
+          Permanently delete <strong>{userName}</strong>? All their data will be removed and cannot be undone.
+        </p>
+        <label style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px', display: 'block', color: '#6b7280' }}>
+          Type "DELETE" to confirm
+        </label>
+        <input
+          type="text"
+          value={confirmText}
+          onChange={e => setConfirmText(e.target.value)}
+          placeholder="DELETE"
+          style={{
+            width: '100%',
+            padding: '10px 12px',
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px'
+          }}
+        />
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={handleConfirm}
+            disabled={loading}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#dc2626',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 600,
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            {loading ? 'Deleting...' : 'Permanently Delete'}
+          </button>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#f3f4f6',
+              color: '#374151',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 600
+            }}
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
   );
 }
-
 // ── Add User Modal ────────────────────────────────
 function AddUserModal({ isOpen, onClose, onSubmit, userData, setUserData, loading }) {
   if (!isOpen) return null;
