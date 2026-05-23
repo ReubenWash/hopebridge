@@ -24,7 +24,7 @@ export default function MaintenancePage() {
   // Check if user is already logged in as admin
   useEffect(() => {
     if (currentUser && currentUser.role === 'admin') {
-      console.log('Admin already logged in, redirecting...');
+      console.log('Admin already logged in, redirecting to dashboard...');
       window.location.href = '/admin-dashboard';
     }
   }, [currentUser]);
@@ -43,41 +43,59 @@ export default function MaintenancePage() {
     checkMaintenance();
   }, []);
 
- const handleAdminLogin = async (e) => {
-  e.preventDefault();
-  setAdminLoading(true);
-  setAdminError('');
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    setAdminLoading(true);
+    setAdminError('');
 
-  try {
-    const response = await fetch(`${API_URL}/admin/emergency-login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: adminEmail, password: adminPassword }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok && data.success && data.user && data.user.role === 'admin') {
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+    try {
+      console.log('Attempting emergency login for:', adminEmail);
       
-      setCurrentUser(data.user);
-      setToast({ msg: 'Welcome back, Admin!', error: false });
-      setShowAdminLogin(false);
-      
-      // Simple hard redirect
-      window.location.href = '/admin-dashboard';
-      return; // Stop execution
-    } else {
-      setAdminError(data.message || 'Invalid email or password');
+      const response = await fetch(`${API_URL}/admin/emergency-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email: adminEmail, 
+          password: adminPassword 
+        }),
+      });
+
+      const data = await response.json();
+      console.log('Emergency login response:', response.status, data);
+
+      if (response.ok && data.success && data.user && data.user.role === 'admin') {
+        // Store token and user data
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('hb_token', data.token); // Also store with the key your app expects
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Update context
+        if (setCurrentUser && typeof setCurrentUser === 'function') {
+          setCurrentUser(data.user);
+        }
+        
+        if (setToast && typeof setToast === 'function') {
+          setToast({ msg: 'Welcome back, Admin!', error: false });
+        }
+        
+        setShowAdminLogin(false);
+        
+        // Force hard redirect with full page reload
+        console.log('Redirecting to admin dashboard...');
+        window.location.href = '/admin-dashboard';
+      } else {
+        setAdminError(data.message || 'Invalid email or password');
+      }
+    } catch (err) {
+      console.error('Login error details:', err);
+      setAdminError('Network error. Please check your connection and try again.');
+    } finally {
+      setAdminLoading(false);
     }
-  } catch (err) {
-    console.error('Login error:', err);
-    setAdminError('Network error. Please try again.');
-  } finally {
-    setAdminLoading(false);
-  }
-};
+  };
+
   if (loading) {
     return (
       <div style={{
