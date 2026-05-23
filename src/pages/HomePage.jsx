@@ -23,7 +23,7 @@ import {
   Award,
   Globe,
   Twitter,
-  Facebook,
+  facebook,
   Instagram,
   Linkedin,
   Mail,
