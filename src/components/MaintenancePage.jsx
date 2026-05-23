@@ -3,7 +3,7 @@ import { publicApi } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 
-// Direct API call without going through the regular authApi (which might be blocked)
+// Direct API call without going through the regular authApi
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export default function MaintenancePage() {
@@ -38,7 +38,8 @@ export default function MaintenancePage() {
     setAdminError('');
 
     try {
-      // Use the emergency login endpoint that bypasses maintenance mode
+      console.log('Attempting emergency login for:', adminEmail);
+      
       const response = await fetch(`${API_URL}/admin/emergency-login`, {
         method: 'POST',
         headers: {
@@ -51,14 +52,22 @@ export default function MaintenancePage() {
       });
 
       const data = await response.json();
+      console.log('Emergency login response:', response.status, data);
 
       if (response.ok && data.success && data.user && data.user.role === 'admin') {
         // Store token and user data
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         
-        setCurrentUser(data.user);
-        setToast({ msg: 'Welcome back, Admin!', error: false });
+        // Update context
+        if (setCurrentUser && typeof setCurrentUser === 'function') {
+          setCurrentUser(data.user);
+        }
+        
+        if (setToast && typeof setToast === 'function') {
+          setToast({ msg: 'Welcome back, Admin!', error: false });
+        }
+        
         setShowAdminLogin(false);
         
         // Force navigate to admin dashboard
@@ -67,8 +76,8 @@ export default function MaintenancePage() {
         setAdminError(data.message || 'Invalid email or password');
       }
     } catch (err) {
-      console.error('Login error:', err);
-      setAdminError('Network error. Please try again.');
+      console.error('Login error details:', err);
+      setAdminError('Network error. Please check your connection and try again.');
     } finally {
       setAdminLoading(false);
     }
@@ -141,7 +150,7 @@ export default function MaintenancePage() {
             e.target.style.background = 'rgba(255,255,255,0.1)';
           }}
         >
-          <i className="fas fa-key"></i>
+          <span>🔑</span>
           Admin Login
         </button>
 
@@ -165,7 +174,7 @@ export default function MaintenancePage() {
             justifyContent: 'center',
             margin: '0 auto 24px'
           }}>
-            <i className="fas fa-tools" style={{ fontSize: '40px', color: '#e8531e' }}></i>
+            <span style={{ fontSize: '40px', color: '#e8531e' }}>🔧</span>
           </div>
           <h1 style={{
             fontSize: '28px',
@@ -191,7 +200,7 @@ export default function MaintenancePage() {
             fontSize: '14px',
             color: 'rgba(255,255,255,0.5)'
           }}>
-            <i className="fas fa-clock"></i> Estimated completion: within 2 hours
+            <span>⏱️</span> Estimated completion: within 2 hours
           </p>
           <button
             onClick={() => window.location.reload()}
@@ -210,7 +219,7 @@ export default function MaintenancePage() {
             onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
             onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
           >
-            <i className="fas fa-sync-alt"></i> Check Again
+            <span>🔄</span> Check Again
           </button>
         </div>
       </div>
@@ -278,7 +287,7 @@ export default function MaintenancePage() {
                 justifyContent: 'center',
                 marginBottom: '20px'
               }}>
-                <i className="fas fa-shield-alt" style={{ fontSize: '32px', color: '#fff' }}></i>
+                <span style={{ fontSize: '32px', color: '#fff' }}>🛡️</span>
               </div>
               <h2 style={{
                 fontSize: '24px',
@@ -308,7 +317,7 @@ export default function MaintenancePage() {
                 fontSize: '14px',
                 textAlign: 'center'
               }}>
-                <i className="fas fa-exclamation-triangle"></i> {adminError}
+                <span>⚠️</span> {adminError}
               </div>
             )}
 
@@ -322,14 +331,14 @@ export default function MaintenancePage() {
                   fontWeight: '500',
                   fontSize: '14px'
                 }}>
-                  <i className="fas fa-envelope"></i> Email
+                  <span>📧</span> Email
                 </label>
                 <input
                   type="email"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
                   required
-                  placeholder="admin@example.com"
+                  placeholder="admin@hopebridge.com"
                   style={{
                     width: '100%',
                     padding: '12px 16px',
@@ -352,7 +361,7 @@ export default function MaintenancePage() {
                   fontWeight: '500',
                   fontSize: '14px'
                 }}>
-                  <i className="fas fa-lock"></i> Password
+                  <span>🔒</span> Password
                 </label>
                 <input
                   type="password"
@@ -399,11 +408,11 @@ export default function MaintenancePage() {
               >
                 {adminLoading ? (
                   <>
-                    <i className="fas fa-spinner fa-spin"></i> Logging in...
+                    <span>⏳</span> Logging in...
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-sign-in-alt"></i> Emergency Login
+                    <span>🔐</span> Emergency Login
                   </>
                 )}
               </button>
@@ -415,7 +424,7 @@ export default function MaintenancePage() {
               fontSize: '12px',
               color: '#999'
             }}>
-              <i className="fas fa-shield-alt"></i> Secure emergency access
+              <span>🛡️</span> Secure emergency access
             </p>
           </div>
         </div>
@@ -438,9 +447,6 @@ export default function MaintenancePage() {
         }
         @keyframes spin {
           to { transform: rotate(360deg); }
-        }
-        .fa-spin {
-          animation: spin 1s linear infinite;
         }
       `}</style>
     </>
