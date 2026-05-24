@@ -354,7 +354,7 @@ export default function MaintenancePage() {
                     value={adminEmail}
                     onChange={(e) => setAdminEmail(e.target.value)}
                     required
-                    placeholder="admin@hopebridge.com"
+                    placeholder=""
                     style={{
                       width: '100%',
                       padding: '12px 16px 12px 40px',
@@ -387,7 +387,7 @@ export default function MaintenancePage() {
                     value={adminPassword}
                     onChange={(e) => setAdminPassword(e.target.value)}
                     required
-                    placeholder="••••••••"
+                    placeholder=""
                     style={{
                       width: '100%',
                       padding: '12px 16px 12px 40px',

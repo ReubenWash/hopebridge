@@ -112,7 +112,7 @@ export default function AdminLogin() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@hopebridge.com"
+              placeholder=""
               style={{
                 width: '100%',
                 padding: '12px 16px',
@@ -144,7 +144,7 @@ export default function AdminLogin() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder=""
               style={{
                 width: '100%',
                 padding: '12px 16px',
