@@ -63,7 +63,6 @@ const injectStyles = () => {
     .tb-btn{width:38px;height:38px;border-radius:var(--r-sm);background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background var(--tr)}
     .tb-btn:hover{background:var(--bg)}
     .ndot{position:absolute;top:7px;right:7px;width:7px;height:7px;background:var(--red);border-radius:50%;border:1.5px solid var(--surface)}
-    /* Notification panel */
     .notif-panel{position:absolute;top:calc(100% + 8px);right:0;width:340px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--sh-lg);z-index:999;max-height:480px;overflow-y:auto}
     .notif-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
     .notif-title{font-weight:700;font-size:14px;color:var(--txt)}
@@ -73,7 +72,7 @@ const injectStyles = () => {
     .notif-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:5px}
     .notif-text{font-size:13px;color:var(--txt);line-height:1.4}
     .notif-time{font-size:11px;color:var(--txt-3);margin-top:3px}
-    .notif-badge{position:absolute;top:6px;right:6px;width:16px;height:16px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;border:1.5px solid var(--surface)}
+    .notif-badge{position:absolute;top:-4px;right:-4px;width:16px;height:16px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;border:1.5px solid var(--surface)}
     .page{padding:28px}
     .ps{display:none}.ps.active{display:block}
     .ov-hero{background:linear-gradient(130deg,var(--green-dd) 0%,var(--green) 55%,var(--accent) 100%);border-radius:var(--r-xl);padding:28px 32px;margin-bottom:24px;position:relative;overflow:hidden;color:#fff}
@@ -159,10 +158,12 @@ const injectStyles = () => {
     .db{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:var(--fb);transition:opacity var(--tr);display:inline-flex;align-items:center;gap:4px}
     .dba{background:var(--green-l);color:var(--green-d)}.dba:hover{background:var(--green-m)}
     .dbr{background:var(--red-l);color:var(--red)}.dbv{background:var(--blue-l);color:#185FA5}.dbp{background:var(--amber-l);color:#854F0B}
-    .modal-bd{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
-    .modal{background:var(--surface);border-radius:var(--r-xl);padding:28px;width:90%;max-width:560px;box-shadow:var(--sh-lg);max-height:90vh;overflow-y:auto}
-    .modal-t{font-family:var(--fd);font-size:22px;color:var(--txt);margin-bottom:6px}
-    .modal-s{font-size:13px;color:var(--txt-2);margin-bottom:20px}
+    /* UNIQUE MODAL STYLES - No conflict with global CSS */
+    .hb-modal-bd{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9998;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+    .hb-modal{background:var(--surface);border-radius:var(--r-xl);padding:28px;width:90%;max-width:560px;box-shadow:var(--sh-lg);max-height:90vh;overflow-y:auto;position:relative;z-index:9999}
+    .hb-modal-t{font-family:var(--fd);font-size:22px;color:var(--txt);margin-bottom:6px}
+    .hb-modal-s{font-size:13px;color:var(--txt-2);margin-bottom:20px}
+    .hb-modal-bd,.hb-modal,.hb-modal *{animation:none!important}
     .fl{font-size:12px;font-weight:700;color:var(--txt-2);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;display:block}
     .fi{width:100%;background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--r-sm);padding:11px 14px;font-size:14px;color:var(--txt);font-family:var(--fb);outline:none;transition:border-color var(--tr);margin-bottom:14px}
     .fi:focus{border-color:var(--green)}
@@ -176,25 +177,27 @@ const injectStyles = () => {
     .settings-tabs{display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:10px;flex-wrap:wrap}
     .role-tab{background:none;border:none;padding:6px 14px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;color:var(--txt-2);font-family:var(--fb)}
     .role-tab.active{background:var(--green-l);color:var(--green-d)}
-    /* Proof image viewer */
     .proof-img{max-width:100%;border-radius:var(--r-md);border:1px solid var(--border);cursor:zoom-in}
-    .proof-img-full{position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+    .proof-img-full{position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:10001;display:flex;align-items:center;justify-content:center;cursor:zoom-out}
     .proof-img-full img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:var(--r-md)}
-    .mob-top{display:none;height:58px;background:var(--surface);border-bottom:1px solid var(--border);align-items:center;padding:0 16px;gap:12px;position:sticky;top:0;z-index:100}
+    .mob-top{display:none;height:58px;background:var(--surface);border-bottom:1px solid var(--border);align-items:center;justify-content:space-between;padding:0 16px;gap:12px;position:sticky;top:0;z-index:100}
     .mob-logo{font-family:var(--fd);font-size:20px;color:var(--txt);flex:1}
     .bnav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottom-nav);background:var(--surface);border-top:1px solid var(--border);z-index:200}
-    .bnav-inner{display:flex;justify-content:space-between;align-items:center;height:100%;padding:0 12px}
-    .bni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:none;font-family:var(--fb)}
-    .bni.active svg{stroke:var(--green)}.bni.active .bni-lbl{color:var(--green);font-weight:700}
-    .bni-lbl{font-size:10px;font-weight:600;color:var(--txt-3)}
+    .bnav-inner{display:flex;justify-content:space-around;align-items:center;height:100%;padding:0 4px}
+    .bni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:none;font-family:var(--fb);padding:8px 4px;min-width:0}
+    .bni.active svg{color:var(--green)}.bni.active .bni-lbl{color:var(--green);font-weight:700}
+    .bni-lbl{font-size:10px;font-weight:600;color:var(--txt-3);white-space:nowrap}
     @media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}.qg{grid-template-columns:repeat(4,1fr)}.three-col{grid-template-columns:1fr}.qt-grid{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:768px){
       .sidebar{display:none}.main{margin-left:0}.topbar{display:none}
-      .mob-top{display:flex}.bnav{display:flex}
+      .mob-top{display:flex}.bnav{display:block}
       .page{padding:16px;padding-bottom:calc(var(--bottom-nav) + 70px)}
       .stats-grid{grid-template-columns:1fr 1fr;gap:10px}.qg{grid-template-columns:repeat(3,1fr);gap:8px}
       .ov-hero{padding:20px}.hero-t{font-size:22px}.qt-grid{grid-template-columns:1fr 1fr}
-      .notif-panel{width:calc(100vw - 32px);right:-60px}}
+      .notif-panel{width:calc(100vw - 32px);right:-60px}
+      .bnav-inner{justify-content:space-around}
+      .bni-lbl{font-size:9px}
+    }
     @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
     .ps.active>*{animation:fadeUp .35s ease both}
   `;
@@ -285,10 +288,10 @@ function ChangePasswordModal({ isOpen, onClose, onSave, showToast }) {
   };
 
   return (
-    <div className="modal-bd" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-t">Change Password</div>
-        <div className="modal-s">Update your admin account password</div>
+    <div className="hb-modal-bd" onClick={onClose}>
+      <div className="hb-modal" onClick={e => e.stopPropagation()}>
+        <div className="hb-modal-t">Change Password</div>
+        <div className="hb-modal-s">Update your admin account password</div>
         <form onSubmit={handleSubmit}>
           <label className="fl">Current Password</label>
           <div style={{ position: 'relative' }}>
@@ -327,10 +330,10 @@ function DeleteUserModal({ isOpen, onClose, onConfirm, userName, showToast }) {
     try { await onConfirm(); onClose(); } catch (err) { showToast(err.message, true); } finally { setLoading(false); }
   };
   return (
-    <div className="modal-bd" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-t" style={{ color: 'var(--red)' }}>Delete User</div>
-        <div className="modal-s">Permanently delete <strong>{userName}</strong>? All their data, campaigns, and wallet balance will be removed.</div>
+    <div className="hb-modal-bd" onClick={onClose}>
+      <div className="hb-modal" onClick={e => e.stopPropagation()}>
+        <div className="hb-modal-t" style={{ color: 'var(--red)' }}>Delete User</div>
+        <div className="hb-modal-s">Permanently delete <strong>{userName}</strong>? All their data, campaigns, and wallet balance will be removed.</div>
         <label className="fl">Type "DELETE" to confirm</label>
         <input type="text" className="fi" value={text} onChange={e => setText(e.target.value)} placeholder="DELETE" />
         <div style={{ display: 'flex', gap: 10 }}>
@@ -346,10 +349,10 @@ function DeleteUserModal({ isOpen, onClose, onConfirm, userName, showToast }) {
 function UserModal({ isOpen, onClose, onSubmit, userData, setUserData, loading, editMode = false }) {
   if (!isOpen) return null;
   return (
-    <div className="modal-bd" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-t">{editMode ? 'Edit User' : 'Add New User'}</div>
-        <div className="modal-s">{editMode ? 'Update user information' : 'Create a new user account'}</div>
+    <div className="hb-modal-bd" onClick={onClose}>
+      <div className="hb-modal" onClick={e => e.stopPropagation()}>
+        <div className="hb-modal-t">{editMode ? 'Edit User' : 'Add New User'}</div>
+        <div className="hb-modal-s">{editMode ? 'Update user information' : 'Create a new user account'}</div>
         <form onSubmit={onSubmit}>
           <label className="fl">Full Name *</label>
           <input type="text" className="fi" value={userData.name} onChange={e => setUserData(p => ({ ...p, name: e.target.value }))} placeholder="John Doe" required />
@@ -395,9 +398,9 @@ function EditCampaignModal({ isOpen, onClose, campaign, onSave, showToast }) {
     finally { setSaving(false); }
   };
   return (
-    <div className="modal-bd" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-t">Edit Campaign</div>
+    <div className="hb-modal-bd" onClick={onClose}>
+      <div className="hb-modal" onClick={e => e.stopPropagation()}>
+        <div className="hb-modal-t">Edit Campaign</div>
         <form onSubmit={handleSave}>
           <label className="fl">Title</label>
           <input type="text" className="fi" value={data.title} onChange={e => setData(p => ({ ...p, title: e.target.value }))} required />
@@ -436,10 +439,10 @@ function CreateCampaignModal({ isOpen, onClose, onSave, showToast }) {
     finally { setSaving(false); }
   };
   return (
-    <div className="modal-bd" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-t">Create Campaign</div>
-        <div className="modal-s">Admin-created campaign</div>
+    <div className="hb-modal-bd" onClick={onClose}>
+      <div className="hb-modal" onClick={e => e.stopPropagation()}>
+        <div className="hb-modal-t">Create Campaign</div>
+        <div className="hb-modal-s">Admin-created campaign</div>
         <form onSubmit={handleSave}>
           <label className="fl">Campaign Title *</label>
           <input type="text" className="fi" value={data.title} onChange={e => setData(p => ({ ...p, title: e.target.value }))} required />
@@ -478,10 +481,10 @@ function WalletAdjustModal({ isOpen, onClose, user, onSave, showToast }) {
     finally { setLoading(false); }
   };
   return (
-    <div className="modal-bd" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-t">Adjust Wallet Balance</div>
-        <div className="modal-s">User: <strong>{user.name}</strong> · Current balance: <strong>${(user.wallet_balance || 0).toFixed(2)}</strong></div>
+    <div className="hb-modal-bd" onClick={onClose}>
+      <div className="hb-modal" onClick={e => e.stopPropagation()}>
+        <div className="hb-modal-t">Adjust Wallet Balance</div>
+        <div className="hb-modal-s">User: <strong>{user.name}</strong> · Current balance: <strong>${(user.wallet_balance || 0).toFixed(2)}</strong></div>
         <form onSubmit={handleSave}>
           <label className="fl">Action</label>
           <select className="fi" value={type} onChange={e => setType(e.target.value)}>
@@ -521,10 +524,10 @@ function CampaignProgressModal({ isOpen, onClose, campaign, onSave, showToast })
   };
   const pct = Math.min(((parseFloat(raised) || 0) / (campaign.goal || 1)) * 100, 100);
   return (
-    <div className="modal-bd" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-t">Update Campaign Progress</div>
-        <div className="modal-s"><strong>{campaign.title}</strong> · Goal: ${toNum(campaign.goal).toLocaleString()}</div>
+    <div className="hb-modal-bd" onClick={onClose}>
+      <div className="hb-modal" onClick={e => e.stopPropagation()}>
+        <div className="hb-modal-t">Update Campaign Progress</div>
+        <div className="hb-modal-s"><strong>{campaign.title}</strong> · Goal: ${toNum(campaign.goal).toLocaleString()}</div>
         <form onSubmit={handleSave}>
           <label className="fl">New Raised Amount ($)</label>
           <input type="number" className="fi" value={raised} onChange={e => setRaised(e.target.value)} min="0" step="0.01" required />
@@ -777,7 +780,6 @@ function DepositRequestsManager({ requests, onApprove, onReject, onProvideInstru
           {req.status === 'instructions_sent' && <div style={{ color: 'var(--blue)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> Waiting for payment proof…</div>}
           {req.status === 'awaiting_proof' && (
             <div>
-              {/* ✅ FIX: Use ProofImageViewer to handle undefined/missing URLs */}
               <ProofImageViewer url={req.proof_image_url} />
               {req.proof_image_url && req.proof_image_url !== 'undefined' && (
                 <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
@@ -901,7 +903,6 @@ function NotificationManager({ settings, onSave, onSend, history, showToast }) {
 
   return (
     <div>
-      {/* Firebase Config */}
       <div style={{ background: 'var(--surface-2)', borderRadius: 'var(--r-md)', padding: 16, marginBottom: 20 }}>
         <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>🔥 Firebase Configuration</div>
         <label className="fl">FCM Server Key</label>
@@ -987,17 +988,17 @@ export default function AdminDashboard() {
   const { currentUser, logout, showToast, loading: sessionLoading } = useApp();
   const navigate = useNavigate();
   const notifRef = useRef(null);
+  const mobileNotifRef = useRef(null);
 
-  // UI state
   const [authChecked,        setAuthChecked]        = useState(false);
   const [activeTab,          setActiveTab]          = useState('overview');
   const [dataLoading,        setDataLoading]        = useState(false);
   const [darkMode,           setDarkMode]           = useState(localStorage.getItem('hb_darkmode') === 'true');
   const [settingsTab,        setSettingsTab]        = useState('security');
   const [showNotifPanel,     setShowNotifPanel]     = useState(false);
+  const [showMobileNotifPanel, setShowMobileNotifPanel] = useState(false);
   const [notifications,      setNotifications]      = useState([]);
 
-  // Modals
   const [showChangePassword,  setShowChangePassword]  = useState(false);
   const [deleteUserModal,     setDeleteUserModal]     = useState({ open: false, userId: null, userName: '' });
   const [showAddUserModal,    setShowAddUserModal]    = useState(false);
@@ -1011,19 +1012,16 @@ export default function AdminDashboard() {
   const [addingUser,          setAddingUser]          = useState(false);
   const [editingUser,         setEditingUser]         = useState(false);
 
-  // Settings / toggles
   const [themeSettings,    setThemeSettings]    = useState({ '--primary': '#e8531e', '--primary-dark': '#c4400f', '--secondary': '#27a96c', '--dark': '#1a1a2e' });
   const [integrationKeys,  setIntegrationKeys]  = useState({ smtp_host: '', smtp_port: '', smtp_user: '', smtp_pass: '', recaptcha_site_key: '', recaptcha_secret_key: '' });
   const [socialLinks,      setSocialLinks]      = useState({ facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '' });
   const [maintenanceMode,       setMaintenanceMode]       = useState({ enabled: false, message: '' });
   const [verificationEnabled,   setVerificationEnabled]   = useState(true);
   const [recaptchaEnabled,      setRecaptchaEnabled]      = useState(false);
-  const [pushNotifEnabled,      setPushNotifEnabled]      = useState(true);
   const [togglingMaintenance,   setTogglingMaintenance]   = useState(false);
   const [togglingVerification,  setTogglingVerification]  = useState(false);
   const [togglingRecaptcha,     setTogglingRecaptcha]     = useState(false);
 
-  // Data
   const [campaigns,           setCampaigns]           = useState([]);
   const [users,               setUsers]               = useState([]);
   const [donations,           setDonations]           = useState([]);
@@ -1038,14 +1036,15 @@ export default function AdminDashboard() {
   const [content,             setContent]             = useState({ hero_title: 'Together We Can', hero_subtitle: 'Support causes you care about.', hero_badge: 'HopeBridge', impact_title: 'Our Impact', impact_subtitle: 'Every donation counts', impact_stats: { raised: '$0', campaigns: '0', donors: '0' }, social_links: { facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '' } });
   const [lastDonationCheck,   setLastDonationCheck]   = useState(Date.now());
 
-  // Close notif panel on outside click
   useEffect(() => {
-    const handler = e => { if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifPanel(false); };
+    const handler = e => { 
+      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifPanel(false);
+      if (mobileNotifRef.current && !mobileNotifRef.current.contains(e.target)) setShowMobileNotifPanel(false);
+    };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Helper to add a notification
   const addNotif = (message, type = 'info') => {
     setNotifications(prev => [{ id: Date.now(), message, type, time: new Date().toLocaleTimeString(), read: false }, ...prev].slice(0, 50));
   };
@@ -1059,7 +1058,6 @@ export default function AdminDashboard() {
     setAuthChecked(true);
   }, [sessionLoading, currentUser]);
 
-  // Real-time donation polling — adds to notification panel
   useEffect(() => {
     if (!authChecked) return;
     const interval = setInterval(async () => {
@@ -1123,12 +1121,10 @@ export default function AdminDashboard() {
 
   useEffect(() => { if (authChecked) { fetchAll(); fetchExtras(); } }, [authChecked]);
 
-  // Toggle handlers
   const handleToggleMaintenance  = async val => { setTogglingMaintenance(true); try { await adminApi.saveSettings({ keys: { maintenance_mode: val ? 'true' : 'false' } }); setMaintenanceMode(p => ({ ...p, enabled: val })); showToast(`Maintenance ${val ? 'enabled' : 'disabled'}`); addNotif(`Maintenance mode ${val ? 'enabled' : 'disabled'}`, 'warning'); } catch (err) { showToast(err.message, true); } finally { setTogglingMaintenance(false); } };
   const handleToggleVerification = async val => { setTogglingVerification(true); try { await adminApi.updateVerificationSetting?.({ enabled: val }); setVerificationEnabled(val); showToast(`Email verification ${val ? 'enabled' : 'disabled'}`); } catch (err) { showToast(err.message, true); } finally { setTogglingVerification(false); } };
   const handleToggleRecaptcha    = async val => { setTogglingRecaptcha(true); try { await adminApi.saveSettings({ keys: { recaptcha_enabled: val ? 'true' : 'false' } }); setRecaptchaEnabled(val); showToast(`reCAPTCHA ${val ? 'enabled' : 'disabled'}`); } catch (err) { showToast(err.message, true); } finally { setTogglingRecaptcha(false); } };
 
-  // CRUD handlers
   const handleApproveCampaign = async id => { try { await adminApi.updateCampaign(id, { status: 'approved' }); showToast('Campaign approved'); addNotif('Campaign approved'); fetchAll(); } catch (err) { showToast(err.message, true); } };
   const handleRejectCampaign  = async id => { try { await adminApi.updateCampaign(id, { status: 'rejected' }); showToast('Campaign rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
   const handleDeleteCampaign  = async id => { if (!window.confirm('Delete permanently?')) return; try { await campaignApi.delete(id); showToast('Deleted'); fetchAll(); } catch (err) { showToast(err.message, true); } };
@@ -1262,13 +1258,10 @@ export default function AdminDashboard() {
         <div className="topbar">
           <div className="tb-title">{tabLabel(activeTab)}</div>
           <div className="tb-actions">
-            {/* Notification bell with count and dropdown */}
             <div ref={notifRef} style={{ position: 'relative' }}>
               <div className="tb-btn" onClick={() => setShowNotifPanel(p => !p)}>
                 <Bell size={18} />
-                {unreadNotifs > 0 && (
-                  <div className="notif-badge">{unreadNotifs > 9 ? '9+' : unreadNotifs}</div>
-                )}
+                {unreadNotifs > 0 && <div className="notif-badge">{unreadNotifs > 9 ? '9+' : unreadNotifs}</div>}
               </div>
               {showNotifPanel && (
                 <NotificationPanel
@@ -1284,12 +1277,32 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-        <div className="mob-top"><div className="mob-logo">HopeBridge</div></div>
+        
+        {/* Mobile header with notification icon */}
+        <div className="mob-top">
+          <div className="mob-logo">HopeBridge</div>
+          <div ref={mobileNotifRef} style={{ position: 'relative' }}>
+            <div className="tb-btn" onClick={() => setShowMobileNotifPanel(p => !p)} style={{ width: 38, height: 38 }}>
+              <Bell size={18} />
+              {unreadNotifs > 0 && <div className="notif-badge">{unreadNotifs > 9 ? '9+' : unreadNotifs}</div>}
+            </div>
+            {showMobileNotifPanel && (
+              <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 320, zIndex: 1000 }}>
+                <NotificationPanel
+                  notifications={notifications}
+                  onMarkRead={() => setNotifications(p => p.map(n => ({ ...n, read: true })))}
+                  onClearAll={() => setNotifications([])}
+                  onClose={() => setShowMobileNotifPanel(false)}
+                />
+              </div>
+            )}
+          </div>
+        </div>
 
         <div className="page">
           {dataLoading && <div style={{ padding: '8px 16px', background: 'var(--green)', color: '#fff', borderRadius: 6, marginBottom: 12, fontSize: 13 }}>Loading data…</div>}
 
-          {/* ── Overview ── */}
+          {/* Overview Section */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
             <div className="ov-hero">
               <div className="hero-row">
@@ -1320,7 +1333,6 @@ export default function AdminDashboard() {
               <div className="sc"><div className="si si-r"><Clock size={18} /></div><div className="sv">{pendingCompletions}</div><div className="sl">Pending Completions</div></div>
             </div>
 
-            {/* Quick Toggles */}
             <div className="sh" style={{ marginBottom: 12 }}><div className="sht"><Settings size={18} /> Quick Toggles</div></div>
             <div className="qt-grid">
               {[
@@ -1339,7 +1351,6 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            {/* Quick Actions */}
             <div className="sh" style={{ marginBottom: 12 }}><div className="sht"><Zap size={18} /> Quick Actions</div></div>
             <div className="qg">
               {[
@@ -1414,7 +1425,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* ── Campaigns ── */}
+          {/* Campaigns Section */}
           <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
             <div className="sh">
               <div className="sht"><Target size={18} /> Campaign Management</div>
@@ -1444,7 +1455,7 @@ export default function AdminDashboard() {
             </div></div>
           </div>
 
-          {/* ── Users ── */}
+          {/* Users Section */}
           <div className={`ps ${activeTab === 'users' ? 'active' : ''}`}>
             <div className="sh">
               <div className="sht"><Users size={18} /> User Management</div>
@@ -1458,15 +1469,8 @@ export default function AdminDashboard() {
                     <td style={{ paddingLeft: 20 }}><div className="uc"><div className="uav avg">{u.name?.charAt(0)}</div><div><div style={{ fontWeight: 600 }}>{u.name}</div><small style={{ color: 'var(--txt-3)' }}>{u.email}</small></div></div></td>
                     <td><span className="badge br">{u.role}</span></td>
                     <td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>${(u.wallet_balance || 0).toFixed(2)}</div>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        <span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span>
-                        {u.is_verified && <span className="badge" style={{ background: 'var(--blue-l)', color: '#185FA5' }}>Verified</span>}
-                      </div>
-                    </td>
+                    <td><div style={{ fontWeight: 600 }}>${(u.wallet_balance || 0).toFixed(2)}</div></td>
+                    <td><div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span>{u.is_verified && <span className="badge" style={{ background: 'var(--blue-l)', color: '#185FA5' }}>Verified</span>}</div></td>
                     <td style={{ paddingRight: 20 }}>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                         <button className="db dbv" onClick={() => { setEditUser({ name: u.name, email: u.email, role: u.role, is_verified: u.is_verified }); setEditUserModal({ open: true, user: u }); }}><Edit size={12} /> Edit</button>
@@ -1482,7 +1486,7 @@ export default function AdminDashboard() {
             </div></div>
           </div>
 
-          {/* ── Donations ── */}
+          {/* Donations Section */}
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><DollarSign size={18} /> All Donations</div></div>
             <div className="card"><div className="card-b" style={{ padding: 0 }}>
@@ -1495,37 +1499,37 @@ export default function AdminDashboard() {
             </div></div>
           </div>
 
-          {/* ── Deposits ── */}
+          {/* Deposits Section */}
           <div className={`ps ${activeTab === 'deposits' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><CreditCard size={18} /> Deposit Requests</div></div>
             <div className="card"><div className="card-b"><DepositRequestsManager requests={depositRequests} onApprove={handleApproveDeposit} onReject={handleRejectDeposit} onProvideInstructions={handleProvideInstructions} showToast={showToast} /></div></div>
           </div>
 
-          {/* ── Withdrawals ── */}
+          {/* Withdrawals Section */}
           <div className={`ps ${activeTab === 'withdrawals' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><Banknote size={18} /> Withdrawal Requests</div></div>
             <div className="card"><div className="card-b"><WithdrawalRequestsManager requests={withdrawalRequests} onApprove={handleApproveWithdrawal} onReject={handleRejectWithdrawal} /></div></div>
           </div>
 
-          {/* ── Completions ── */}
+          {/* Completions Section */}
           <div className={`ps ${activeTab === 'completions' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><CheckCircle size={18} /> Campaign Completions</div></div>
             <div className="card"><div className="card-b"><CompletionRequestsManager requests={completionRequests} onRelease={handleReleaseEscrow} onRefund={handleRefundEscrow} /></div></div>
           </div>
 
-          {/* ── Payouts ── */}
+          {/* Payouts Section */}
           <div className={`ps ${activeTab === 'payouts' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><Receipt size={18} /> Payout Reconciliation</div></div>
             <div className="card"><div className="card-b"><PayoutsManager payouts={payouts} onMarkPaid={handleMarkPayoutPaid} /></div></div>
           </div>
 
-          {/* ── Fee Settings ── */}
+          {/* Fee Settings Section */}
           <div className={`ps ${activeTab === 'fees' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><Settings size={18} /> Transaction Fee & Deposit/Withdrawal Limits</div></div>
             <div className="card"><div className="card-b"><FeeSettings fees={feeSettings} onSave={handleSaveFees} showToast={showToast} /></div></div>
           </div>
 
-          {/* ── Notifications ── */}
+          {/* Notifications Section */}
           <div className={`ps ${activeTab === 'notifications' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><Bell size={18} /> Push Notifications</div></div>
             <div className="card"><div className="card-b">
@@ -1533,29 +1537,29 @@ export default function AdminDashboard() {
             </div></div>
           </div>
 
-          {/* ── Audit Logs ── */}
+          {/* Audit Logs Section */}
           <div className={`ps ${activeTab === 'audit-logs' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><History size={18} /> Audit Logs</div></div>
             <div className="card"><div className="card-b"><AuditLogs logs={auditLogs} /></div></div>
           </div>
 
-          {/* ── Email Templates ── */}
+          {/* Email Templates Section */}
           <div className={`ps ${activeTab === 'email_templates' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><MailIcon size={18} /> Email Templates</div><div style={{ fontSize: 13, color: 'var(--txt-3)' }}>Customise every transactional email</div></div>
             <div className="card"><div className="card-b"><EmailTemplateEditor showToast={showToast} /></div></div>
           </div>
 
-          {/* ── Mass Mail ── */}
+          {/* Mass Mail Section */}
           <div className={`ps ${activeTab === 'massmail' ? 'active' : ''}`}>
             <div className="card"><div className="card-h"><div className="card-t"><Send size={18} /> Broadcast Email</div></div><div className="card-b"><MassMailForm showToast={showToast} /></div></div>
           </div>
 
-          {/* ── Content ── */}
+          {/* Content Section */}
           <div className={`ps ${activeTab === 'content' ? 'active' : ''}`}>
             <div className="card"><div className="card-h"><div className="card-t"><FileText size={18} /> Platform Content</div></div><div className="card-b"><ContentEditor content={content} onSave={handleSaveContent} showToast={showToast} /></div></div>
           </div>
 
-          {/* ── Maintenance ── */}
+          {/* Maintenance Section */}
           <div className={`ps ${activeTab === 'maintenance' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><AlertCircle size={18} /> Maintenance Mode</div></div>
             <div className="card"><div className="card-b">
@@ -1581,7 +1585,7 @@ export default function AdminDashboard() {
             </div></div>
           </div>
 
-          {/* ── Settings ── */}
+          {/* Settings Section */}
           <div className={`ps ${activeTab === 'settings' ? 'active' : ''}`}>
             <div className="card"><div className="card-h"><div className="card-t"><Settings size={18} /> System Settings</div></div><div className="card-b">
               <div className="settings-tabs">
@@ -1667,7 +1671,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Mobile nav */}
+      {/* Mobile bottom navigation */}
       <nav className="bnav">
         <div className="bnav-inner">
           {[
@@ -1686,7 +1690,7 @@ export default function AdminDashboard() {
         </div>
       </nav>
 
-      {/* ── All Modals ── */}
+      {/* All Modals */}
       <ChangePasswordModal isOpen={showChangePassword} onClose={() => setShowChangePassword(false)} onSave={handleChangePassword} showToast={showToast} />
       <DeleteUserModal isOpen={deleteUserModal.open} onClose={() => setDeleteUserModal({ open: false, userId: null, userName: '' })} onConfirm={() => handleDeleteUser(deleteUserModal.userId)} userName={deleteUserModal.userName} showToast={showToast} />
       <UserModal isOpen={showAddUserModal} onClose={() => setShowAddUserModal(false)} onSubmit={handleAddUserSubmit} userData={newUser} setUserData={setNewUser} loading={addingUser} />
