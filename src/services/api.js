@@ -183,6 +183,7 @@ export const adminApi = {
   getUsers:       () => request('/admin/users'),
   toggleUser:     (id) => request(`/admin/users/${id}/toggle`, { method: 'PATCH' }),
   addUser:        (data) => request('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
+  updateUser:     (id, data) => request(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),  // ADD THIS
   deleteUser:     (id) => request(`/admin/users/${id}`, { method: 'DELETE' }),
   verifyUser:     (id) => request(`/admin/users/${id}/verify`, { method: 'PATCH' }),
   unverifyUser:   (id) => request(`/admin/users/${id}/unverify`, { method: 'PATCH' }),
@@ -194,8 +195,17 @@ export const adminApi = {
     const qs = new URLSearchParams(params || {}).toString()
     return request(`/admin/campaigns${qs ? `?${qs}` : ''}`)
   },
-  updateCampaign: (id, body) => request(`/admin/campaigns/${id}/status`, {
+  updateCampaign: (id, body) => request(`/admin/campaigns/${id}`, {  // UPDATED: Changed from status to full update
+    method: 'PUT', body: JSON.stringify(body),
+  }),
+  updateCampaignStatus: (id, body) => request(`/admin/campaigns/${id}/status`, {  // Keep for status only
     method: 'PATCH', body: JSON.stringify(body),
+  }),
+  createCampaign: (data) => request('/admin/campaigns/create', {  // ADD THIS
+    method: 'POST', body: JSON.stringify(data),
+  }),
+  updateCampaignProgress: (id, data) => request(`/admin/campaigns/${id}/progress`, {  // ADD THIS
+    method: 'PATCH', body: JSON.stringify(data),
   }),
 
   // Donations
@@ -281,37 +291,43 @@ export const adminApi = {
   getDisputes:    () => request('/admin/disputes'),
   resolveDispute: (id) => request(`/admin/disputes/${id}/resolve`, { method: 'PATCH' }),
 
+  // Wallet Management (Admin)
+  adjustWallet: (userId, data) => request('/admin/wallet/adjust', {  // ADD THIS
+    method: 'POST', body: JSON.stringify({ userId, ...data }),
+  }),
+  getUserWalletDetails: (userId) => request(`/admin/wallet/user/${userId}`),  // ADD THIS
+
   // ============ NEW FEATURES ============
 
   // Payout Reconciliation
   getPayouts: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
-    return request(`/admin/features/payouts${qs ? `?${qs}` : ''}`)  // Updated: added /features
+    return request(`/admin/features/payouts${qs ? `?${qs}` : ''}`)
   },
-  getPayoutSummary: () => request('/admin/features/payouts/summary'),  // Updated: added /features
-  markPayoutAsPaid: (id, data) => request(`/admin/features/payouts/${id}/mark-paid`, {  // Updated: added /features
+  getPayoutSummary: () => request('/admin/features/payouts/summary'),
+  markPayoutAsPaid: (id, data) => request(`/admin/features/payouts/${id}/mark-paid`, {
     method: 'PUT', body: JSON.stringify(data),
   }),
 
   // Transaction Fee Management
-  getFeeSettings: () => request('/admin/features/fees'),  // Updated: added /features
-  updateFeeSettings: (data) => request('/admin/features/fees', {  // Updated: added /features
+  getFeeSettings: () => request('/admin/features/fees'),
+  updateFeeSettings: (data) => request('/admin/features/fees', {
     method: 'PUT', body: JSON.stringify(data),
   }),
-  calculateFee: (data) => request('/admin/features/fees/calculate', {  // Updated: added /features
+  calculateFee: (data) => request('/admin/features/fees/calculate', {
     method: 'POST', body: JSON.stringify(data),
   }),
 
-  // Push Notifications Management - UPDATED to match backend routes
-  sendNotification: (data) => request('/admin/features/send-notification', {  // Updated: added /features
+  // Push Notifications Management
+  sendNotification: (data) => request('/admin/features/send-notification', {
     method: 'POST', body: JSON.stringify(data),
   }),
   getNotificationHistory: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
-    return request(`/admin/features/notification-history${qs ? `?${qs}` : ''}`)  // Updated: added /features
+    return request(`/admin/features/notification-history${qs ? `?${qs}` : ''}`)
   },
-  getNotificationSettings: () => request('/admin/features/notification-settings'),  // Updated: added /features
-  updateNotificationSettings: (data) => request('/admin/features/notification-settings', {  // Updated: added /features
+  getNotificationSettings: () => request('/admin/features/notification-settings'),
+  updateNotificationSettings: (data) => request('/admin/features/notification-settings', {
     method: 'PUT', body: JSON.stringify(data),
   }),
   testNotification: (token) => request('/admin/test-notification', {
@@ -321,30 +337,30 @@ export const adminApi = {
   // Creator Onboarding/Verification
   getCreatorVerifications: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
-    return request(`/admin/features/creator-verifications${qs ? `?${qs}` : ''}`)  // Updated: added /features
+    return request(`/admin/features/creator-verifications${qs ? `?${qs}` : ''}`)
   },
-  reviewCreatorVerification: (id, data) => request(`/admin/features/creator-verifications/${id}/review`, {  // Updated: added /features
+  reviewCreatorVerification: (id, data) => request(`/admin/features/creator-verifications/${id}/review`, {
     method: 'PUT', body: JSON.stringify(data),
   }),
 
   // Donor Management
   getTopDonors: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
-    return request(`/admin/features/top-donors${qs ? `?${qs}` : ''}`)  // Updated: added /features
+    return request(`/admin/features/top-donors${qs ? `?${qs}` : ''}`)
   },
   getRecurringDonations: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
-    return request(`/admin/features/recurring-donations${qs ? `?${qs}` : ''}`)  // Updated: added /features
+    return request(`/admin/features/recurring-donations${qs ? `?${qs}` : ''}`)
   },
-  updateSubscriptionStatus: (id, status) => request(`/admin/features/recurring-donations/${id}/status`, {  // Updated: added /features
+  updateSubscriptionStatus: (id, status) => request(`/admin/features/recurring-donations/${id}/status`, {
     method: 'PUT', body: JSON.stringify({ status }),
   }),
-  getDonorAnalytics: () => request('/admin/features/donor-analytics'),  // Updated: added /features
+  getDonorAnalytics: () => request('/admin/features/donor-analytics'),
 
   // Audit Logs
   getAuditLogs: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
-    return request(`/admin/features/audit-logs${qs ? `?${qs}` : ''}`)  // Updated: added /features
+    return request(`/admin/features/audit-logs${qs ? `?${qs}` : ''}`)
   },
 }
 
