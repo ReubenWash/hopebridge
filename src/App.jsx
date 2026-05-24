@@ -15,6 +15,10 @@ import Toast from './components/Toast'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import PushNotificationSetup from './components/PushNotificationSetup'
 import MaintenancePage from './components/MaintenancePage'
+import { initFirebase } from './services/firebase' // Add this import
+
+// Initialize Firebase on app start
+initFirebase();
 
 /* ── Error Boundary ─────────────────────────────── */
 class ErrorBoundary extends Component {

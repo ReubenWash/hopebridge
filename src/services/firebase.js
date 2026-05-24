@@ -1,8 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
-// Your Firebase config (replace with your actual config)
-// Get these from Firebase Console > Project Settings > General
+// Your Firebase config (get from Firebase Console > Project Settings > General)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -15,12 +14,30 @@ const firebaseConfig = {
 let messaging = null;
 let app = null;
 
+// ADD THIS FUNCTION - it's called from App.jsx
+export const initFirebase = () => {
+  try {
+    if (!app) {
+      app = initializeApp(firebaseConfig);
+      messaging = getMessaging(app);
+      console.log('✅ Firebase messaging initialized');
+    }
+    return { app, messaging };
+  } catch (err) {
+    console.error('❌ Firebase initialization failed:', err);
+    return null;
+  }
+};
+
+// Also initialize automatically (optional, but good for backward compatibility)
 try {
-  app = initializeApp(firebaseConfig);
-  messaging = getMessaging(app);
-  console.log('Firebase messaging initialized');
+  if (!app) {
+    app = initializeApp(firebaseConfig);
+    messaging = getMessaging(app);
+    console.log('✅ Firebase messaging initialized (auto)');
+  }
 } catch (err) {
-  console.error('Firebase initialization failed:', err);
+  console.error('❌ Firebase initialization failed:', err);
 }
 
 export { messaging };
@@ -43,13 +60,13 @@ export const requestFCMToken = async () => {
     // Get VAPID key from environment
     const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
     if (!vapidKey) {
-      console.warn('VAPID key is required for FCM');
+      console.warn('⚠️ VAPID key is required for FCM');
       return null;
     }
 
     const currentToken = await getToken(messaging, { vapidKey });
     if (currentToken) {
-      console.log('FCM Token obtained');
+      console.log('✅ FCM Token obtained:', currentToken.substring(0, 20) + '...');
       return currentToken;
     } else {
       console.log('No registration token available');
@@ -66,10 +83,11 @@ export const onMessageListener = () =>
   new Promise((resolve) => {
     if (!messaging) {
       console.warn('Messaging not available');
+      resolve(null);
       return;
     }
     onMessage(messaging, (payload) => {
-      console.log('Foreground message received:', payload);
+      console.log('📱 Foreground message received:', payload);
       resolve(payload);
     });
   });

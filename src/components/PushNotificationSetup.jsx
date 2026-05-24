@@ -2,20 +2,12 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { authApi } from '../services/api';
-
-// Your Firebase config (get from Firebase Console)
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-};
+import { requestFCMToken, onMessageListener } from '../services/firebase';
 
 export default function PushNotificationSetup() {
   const { currentUser, showToast } = useApp();
   const [initialized, setInitialized] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState('default');
 
   useEffect(() => {
     if (!currentUser || initialized) return;
@@ -29,69 +21,70 @@ export default function PushNotificationSetup() {
         }
 
         // Check if Firebase config is available
-        if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'undefined') {
-          console.log('Firebase not configured - push notifications disabled');
-          return;
-        }
-
-        // Request permission
-        if (Notification.permission !== 'granted') {
-          const permission = await Notification.requestPermission();
-          if (permission !== 'granted') {
-            console.log('Notification permission denied');
-            return;
-          }
-        }
-
-        // Dynamically import Firebase modules
-        const { initializeApp } = await import('firebase/app');
-        const { getMessaging, getToken, onMessage } = await import('firebase/messaging');
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const messaging = getMessaging(app);
-
-        // Get VAPID key from environment
         const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
-        if (!vapidKey) {
-          console.warn('VAPID key not found in environment variables');
+        if (!vapidKey || vapidKey === 'undefined') {
+          console.log('VAPID key not configured - push notifications disabled');
           return;
         }
 
-        // Get FCM token
-        const token = await getToken(messaging, { vapidKey });
-        if (token) {
-          console.log('FCM token obtained');
-          // Save token to backend
-          try {
-            await authApi.saveFCMToken(token);
-            console.log('FCM token saved to backend');
-          } catch (err) {
-            console.error('Failed to save FCM token:', err);
+        // Get current permission status
+        setPermissionStatus(Notification.permission);
+
+        // If permission is already granted, get token
+        if (Notification.permission === 'granted') {
+          const token = await requestFCMToken();
+          if (token) {
+            try {
+              await authApi.saveFCMToken(token);
+              console.log('✅ FCM token saved to backend');
+            } catch (err) {
+              console.error('Failed to save FCM token:', err);
+            }
           }
-        } else {
-          console.log('No FCM token available');
+        } 
+        // If not granted yet, we can show a subtle prompt later
+        else if (Notification.permission === 'default') {
+          // Wait for user interaction before requesting permission
+          const handleUserInteraction = async () => {
+            const permission = await Notification.requestPermission();
+            setPermissionStatus(permission);
+            if (permission === 'granted') {
+              const token = await requestFCMToken();
+              if (token) {
+                try {
+                  await authApi.saveFCMToken(token);
+                  console.log('✅ FCM token saved after user grant');
+                  showToast('Notifications enabled! You\'ll receive updates about campaigns and donations.');
+                } catch (err) {
+                  console.error('Failed to save FCM token:', err);
+                }
+              }
+            }
+            document.removeEventListener('click', handleUserInteraction);
+            document.removeEventListener('keydown', handleUserInteraction);
+          };
+          
+          // Listen for user interaction to request permission
+          document.addEventListener('click', handleUserInteraction);
+          document.addEventListener('keydown', handleUserInteraction);
         }
 
         // Listen for foreground messages
-        onMessage(messaging, (payload) => {
-          console.log('Foreground message received:', payload);
-          const body = payload.notification?.body || 'New update';
-          showToast(body);
-          
-          // Also show browser notification
-          if (Notification.permission === 'granted') {
-            new Notification(payload.notification?.title || 'HopeBridge', { 
-              body, 
-              icon: '/logo192.png' 
-            });
+        onMessageListener().then((payload) => {
+          if (payload) {
+            console.log('Foreground message received:', payload);
+            const { title, body } = payload.notification || {};
+            if (title && body) {
+              showToast(`${title}: ${body}`);
+            } else if (body) {
+              showToast(body);
+            }
           }
         });
 
         setInitialized(true);
       } catch (err) {
         console.error('Push notification setup error:', err);
-        // Don't show error toast to avoid annoying users
       }
     };
 
