@@ -286,32 +286,32 @@ export const adminApi = {
   // Payout Reconciliation
   getPayouts: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
-    return request(`/admin/payouts${qs ? `?${qs}` : ''}`)
+    return request(`/admin/features/payouts${qs ? `?${qs}` : ''}`)  // Updated: added /features
   },
-  getPayoutSummary: () => request('/admin/payouts/summary'),
-  markPayoutAsPaid: (id, data) => request(`/admin/payouts/${id}/mark-paid`, {
+  getPayoutSummary: () => request('/admin/features/payouts/summary'),  // Updated: added /features
+  markPayoutAsPaid: (id, data) => request(`/admin/features/payouts/${id}/mark-paid`, {  // Updated: added /features
     method: 'PUT', body: JSON.stringify(data),
   }),
 
   // Transaction Fee Management
-  getFeeSettings: () => request('/admin/fees'),
-  updateFeeSettings: (data) => request('/admin/fees', {
+  getFeeSettings: () => request('/admin/features/fees'),  // Updated: added /features
+  updateFeeSettings: (data) => request('/admin/features/fees', {  // Updated: added /features
     method: 'PUT', body: JSON.stringify(data),
   }),
-  calculateFee: (data) => request('/admin/fees/calculate', {
+  calculateFee: (data) => request('/admin/features/fees/calculate', {  // Updated: added /features
     method: 'POST', body: JSON.stringify(data),
   }),
 
-  // Push Notifications Management
-  sendNotification: (data) => request('/admin/send-notification', {
+  // Push Notifications Management - UPDATED to match backend routes
+  sendNotification: (data) => request('/admin/features/send-notification', {  // Updated: added /features
     method: 'POST', body: JSON.stringify(data),
   }),
   getNotificationHistory: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
-    return request(`/admin/notification-history${qs ? `?${qs}` : ''}`)
+    return request(`/admin/features/notification-history${qs ? `?${qs}` : ''}`)  // Updated: added /features
   },
-  getNotificationSettings: () => request('/admin/notification-settings'),
-  updateNotificationSettings: (data) => request('/admin/notification-settings', {
+  getNotificationSettings: () => request('/admin/features/notification-settings'),  // Updated: added /features
+  updateNotificationSettings: (data) => request('/admin/features/notification-settings', {  // Updated: added /features
     method: 'PUT', body: JSON.stringify(data),
   }),
   testNotification: (token) => request('/admin/test-notification', {
@@ -321,30 +321,30 @@ export const adminApi = {
   // Creator Onboarding/Verification
   getCreatorVerifications: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
-    return request(`/admin/creator-verifications${qs ? `?${qs}` : ''}`)
+    return request(`/admin/features/creator-verifications${qs ? `?${qs}` : ''}`)  // Updated: added /features
   },
-  reviewCreatorVerification: (id, data) => request(`/admin/creator-verifications/${id}/review`, {
+  reviewCreatorVerification: (id, data) => request(`/admin/features/creator-verifications/${id}/review`, {  // Updated: added /features
     method: 'PUT', body: JSON.stringify(data),
   }),
 
   // Donor Management
   getTopDonors: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
-    return request(`/admin/top-donors${qs ? `?${qs}` : ''}`)
+    return request(`/admin/features/top-donors${qs ? `?${qs}` : ''}`)  // Updated: added /features
   },
   getRecurringDonations: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
-    return request(`/admin/recurring-donations${qs ? `?${qs}` : ''}`)
+    return request(`/admin/features/recurring-donations${qs ? `?${qs}` : ''}`)  // Updated: added /features
   },
-  updateSubscriptionStatus: (id, status) => request(`/admin/recurring-donations/${id}/status`, {
+  updateSubscriptionStatus: (id, status) => request(`/admin/features/recurring-donations/${id}/status`, {  // Updated: added /features
     method: 'PUT', body: JSON.stringify({ status }),
   }),
-  getDonorAnalytics: () => request('/admin/donor-analytics'),
+  getDonorAnalytics: () => request('/admin/features/donor-analytics'),  // Updated: added /features
 
   // Audit Logs
   getAuditLogs: (params) => {
     const qs = new URLSearchParams(params || {}).toString()
-    return request(`/admin/audit-logs${qs ? `?${qs}` : ''}`)
+    return request(`/admin/features/audit-logs${qs ? `?${qs}` : ''}`)  // Updated: added /features
   },
 }
 
