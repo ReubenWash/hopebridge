@@ -1369,3 +1369,7 @@ body.dark-mode .small-btn.neutral {
     padding-bottom: 80px !important;
   }
 }
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

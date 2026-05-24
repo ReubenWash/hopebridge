@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { walletApi, authApi } from '../services/api';
+import { walletApi } from '../services/api';
 
 const AMOUNT_PRESETS = [10, 25, 50, 100, 250];
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -11,6 +11,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
   const [campaignId, setCampaignId] = useState(propCampaignId || '');
   const [donorName, setDonorName] = useState('');
   const [donorEmail, setDonorEmail] = useState('');
+  const [donorPhone, setDonorPhone] = useState('');
   const [amount, setAmount] = useState(50);
   const [activePreset, setActivePreset] = useState(50);
   const [message, setMessage] = useState('');
@@ -18,7 +19,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
   const [loading, setLoading] = useState(false);
   
   // Guest donation states
-  const [donationMode, setDonationMode] = useState('login'); // 'login' or 'guest'
+  const [donationMode, setDonationMode] = useState('login');
   const [guestStep, setGuestStep] = useState(1);
   const [guestDonationId, setGuestDonationId] = useState(null);
   const [guestInstructions, setGuestInstructions] = useState(null);
@@ -26,6 +27,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
   const [guestProofPreview, setGuestProofPreview] = useState(null);
   const [guestLoading, setGuestLoading] = useState(false);
   const [guestError, setGuestError] = useState(null);
+  const [pollingInterval, setPollingInterval] = useState(null);
 
   useEffect(() => {
     if (currentUser) {
@@ -34,10 +36,56 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
       setDonationMode('login');
     }
     loadCampaigns();
+    
+    // Cleanup polling on unmount
+    return () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+    };
   }, [currentUser]);
+
+  // Poll for instructions from admin (real-time)
+  useEffect(() => {
+    if (guestDonationId && guestStep === 2) {
+      const interval = setInterval(async () => {
+        try {
+          const response = await fetch(`${API_URL}/guest-donations/status/${guestDonationId}`);
+          const data = await response.json();
+          
+          if (data.donation?.admin_instructions) {
+            setGuestInstructions(data.donation.admin_instructions);
+            clearInterval(interval);
+            setPollingInterval(null);
+            // Auto-advance to step 3
+            setGuestStep(3);
+            showToast('Payment instructions received!');
+          }
+          
+          if (data.donation?.payment_status === 'approved') {
+            clearInterval(interval);
+            setPollingInterval(null);
+            setGuestStep(5);
+            showToast('Your donation has been verified and approved!');
+          }
+          
+          if (data.donation?.payment_status === 'rejected') {
+            clearInterval(interval);
+            setPollingInterval(null);
+            setGuestError('Your donation was rejected. Please contact support.');
+          }
+        } catch (err) {
+          console.error('Polling error:', err);
+        }
+      }, 3000); // Check every 3 seconds
+      
+      setPollingInterval(interval);
+      
+      return () => clearInterval(interval);
+    }
+  }, [guestDonationId, guestStep]);
 
   // Reset guest donation state
   const resetGuestDonation = () => {
+    if (pollingInterval) clearInterval(pollingInterval);
     setGuestStep(1);
     setGuestDonationId(null);
     setGuestInstructions(null);
@@ -70,6 +118,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
           campaign_id: parseInt(campaignId),
           guest_name: donorName,
           guest_email: donorEmail,
+          guest_phone: donorPhone,
           amount: parseFloat(amount),
           message: message
         })
@@ -80,7 +129,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
 
       setGuestDonationId(data.donation.id);
       setGuestStep(2);
-      showToast('Request submitted! Check your email for payment instructions.');
+      showToast('Request submitted! Waiting for admin to provide payment instructions...');
     } catch (err) {
       setGuestError(err.message);
     } finally {
@@ -114,11 +163,28 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
       setGuestStep(4);
       showToast('Proof uploaded! Admin will verify your donation.');
       
-      setTimeout(() => {
-        resetGuestDonation();
-        setDonationMode('login');
-        if (onSuccess) onSuccess();
-      }, 3000);
+      // Start polling for verification status
+      const interval = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`${API_URL}/guest-donations/status/${guestDonationId}`);
+          const statusData = await statusRes.json();
+          
+          if (statusData.donation?.payment_status === 'approved') {
+            clearInterval(interval);
+            setGuestStep(5);
+            showToast('Your donation has been verified and approved! Thank you!');
+            if (onSuccess) setTimeout(() => onSuccess(), 2000);
+          }
+          
+          if (statusData.donation?.payment_status === 'rejected') {
+            clearInterval(interval);
+            setGuestError('Your donation was rejected. Please contact support.');
+          }
+        } catch (err) {
+          console.error('Status polling error:', err);
+        }
+      }, 5000);
+      
     } catch (err) {
       setGuestError(err.message);
     } finally {
@@ -194,8 +260,8 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
     setActivePreset(null);
   };
 
-  // If no campaign is selected and we're not in guest mode, show campaign selector
-  if (!campaignId && !propCampaignId && approvedCampaigns.length > 0) {
+  // If no campaign is selected
+  if (!campaignId && !propCampaignId && approvedCampaigns.length > 0 && donationMode !== 'guest') {
     return (
       <div className="donation-form-card">
         <h3>Make a Donation</h3>
@@ -216,7 +282,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
     );
   }
 
-  // Guest Donation - Step 2: Waiting for Instructions
+  // Guest Donation - Step 2: Waiting for Instructions (Real-time)
   if (donationMode === 'guest' && guestStep === 2) {
     return (
       <div className="donation-form-card">
@@ -227,34 +293,74 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
           ← Back
         </button>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
-          <h3>Check Your Email</h3>
-          <p>Admin will send payment instructions to <strong>{donorEmail}</strong> shortly.</p>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
+          <h3>Waiting for Payment Instructions</h3>
+          <p>Admin is preparing your payment instructions. This page will update automatically.</p>
+          
           <div style={{ background: '#f0fdf4', padding: 16, borderRadius: 12, margin: '20px 0', textAlign: 'left' }}>
-            <strong>📋 What happens next?</strong>
+            <strong>📋 What's happening?</strong>
             <ol style={{ marginLeft: 20, marginTop: 8, lineHeight: 1.8 }}>
-              <li>Check your email for payment details</li>
-              <li>Make the payment using the provided instructions</li>
-              <li>Come back here to upload your payment proof</li>
+              <li>Admin is reviewing your request</li>
+              <li>Payment instructions will appear here shortly</li>
+              <li>You can also check your email for a copy</li>
             </ol>
           </div>
-          <button className="btn-primary-custom" onClick={() => setGuestStep(3)} style={{ width: '100%' }}>
-            I've Made the Payment → Upload Proof
+          
+          <div className="cp-spinner" style={{ margin: '0 auto 20px', width: 40, height: 40, border: '3px solid #e0e0e0', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
+          
+          <p style={{ fontSize: 12, color: 'var(--text-light)' }}>
+            Donation ID: #{guestDonationId}
+          </p>
+          
+          <button className="btn btn-gh" onClick={() => setGuestStep(1)} style={{ marginTop: 16 }}>
+            ← Cancel
           </button>
         </div>
       </div>
     );
   }
 
-  // Guest Donation - Step 3: Upload Proof
-  if (donationMode === 'guest' && guestStep === 3) {
+  // Guest Donation - Step 3: Display Instructions (Real-time)
+  if (donationMode === 'guest' && guestStep === 3 && guestInstructions) {
+    return (
+      <div className="donation-form-card">
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>📋</div>
+          <h3>Payment Instructions Ready</h3>
+          <p style={{ marginBottom: 16 }}>Please follow these instructions to complete your donation.</p>
+        </div>
+        
+        <div style={{ background: 'var(--blue-l)', padding: 20, borderRadius: 12, marginBottom: 20 }}>
+          <div style={{ whiteSpace: 'pre-line', fontSize: 14, lineHeight: 1.7 }}>
+            {guestInstructions}
+          </div>
+        </div>
+        
+        <div style={{ background: '#fff3e0', padding: 12, borderRadius: 8, marginBottom: 20 }}>
+          <strong>⚠️ Important:</strong> After making the payment, come back here and click "I've Made the Payment" to upload your proof.
+        </div>
+        
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-g" onClick={() => setGuestStep(4)} style={{ flex: 1 }}>
+            I've Made the Payment → Upload Proof
+          </button>
+          <button className="btn btn-gh" onClick={resetGuestDonation}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Guest Donation - Step 4: Upload Proof
+  if (donationMode === 'guest' && guestStep === 4) {
     return (
       <div className="donation-form-card">
         <button 
-          onClick={() => setGuestStep(2)}
+          onClick={() => setGuestStep(3)}
           style={{ background: 'none', border: 'none', cursor: 'pointer', marginBottom: 16, color: 'var(--primary)' }}
         >
-          ← Back
+          ← Back to Instructions
         </button>
         <h3>Upload Payment Proof</h3>
         <p style={{ marginBottom: 16, color: 'var(--text-light)' }}>Upload a screenshot or photo of your payment confirmation.</p>
@@ -291,13 +397,13 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
     );
   }
 
-  // Guest Donation - Step 4: Success
-  if (donationMode === 'guest' && guestStep === 4) {
+  // Guest Donation - Step 5: Success
+  if (donationMode === 'guest' && guestStep === 5) {
     return (
       <div className="donation-form-card" style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-        <h3>Thank You!</h3>
-        <p>Your payment proof has been submitted. Admin will verify your donation shortly.</p>
+        <h3>Thank You for Your Donation!</h3>
+        <p>Your donation has been verified and approved. Thank you for your generosity!</p>
         <button className="btn-primary-custom" onClick={() => { resetGuestDonation(); setDonationMode('login'); if (onSuccess) onSuccess(); }} style={{ marginTop: 16 }}>
           Close
         </button>
@@ -348,7 +454,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
           ← Back to Login
         </button>
         <h3>Donate as Guest</h3>
-        <p style={{ marginBottom: 16, color: 'var(--text-light)' }}>No account needed! Admin will send payment instructions to your email.</p>
+        <p style={{ marginBottom: 16, color: 'var(--text-light)' }}>No account needed! Payment instructions will appear here in real-time.</p>
         
         <form onSubmit={handleGuestRequestDonation}>
           <div className="form-group">
@@ -389,6 +495,18 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
               onChange={(e) => setDonorEmail(e.target.value)}
               placeholder="you@example.com"
               required
+            />
+            <small style={{ fontSize: 11, color: 'var(--text-light)' }}>Instructions will be sent here and displayed below</small>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label-custom">Phone Number (Optional)</label>
+            <input
+              type="tel"
+              className="form-ctrl"
+              value={donorPhone}
+              onChange={(e) => setDonorPhone(e.target.value)}
+              placeholder="+1234567890 for WhatsApp updates"
             />
           </div>
 
