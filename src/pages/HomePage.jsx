@@ -34,6 +34,9 @@ export default function HomePage() {
   useEffect(() => { loadCampaigns() }, [])
 
   const handleDonateClick = (campaign) => {
+    console.log('Donate clicked for campaign:', campaign?.title)
+    console.log('Current user:', currentUser ? 'Logged in' : 'Guest')
+    
     if (currentUser) {
       // Logged in user - scroll to donation form with preselected campaign
       setSelectedCampaign(campaign)
@@ -177,7 +180,7 @@ export default function HomePage() {
                 ))}
               </div>
               {!currentUser && (
-                <div className="trust-item" style={{ background: 'var(--primary-l)', marginTop: 20, borderRadius: 12 }}>
+                <div className="trust-item" style={{ background: 'rgba(232,83,30,.08)', marginTop: 20, borderRadius: 12 }}>
                   <div className="trust-icon"><i className="fas fa-user-friends"></i></div>
                   <div className="trust-text">
                     <strong>Donate as Guest</strong>
@@ -283,7 +286,7 @@ export default function HomePage() {
           onSuccess={() => {
             setShowGuestDonate(false)
             setSelectedCampaign(null)
-            loadCampaigns() // Refresh campaign data
+            loadCampaigns()
             showToast('Thank you for your donation! Admin will verify it shortly.', false)
           }}
         />

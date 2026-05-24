@@ -25,7 +25,6 @@ export default function GuestDonationModal({ isOpen, onClose, campaignId, campai
   };
 
   const showToast = (message, isError = false) => {
-    // Dispatch custom event for toast
     const toastEvent = new CustomEvent('showToast', { 
       detail: { message, type: isError ? 'error' : 'success' } 
     });

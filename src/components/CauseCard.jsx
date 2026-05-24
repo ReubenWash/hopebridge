@@ -11,7 +11,8 @@ export default function CauseCard({ campaign, onDonate }) {
 
   const handleDonateClick = (e) => {
     e.stopPropagation();
-    onDonate(campaign.id);
+    // Pass the full campaign object, not just the ID
+    onDonate(campaign);
   };
 
   return (
@@ -23,15 +24,17 @@ export default function CauseCard({ campaign, onDonate }) {
         <h3>{campaign.title}</h3>
         <p>{campaign.description ? campaign.description.substring(0, 80) : 'No description available'}...</p>
         <div className="progress-label">
-          <span>Raised: ${campaign.raised.toLocaleString()}</span>
+          <span>Raised: ${campaign.raised?.toLocaleString() || 0}</span>
           <span>{Math.round(pct)}%</span>
         </div>
         <div className="prog-bg">
           <div className="prog-fill" style={{ width: `${pct}%` }}></div>
         </div>
         <div className="card-footer-row">
-          <span className="raised-amount">Goal: ${campaign.goal.toLocaleString()}</span>
-          <button className="donate-cause-btn" onClick={handleDonateClick}>Donate</button>
+          <span className="raised-amount">Goal: ${campaign.goal?.toLocaleString() || 0}</span>
+          <button className="donate-cause-btn" onClick={handleDonateClick}>
+            <i className="fas fa-heart"></i> Donate
+          </button>
         </div>
       </div>
     </div>
