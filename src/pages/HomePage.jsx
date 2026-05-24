@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import CauseCard from '../components/CauseCard'
 import DonationForm from '../components/DonationForm'
+import GuestDonationModal from '../components/GuestDonationModal'
 
 const HOW_STEPS = [
   { n: 1, title: 'Browse Causes',   desc: 'Explore verified campaigns across education, health, and environment.' },
@@ -23,11 +24,26 @@ const TESTIMONIALS = [
 ]
 
 export default function HomePage() {
-  const { approvedCampaigns, totalFunds, loadCampaigns, openAuth } = useApp()
+  const { currentUser, approvedCampaigns, totalFunds, loadCampaigns, openAuth, showToast } = useApp()
   const navigate = useNavigate()
+  const [selectedCampaign, setSelectedCampaign] = useState(null)
+  const [showGuestDonate, setShowGuestDonate] = useState(false)
+
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
 
   useEffect(() => { loadCampaigns() }, [])
+
+  const handleDonateClick = (campaign) => {
+    if (currentUser) {
+      // Logged in user - scroll to donation form with preselected campaign
+      setSelectedCampaign(campaign)
+      scrollTo('donate')
+    } else {
+      // Guest user - open guest donation modal
+      setSelectedCampaign(campaign)
+      setShowGuestDonate(true)
+    }
+  }
 
   return (
     <>
@@ -113,7 +129,11 @@ export default function HomePage() {
           ) : (
             <div className="cards-grid">
               {approvedCampaigns.map(c => (
-                <CauseCard key={c.id} campaign={c} onDonate={() => scrollTo('donate')} />
+                <CauseCard 
+                  key={c.id} 
+                  campaign={c} 
+                  onDonate={() => handleDonateClick(c)} 
+                />
               ))}
             </div>
           )}
@@ -156,8 +176,17 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
+              {!currentUser && (
+                <div className="trust-item" style={{ background: 'var(--primary-l)', marginTop: 20, borderRadius: 12 }}>
+                  <div className="trust-icon"><i className="fas fa-user-friends"></i></div>
+                  <div className="trust-text">
+                    <strong>Donate as Guest</strong>
+                    <span>No account needed! You can donate without creating an account.</span>
+                  </div>
+                </div>
+              )}
             </div>
-            <DonationForm />
+            <DonationForm preselectedCampaign={selectedCampaign} />
           </div>
         </div>
       </section>
@@ -223,7 +252,7 @@ export default function HomePage() {
           <div>
             <h4>Sign In As</h4>
             <ul className="footer-links">
-              <li><a onClick={() => openAuth('register', 'donor')}>Donor </a></li>
+              <li><a onClick={() => openAuth('register', 'donor')}>Donor</a></li>
               <li><a onClick={() => openAuth('register', 'creator')}>Campaign Creator</a></li>
             </ul>
           </div>
@@ -240,6 +269,25 @@ export default function HomePage() {
           <p>Made with <span style={{ color: 'var(--primary)' }}>❤</span> for a better world</p>
         </div>
       </footer>
+
+      {/* Guest Donation Modal */}
+      {selectedCampaign && (
+        <GuestDonationModal
+          isOpen={showGuestDonate}
+          onClose={() => {
+            setShowGuestDonate(false)
+            setSelectedCampaign(null)
+          }}
+          campaignId={selectedCampaign.id}
+          campaignTitle={selectedCampaign.title}
+          onSuccess={() => {
+            setShowGuestDonate(false)
+            setSelectedCampaign(null)
+            loadCampaigns() // Refresh campaign data
+            showToast('Thank you for your donation! Admin will verify it shortly.', false)
+          }}
+        />
+      )}
     </>
   )
 }
