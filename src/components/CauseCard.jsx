@@ -11,7 +11,7 @@ export default function CauseCard({ campaign, onDonate }) {
 
   const handleDonateClick = (e) => {
     e.stopPropagation();
-    // Pass the full campaign object, not just the ID
+    // Pass the full campaign object to onDonate
     onDonate(campaign);
   };
 

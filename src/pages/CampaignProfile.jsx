@@ -242,7 +242,7 @@ const injectStyles = () => {
     .cp-share-tw { background:#000; color:#fff; }
     .cp-share-cp { background:#fff; color:var(--ink); }
 
-    /* ── Donation form ── */
+    /* ── Donation form wrapper ── */
     .cp-donate-panel {
       border:1px solid var(--paper-3); border-radius:var(--r-lg); padding:24px; margin-top:16px;
       background:var(--paper-2); box-shadow:var(--sh);
@@ -380,10 +380,6 @@ export default function CampaignProfile() {
   };
 
   const handleDonate = () => {
-    if (!currentUser) {
-      showToast('Please log in to donate', true);
-      return;
-    }
     setShowDonate(true);
   };
 
@@ -624,7 +620,7 @@ export default function CampaignProfile() {
             </div>
           </div>
 
-          {/* Donate form */}
+          {/* Donate form - unified (handles both logged-in and guest) */}
           {showDonate && (
             <div className="cp-donate-panel cp-fade">
               <div className="cp-donate-panel-hdr">
@@ -633,7 +629,11 @@ export default function CampaignProfile() {
               </div>
               <DonationForm
                 campaignId={campaign.id}
-                onSuccess={() => { setShowDonate(false); loadAll(); refreshWallet?.(); }}
+                onSuccess={() => { 
+                  setShowDonate(false); 
+                  loadAll(); 
+                  if (refreshWallet) refreshWallet();
+                }}
               />
             </div>
           )}
