@@ -62,7 +62,6 @@ const injectStyles = () => {
     .tb-actions{display:flex;align-items:center;gap:10px}
     .tb-btn{width:38px;height:38px;border-radius:var(--r-sm);background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background var(--tr)}
     .tb-btn:hover{background:var(--bg)}
-    .ndot{position:absolute;top:7px;right:7px;width:7px;height:7px;background:var(--red);border-radius:50%;border:1.5px solid var(--surface)}
     .notif-panel{position:absolute;top:calc(100% + 8px);right:0;width:340px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--sh-lg);z-index:999;max-height:480px;overflow-y:auto}
     .notif-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
     .notif-title{font-weight:700;font-size:14px;color:var(--txt)}
@@ -104,7 +103,7 @@ const injectStyles = () => {
     .cn{font-size:13.5px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .cm{font-size:11px;color:var(--txt-3);margin-top:2px}
     .pb{height:4px;background:var(--bg);border-radius:2px;margin-top:5px;overflow:hidden}
-    .pf{height:100%;background:var(--green);border-radius:2px;transition:width .9s ease}
+    .pf{height:100%;background:var(--green);border-radius:2px}
     .badge{font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
     .bp{background:var(--amber-l);color:#854F0B}.ba{background:var(--green-l);color:var(--green-d)}.br{background:var(--blue-l);color:#185FA5}.bx{background:var(--red-l);color:var(--red)}
     .qg{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px}
@@ -128,7 +127,6 @@ const injectStyles = () => {
     .qt-card{background:var(--surface);border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--sh-sm);display:flex;align-items:center;justify-content:space-between;gap:12px}
     .qt-label{font-size:13px;font-weight:600;color:var(--txt)}
     .qt-sub{font-size:11px;color:var(--txt-3);margin-top:2px}
-    .qt-icon{width:36px;height:36px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0}
     .status-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
     .status-pill.on{background:var(--green-l);color:var(--green-d)}.status-pill.off{background:var(--red-l);color:var(--red)}
     .status-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
@@ -158,7 +156,6 @@ const injectStyles = () => {
     .db{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:var(--fb);transition:opacity var(--tr);display:inline-flex;align-items:center;gap:4px}
     .dba{background:var(--green-l);color:var(--green-d)}.dba:hover{background:var(--green-m)}
     .dbr{background:var(--red-l);color:var(--red)}.dbv{background:var(--blue-l);color:#185FA5}.dbp{background:var(--amber-l);color:#854F0B}
-    /* UNIQUE MODAL STYLES - No conflict with global CSS */
     .hb-modal-bd{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9998;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
     .hb-modal{background:var(--surface);border-radius:var(--r-xl);padding:28px;width:90%;max-width:560px;box-shadow:var(--sh-lg);max-height:90vh;overflow-y:auto;position:relative;z-index:9999}
     .hb-modal-t{font-family:var(--fd);font-size:22px;color:var(--txt);margin-bottom:6px}
@@ -270,7 +267,7 @@ function NotificationPanel({ notifications, onMarkRead, onClearAll, onClose }) {
 function ChangePasswordModal({ isOpen, onClose, onSave, showToast }) {
   const [oldPw, setOldPw] = useState('');
   const [newPw, setNewPw] = useState('');
-  const [conf,  setConf]  = useState('');
+  const [conf, setConf] = useState('');
   const [loading, setLoading] = useState(false);
   const [showOld, setShowOld] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -426,7 +423,7 @@ function EditCampaignModal({ isOpen, onClose, campaign, onSave, showToast }) {
   );
 }
 
-// ── Create Campaign Modal (UPDATED with Image Upload) ──
+// ── Create Campaign Modal with Image Upload ───────
 function CreateCampaignModal({ isOpen, onClose, onSave, showToast }) {
   const [data, setData] = useState({ 
     title: '', description: '', goal: '', category: 'General',
@@ -515,7 +512,7 @@ function CreateCampaignModal({ isOpen, onClose, onSave, showToast }) {
 // ── Wallet Adjustment Modal ───────────────────────
 function WalletAdjustModal({ isOpen, onClose, user, onSave, showToast }) {
   const [amount, setAmount] = useState('');
-  const [type,   setType]   = useState('add');
+  const [type, setType] = useState('add');
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   if (!isOpen || !user) return null;
@@ -525,7 +522,6 @@ function WalletAdjustModal({ isOpen, onClose, user, onSave, showToast }) {
     if (!amt || amt <= 0) { showToast('Enter a valid amount', true); return; }
     setLoading(true);
     try { 
-      // Convert type to what backend expects: 'credit' or 'debit'
       const backendType = type === 'add' ? 'credit' : 'debit';
       await onSave(user.id, { amount: amt, type: backendType, reason }); 
       showToast(`Wallet ${type === 'add' ? 'credited' : 'debited'} $${amt}`); 
@@ -605,12 +601,12 @@ function CampaignProgressModal({ isOpen, onClose, campaign, onSave, showToast })
 
 // ── Email Templates ───────────────────────────────
 const EMAIL_TEMPLATES = [
-  { id: 'verification',      name: 'Email Verification',   desc: 'Sent when users register',          subjectKey: 'verification_subject',      bodyKey: 'verification_body',      defaultSubject: 'Your HopeBridge Verification Code',           defaultBody: 'Hi {{name}},\n\nYour verification code is:\n\n{{code}}\n\nExpires in 15 minutes.' },
-  { id: 'welcome',           name: 'Welcome Email',         desc: 'Sent after registration',            subjectKey: 'welcome_subject',           bodyKey: 'welcome_body',           defaultSubject: 'Welcome to HopeBridge, {{name}}!',            defaultBody: 'Hi {{name}},\n\nWelcome to HopeBridge as a {{role}}.\n\nStart making an impact today.' },
-  { id: 'donation',          name: 'Donation Confirmation', desc: 'Sent to donors after donating',      subjectKey: 'donation_subject',          bodyKey: 'donation_body',          defaultSubject: 'Thank you for your donation of ${{amount}}!', defaultBody: 'Dear {{donor_name}},\n\nThank you for donating ${{amount}} to {{campaign_title}}.' },
-  { id: 'campaign_approved', name: 'Campaign Approved',     desc: 'Sent to creators on approval',       subjectKey: 'campaign_approved_subject', bodyKey: 'campaign_approved_body', defaultSubject: 'Your campaign "{{title}}" is approved!',       defaultBody: 'Dear {{creator_name}},\n\nYour campaign "{{title}}" is now live.' },
-  { id: 'campaign_rejected', name: 'Campaign Rejected',     desc: 'Sent to creators on rejection',      subjectKey: 'campaign_rejected_subject', bodyKey: 'campaign_rejected_body', defaultSubject: 'Update on your campaign "{{title}}"',          defaultBody: 'Dear {{creator_name}},\n\nYour campaign "{{title}}" did not meet our guidelines.' },
-  { id: 'withdrawal',        name: 'Withdrawal Status',     desc: 'Sent on withdrawal approve/reject',  subjectKey: 'withdrawal_subject',        bodyKey: 'withdrawal_body',        defaultSubject: 'Your withdrawal of ${{amount}} has been {{status}}', defaultBody: 'Dear {{name}},\n\nYour withdrawal of ${{amount}} has been {{status}}.\n\n{{admin_note}}' },
+  { id: 'verification', name: 'Email Verification', desc: 'Sent when users register', subjectKey: 'verification_subject', bodyKey: 'verification_body', defaultSubject: 'Your HopeBridge Verification Code', defaultBody: 'Hi {{name}},\n\nYour verification code is:\n\n{{code}}\n\nExpires in 15 minutes.' },
+  { id: 'welcome', name: 'Welcome Email', desc: 'Sent after registration', subjectKey: 'welcome_subject', bodyKey: 'welcome_body', defaultSubject: 'Welcome to HopeBridge, {{name}}!', defaultBody: 'Hi {{name}},\n\nWelcome to HopeBridge as a {{role}}.\n\nStart making an impact today.' },
+  { id: 'donation', name: 'Donation Confirmation', desc: 'Sent to donors after donating', subjectKey: 'donation_subject', bodyKey: 'donation_body', defaultSubject: 'Thank you for your donation of ${{amount}}!', defaultBody: 'Dear {{donor_name}},\n\nThank you for donating ${{amount}} to {{campaign_title}}.' },
+  { id: 'campaign_approved', name: 'Campaign Approved', desc: 'Sent to creators on approval', subjectKey: 'campaign_approved_subject', bodyKey: 'campaign_approved_body', defaultSubject: 'Your campaign "{{title}}" is approved!', defaultBody: 'Dear {{creator_name}},\n\nYour campaign "{{title}}" is now live.' },
+  { id: 'campaign_rejected', name: 'Campaign Rejected', desc: 'Sent to creators on rejection', subjectKey: 'campaign_rejected_subject', bodyKey: 'campaign_rejected_body', defaultSubject: 'Update on your campaign "{{title}}"', defaultBody: 'Dear {{creator_name}},\n\nYour campaign "{{title}}" did not meet our guidelines.' },
+  { id: 'withdrawal', name: 'Withdrawal Status', desc: 'Sent on withdrawal approve/reject', subjectKey: 'withdrawal_subject', bodyKey: 'withdrawal_body', defaultSubject: 'Your withdrawal of ${{amount}} has been {{status}}', defaultBody: 'Dear {{name}},\n\nYour withdrawal of ${{amount}} has been {{status}}.\n\n{{admin_note}}' },
 ];
 
 function EmailTemplateEditor({ showToast }) {
@@ -786,15 +782,15 @@ function FeeSettings({ fees, onSave, showToast }) {
         These fees apply to wallet transactions. Set to 0 to disable.
       </div>
       {[
-        ['percentage',         'Platform Fee (%)',             'Percentage taken from each donation'],
-        ['fixed_amount',       'Fixed Fee per Transaction ($)', ''],
-        ['min_fee',            'Minimum Fee ($)',              ''],
-        ['max_fee',            'Maximum Fee ($)',              'Leave empty for no maximum'],
-        ['withdrawal_fee',     'Withdrawal Fee ($)',           ''],
-        ['minimum_deposit',    'Minimum Deposit Amount ($)',   'Users cannot deposit below this amount'],
-        ['maximum_deposit',    'Maximum Deposit Amount ($)',   'Leave empty for no maximum'],
-        ['minimum_withdrawal', 'Minimum Withdrawal Amount ($)','Users cannot withdraw below this amount'],
-        ['maximum_withdrawal', 'Maximum Withdrawal Amount ($)','Leave empty for no maximum'],
+        ['percentage', 'Platform Fee (%)', 'Percentage taken from each donation'],
+        ['fixed_amount', 'Fixed Fee per Transaction ($)', ''],
+        ['min_fee', 'Minimum Fee ($)', ''],
+        ['max_fee', 'Maximum Fee ($)', 'Leave empty for no maximum'],
+        ['withdrawal_fee', 'Withdrawal Fee ($)', ''],
+        ['minimum_deposit', 'Minimum Deposit Amount ($)', 'Users cannot deposit below this amount'],
+        ['maximum_deposit', 'Maximum Deposit Amount ($)', 'Leave empty for no maximum'],
+        ['minimum_withdrawal', 'Minimum Withdrawal Amount ($)', 'Users cannot withdraw below this amount'],
+        ['maximum_withdrawal', 'Maximum Withdrawal Amount ($)', 'Leave empty for no maximum'],
       ].map(([k, label, hint]) => (
         <div key={k} style={{ marginBottom: 16 }}>
           <label className="fl">{label}</label>
@@ -903,7 +899,6 @@ function CompletionRequestsManager({ requests, onRelease, onRefund }) {
 }
 
 // ── PayoutsManager ────────────────────────────────
-// ── PayoutsManager ────────────────────────────────
 function PayoutsManager({ payouts, onMarkPaid }) {
   const [filter, setFilter] = useState('all');
   const filtered = filter === 'all' ? payouts : payouts.filter(p => p.status === filter);
@@ -942,6 +937,7 @@ function PayoutsManager({ payouts, onMarkPaid }) {
     </div>
   );
 }
+
 // ── NotificationManager ───────────────────────────
 function NotificationManager({ settings, onSave, onSend, history, showToast }) {
   const [local, setLocal] = useState(settings);
@@ -1029,7 +1025,15 @@ function AuditLogs({ logs }) {
         {actions.map(a => <button key={a} className={`db ${filter === a ? 'dba' : 'dbv'}`} onClick={() => setFilter(a)}>{a.replace(/_/g, ' ')}</button>)}
       </div>
       <table className="ut">
-        <thead><tr><th>Admin</th><th>Action</th><th>Entity</th><th>Details</th><th>Time</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Admin</th>
+            <th>Action</th>
+            <th>Entity</th>
+            <th>Details</th>
+            <th>Time</th>
+          </tr>
+        </thead>
         <tbody>
           {filtered.map(log => (
             <tr key={log.id}>
@@ -1055,51 +1059,51 @@ export default function AdminDashboard() {
   const notifRef = useRef(null);
   const mobileNotifRef = useRef(null);
 
-  const [authChecked,        setAuthChecked]        = useState(false);
-  const [activeTab,          setActiveTab]          = useState('overview');
-  const [dataLoading,        setDataLoading]        = useState(false);
-  const [darkMode,           setDarkMode]           = useState(localStorage.getItem('hb_darkmode') === 'true');
-  const [settingsTab,        setSettingsTab]        = useState('security');
-  const [showNotifPanel,     setShowNotifPanel]     = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [dataLoading, setDataLoading] = useState(false);
+  const [darkMode, setDarkMode] = useState(localStorage.getItem('hb_darkmode') === 'true');
+  const [settingsTab, setSettingsTab] = useState('security');
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
   const [showMobileNotifPanel, setShowMobileNotifPanel] = useState(false);
-  const [notifications,      setNotifications]      = useState([]);
+  const [notifications, setNotifications] = useState([]);
 
-  const [showChangePassword,  setShowChangePassword]  = useState(false);
-  const [deleteUserModal,     setDeleteUserModal]     = useState({ open: false, userId: null, userName: '' });
-  const [showAddUserModal,    setShowAddUserModal]    = useState(false);
-  const [editUserModal,       setEditUserModal]       = useState({ open: false, user: null });
-  const [editCampaignModal,   setEditCampaignModal]   = useState({ open: false, campaign: null });
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [deleteUserModal, setDeleteUserModal] = useState({ open: false, userId: null, userName: '' });
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [editUserModal, setEditUserModal] = useState({ open: false, user: null });
+  const [editCampaignModal, setEditCampaignModal] = useState({ open: false, campaign: null });
   const [createCampaignModal, setCreateCampaignModal] = useState(false);
-  const [walletModal,         setWalletModal]         = useState({ open: false, user: null });
-  const [progressModal,       setProgressModal]       = useState({ open: false, campaign: null });
-  const [newUser,             setNewUser]             = useState({ name: '', email: '', password: '', role: 'donor', is_verified: true });
-  const [editUser,            setEditUser]            = useState({ name: '', email: '', role: 'donor', is_verified: false });
-  const [addingUser,          setAddingUser]          = useState(false);
-  const [editingUser,         setEditingUser]         = useState(false);
+  const [walletModal, setWalletModal] = useState({ open: false, user: null });
+  const [progressModal, setProgressModal] = useState({ open: false, campaign: null });
+  const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'donor', is_verified: true });
+  const [editUser, setEditUser] = useState({ name: '', email: '', role: 'donor', is_verified: false });
+  const [addingUser, setAddingUser] = useState(false);
+  const [editingUser, setEditingUser] = useState(false);
 
-  const [themeSettings,    setThemeSettings]    = useState({ '--primary': '#e8531e', '--primary-dark': '#c4400f', '--secondary': '#27a96c', '--dark': '#1a1a2e' });
-  const [integrationKeys,  setIntegrationKeys]  = useState({ smtp_host: '', smtp_port: '', smtp_user: '', smtp_pass: '', recaptcha_site_key: '', recaptcha_secret_key: '' });
-  const [socialLinks,      setSocialLinks]      = useState({ facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '' });
-  const [maintenanceMode,       setMaintenanceMode]       = useState({ enabled: false, message: '' });
-  const [verificationEnabled,   setVerificationEnabled]   = useState(true);
-  const [recaptchaEnabled,      setRecaptchaEnabled]      = useState(false);
-  const [togglingMaintenance,   setTogglingMaintenance]   = useState(false);
-  const [togglingVerification,  setTogglingVerification]  = useState(false);
-  const [togglingRecaptcha,     setTogglingRecaptcha]     = useState(false);
+  const [themeSettings, setThemeSettings] = useState({ '--primary': '#e8531e', '--primary-dark': '#c4400f', '--secondary': '#27a96c', '--dark': '#1a1a2e' });
+  const [integrationKeys, setIntegrationKeys] = useState({ smtp_host: '', smtp_port: '', smtp_user: '', smtp_pass: '', recaptcha_site_key: '', recaptcha_secret_key: '' });
+  const [socialLinks, setSocialLinks] = useState({ facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '' });
+  const [maintenanceMode, setMaintenanceMode] = useState({ enabled: false, message: '' });
+  const [verificationEnabled, setVerificationEnabled] = useState(true);
+  const [recaptchaEnabled, setRecaptchaEnabled] = useState(false);
+  const [togglingMaintenance, setTogglingMaintenance] = useState(false);
+  const [togglingVerification, setTogglingVerification] = useState(false);
+  const [togglingRecaptcha, setTogglingRecaptcha] = useState(false);
 
-  const [campaigns,           setCampaigns]           = useState([]);
-  const [users,               setUsers]               = useState([]);
-  const [donations,           setDonations]           = useState([]);
-  const [depositRequests,     setDepositRequests]     = useState([]);
-  const [withdrawalRequests,  setWithdrawalRequests]  = useState([]);
-  const [completionRequests,  setCompletionRequests]  = useState([]);
-  const [payouts,             setPayouts]             = useState([]);
-  const [feeSettings,         setFeeSettings]         = useState({ percentage: 0, fixed_amount: 0, min_fee: 0, withdrawal_fee: 0, minimum_withdrawal: 10, minimum_deposit: 1 });
-  const [notifHistory,        setNotifHistory]        = useState([]);
-  const [notifSettings,       setNotifSettings]       = useState({ enabled: true });
-  const [auditLogs,           setAuditLogs]           = useState([]);
-  const [content,             setContent]             = useState({ hero_title: 'Together We Can', hero_subtitle: 'Support causes you care about.', hero_badge: 'HopeBridge', impact_title: 'Our Impact', impact_subtitle: 'Every donation counts', impact_stats: { raised: '$0', campaigns: '0', donors: '0' }, social_links: { facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '' } });
-  const [lastDonationCheck,   setLastDonationCheck]   = useState(Date.now());
+  const [campaigns, setCampaigns] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [donations, setDonations] = useState([]);
+  const [depositRequests, setDepositRequests] = useState([]);
+  const [withdrawalRequests, setWithdrawalRequests] = useState([]);
+  const [completionRequests, setCompletionRequests] = useState([]);
+  const [payouts, setPayouts] = useState([]);
+  const [feeSettings, setFeeSettings] = useState({ percentage: 0, fixed_amount: 0, min_fee: 0, withdrawal_fee: 0, minimum_withdrawal: 10, minimum_deposit: 1 });
+  const [notifHistory, setNotifHistory] = useState([]);
+  const [notifSettings, setNotifSettings] = useState({ enabled: true });
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [content, setContent] = useState({ hero_title: 'Together We Can', hero_subtitle: 'Support causes you care about.', hero_badge: 'HopeBridge', impact_title: 'Our Impact', impact_subtitle: 'Every donation counts', impact_stats: { raised: '$0', campaigns: '0', donors: '0' }, social_links: { facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '' } });
+  const [lastDonationCheck, setLastDonationCheck] = useState(Date.now());
 
   useEffect(() => {
     const handler = e => { 
@@ -1142,13 +1146,13 @@ export default function AdminDashboard() {
     setDataLoading(true);
     try {
       const [c, u, don, dep, wd, compl, cont] = await Promise.all([
-        safeGet(() => adminApi.getCampaigns(),             { campaigns: [] }),
-        safeGet(() => adminApi.getUsers(),                 { users: [] }),
-        safeGet(() => adminApi.getDonations(),             { donations: [] }),
-        safeGet(() => adminApi.getDepositRequests?.(),     { requests: [] }),
-        safeGet(() => adminApi.getWithdrawalRequests?.(),  { withdrawals: [] }),
-        safeGet(() => adminApi.getCompletionRequests?.(),  { campaigns: [] }),
-        safeGet(() => adminApi.getContent(),               { content: null }),
+        safeGet(() => adminApi.getCampaigns(), { campaigns: [] }),
+        safeGet(() => adminApi.getUsers(), { users: [] }),
+        safeGet(() => adminApi.getDonations(), { donations: [] }),
+        safeGet(() => adminApi.getDepositRequests?.(), { requests: [] }),
+        safeGet(() => adminApi.getWithdrawalRequests?.(), { withdrawals: [] }),
+        safeGet(() => adminApi.getCompletionRequests?.(), { campaigns: [] }),
+        safeGet(() => adminApi.getContent(), { content: null }),
       ]);
       setCampaigns((c.campaigns || []).map(x => ({ ...x, goal: toNum(x.goal), raised: toNum(x.raised) })));
       setUsers((u.users || []).map(x => ({ ...x, wallet_balance: toNum(x.wallet_balance) })));
@@ -1163,11 +1167,11 @@ export default function AdminDashboard() {
 
   const fetchExtras = async () => {
     const [payRes, feeRes, notifRes, auditRes, sett, notifSett] = await Promise.all([
-      safeGet(() => adminApi.getPayouts?.(),              { payouts: [] }),
-      safeGet(() => adminApi.getFeeSettings?.(),          { percentage: 0, fixed_amount: 0, min_fee: 0, withdrawal_fee: 0, minimum_withdrawal: 10, minimum_deposit: 1 }),
-      safeGet(() => adminApi.getNotificationHistory?.(),  { notifications: [] }),
-      safeGet(() => adminApi.getAuditLogs?.(),            { logs: [] }),
-      safeGet(() => adminApi.getSettings(),               { settings: null }),
+      safeGet(() => adminApi.getPayouts?.(), { payouts: [] }),
+      safeGet(() => adminApi.getFeeSettings?.(), { percentage: 0, fixed_amount: 0, min_fee: 0, withdrawal_fee: 0, minimum_withdrawal: 10, minimum_deposit: 1 }),
+      safeGet(() => adminApi.getNotificationHistory?.(), { notifications: [] }),
+      safeGet(() => adminApi.getAuditLogs?.(), { logs: [] }),
+      safeGet(() => adminApi.getSettings(), { settings: null }),
       safeGet(() => adminApi.getNotificationSettings?.(), { enabled: true }),
     ]);
     setPayouts(payRes.payouts || []);
@@ -1186,13 +1190,13 @@ export default function AdminDashboard() {
 
   useEffect(() => { if (authChecked) { fetchAll(); fetchExtras(); } }, [authChecked]);
 
-  const handleToggleMaintenance  = async val => { setTogglingMaintenance(true); try { await adminApi.saveSettings({ keys: { maintenance_mode: val ? 'true' : 'false' } }); setMaintenanceMode(p => ({ ...p, enabled: val })); showToast(`Maintenance ${val ? 'enabled' : 'disabled'}`); addNotif(`Maintenance mode ${val ? 'enabled' : 'disabled'}`, 'warning'); } catch (err) { showToast(err.message, true); } finally { setTogglingMaintenance(false); } };
+  const handleToggleMaintenance = async val => { setTogglingMaintenance(true); try { await adminApi.saveSettings({ keys: { maintenance_mode: val ? 'true' : 'false' } }); setMaintenanceMode(p => ({ ...p, enabled: val })); showToast(`Maintenance ${val ? 'enabled' : 'disabled'}`); addNotif(`Maintenance mode ${val ? 'enabled' : 'disabled'}`, 'warning'); } catch (err) { showToast(err.message, true); } finally { setTogglingMaintenance(false); } };
   const handleToggleVerification = async val => { setTogglingVerification(true); try { await adminApi.updateVerificationSetting?.({ enabled: val }); setVerificationEnabled(val); showToast(`Email verification ${val ? 'enabled' : 'disabled'}`); } catch (err) { showToast(err.message, true); } finally { setTogglingVerification(false); } };
-  const handleToggleRecaptcha    = async val => { setTogglingRecaptcha(true); try { await adminApi.saveSettings({ keys: { recaptcha_enabled: val ? 'true' : 'false' } }); setRecaptchaEnabled(val); showToast(`reCAPTCHA ${val ? 'enabled' : 'disabled'}`); } catch (err) { showToast(err.message, true); } finally { setTogglingRecaptcha(false); } };
+  const handleToggleRecaptcha = async val => { setTogglingRecaptcha(true); try { await adminApi.saveSettings({ keys: { recaptcha_enabled: val ? 'true' : 'false' } }); setRecaptchaEnabled(val); showToast(`reCAPTCHA ${val ? 'enabled' : 'disabled'}`); } catch (err) { showToast(err.message, true); } finally { setTogglingRecaptcha(false); } };
 
   const handleApproveCampaign = async id => { try { await adminApi.updateCampaign(id, { status: 'approved' }); showToast('Campaign approved'); addNotif('Campaign approved'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleRejectCampaign  = async id => { try { await adminApi.updateCampaign(id, { status: 'rejected' }); showToast('Campaign rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleDeleteCampaign  = async id => { if (!window.confirm('Delete permanently?')) return; try { await campaignApi.delete(id); showToast('Deleted'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleRejectCampaign = async id => { try { await adminApi.updateCampaign(id, { status: 'rejected' }); showToast('Campaign rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleDeleteCampaign = async id => { if (!window.confirm('Delete permanently?')) return; try { await campaignApi.delete(id); showToast('Deleted'); fetchAll(); } catch (err) { showToast(err.message, true); } };
 
   const handleEditCampaignSave = async (id, data) => {
     await adminApi.updateCampaign(id, data);
@@ -1209,9 +1213,9 @@ export default function AdminDashboard() {
     catch { await fetch(`/api/campaigns/${campaignId}/progress`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('hb_token')}` }, body: JSON.stringify({ raised }) }); fetchAll(); }
   };
 
-  const handleToggleUser       = async id => { try { await adminApi.toggleUser(id); showToast('User updated'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleVerifyUser       = async id => { try { await adminApi.verifyUser?.(id); showToast('User verified'); addNotif('User manually verified', 'info'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleDeleteUser       = async id => { try { await adminApi.deleteUser?.(id); showToast('User deleted'); fetchAll(); } catch (err) { throw err; } };
+  const handleToggleUser = async id => { try { await adminApi.toggleUser(id); showToast('User updated'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleVerifyUser = async id => { try { await adminApi.verifyUser?.(id); showToast('User verified'); addNotif('User manually verified', 'info'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleDeleteUser = async id => { try { await adminApi.deleteUser?.(id); showToast('User deleted'); fetchAll(); } catch (err) { throw err; } };
 
   const handleAddUserSubmit = async e => {
     e.preventDefault();
@@ -1236,33 +1240,33 @@ export default function AdminDashboard() {
     fetchAll();
   };
 
-  const handleApproveDeposit      = async (id, amount) => { try { await adminApi.updateDepositRequest?.(id, { status: 'approved' }); showToast('Deposit approved'); addNotif(`Deposit of $${amount} approved`); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleRejectDeposit       = async id => { try { await adminApi.updateDepositRequest?.(id, { status: 'rejected' }); showToast('Deposit rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleApproveDeposit = async (id, amount) => { try { await adminApi.updateDepositRequest?.(id, { status: 'approved' }); showToast('Deposit approved'); addNotif(`Deposit of $${amount} approved`); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleRejectDeposit = async id => { try { await adminApi.updateDepositRequest?.(id, { status: 'rejected' }); showToast('Deposit rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
   const handleProvideInstructions = async (id, inst) => { try { await adminApi.updateDepositRequest?.(id, { admin_instructions: inst, status: 'instructions_sent' }); showToast('Instructions sent'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleApproveWithdrawal   = async id => { try { await adminApi.approveWithdrawal(id); showToast('Withdrawal approved'); addNotif('Withdrawal approved'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleRejectWithdrawal    = async id => { const r = prompt('Reason:'); if (!r) return; try { await adminApi.rejectWithdrawal(id, r); showToast('Withdrawal rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleReleaseEscrow       = async id => { try { await adminApi.releaseCampaignEscrow(id); showToast('Escrow released'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleRefundEscrow        = async id => { try { await adminApi.refundCampaignEscrow(id); showToast('Escrow refunded'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleSaveContent         = async c => { try { await adminApi.saveContent(c); setContent(c); showToast('Content updated'); } catch (err) { showToast(err.message, true); } };
-  const handleSaveSettings        = async () => { try { await adminApi.saveSettings({ theme: themeSettings, keys: integrationKeys }); showToast('Settings saved'); } catch (err) { showToast(err.message, true); } };
-  const handleSaveFees            = async data => { try { await adminApi.updateFeeSettings?.(data); setFeeSettings(data); showToast('Fee settings saved'); } catch (err) { showToast(err.message, true); } };
-  const handleMarkPayoutPaid      = async id => { try { await adminApi.markPayoutAsPaid?.(id); showToast('Marked as paid'); fetchExtras(); } catch (err) { showToast(err.message, true); } };
-  const handleSaveNotifSettings   = async data => { try { await adminApi.updateNotificationSettings?.(data); showToast('Saved'); } catch (err) { showToast(err.message, true); } };
-  const handleSendPushNotif       = async data => { try { await adminApi.sendPushNotification?.(data); showToast('Notification sent'); addNotif(`Push sent: "${data.title}"`); fetchExtras(); } catch (err) { showToast(err.message, true); } };
-  const handleChangePassword      = async data => { await adminApi.changePassword?.(data); };
-  const handleLogout              = () => { logout(); navigate('/'); };
+  const handleApproveWithdrawal = async id => { try { await adminApi.approveWithdrawal(id); showToast('Withdrawal approved'); addNotif('Withdrawal approved'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleRejectWithdrawal = async id => { const r = prompt('Reason:'); if (!r) return; try { await adminApi.rejectWithdrawal(id, r); showToast('Withdrawal rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleReleaseEscrow = async id => { try { await adminApi.releaseCampaignEscrow(id); showToast('Escrow released'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleRefundEscrow = async id => { try { await adminApi.refundCampaignEscrow(id); showToast('Escrow refunded'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleSaveContent = async c => { try { await adminApi.saveContent(c); setContent(c); showToast('Content updated'); } catch (err) { showToast(err.message, true); } };
+  const handleSaveSettings = async () => { try { await adminApi.saveSettings({ theme: themeSettings, keys: integrationKeys }); showToast('Settings saved'); } catch (err) { showToast(err.message, true); } };
+  const handleSaveFees = async data => { try { await adminApi.updateFeeSettings?.(data); setFeeSettings(data); showToast('Fee settings saved'); } catch (err) { showToast(err.message, true); } };
+  const handleMarkPayoutPaid = async id => { try { await adminApi.markPayoutAsPaid?.(id); showToast('Marked as paid'); fetchExtras(); } catch (err) { showToast(err.message, true); } };
+  const handleSaveNotifSettings = async data => { try { await adminApi.updateNotificationSettings?.(data); showToast('Saved'); } catch (err) { showToast(err.message, true); } };
+  const handleSendPushNotif = async data => { try { await adminApi.sendPushNotification?.(data); showToast('Notification sent'); addNotif(`Push sent: "${data.title}"`); fetchExtras(); } catch (err) { showToast(err.message, true); } };
+  const handleChangePassword = async data => { await adminApi.changePassword?.(data); };
+  const handleLogout = () => { logout(); navigate('/'); };
 
   if (sessionLoading || !authChecked) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading admin panel…</div>;
 
-  const totalRaised        = campaigns.reduce((s, c) => s + c.raised, 0);
-  const activeCampaigns    = campaigns.filter(c => c.status === 'active' || c.status === 'approved').length;
-  const pendingCampaigns   = campaigns.filter(c => c.status === 'pending' || c.status === 'review').length;
-  const donorsCount        = users.filter(u => u.role === 'donor').length;
-  const creatorsCount      = users.filter(u => u.role === 'creator').length;
+  const totalRaised = campaigns.reduce((s, c) => s + c.raised, 0);
+  const activeCampaigns = campaigns.filter(c => c.status === 'active' || c.status === 'approved').length;
+  const pendingCampaigns = campaigns.filter(c => c.status === 'pending' || c.status === 'review').length;
+  const donorsCount = users.filter(u => u.role === 'donor').length;
+  const creatorsCount = users.filter(u => u.role === 'creator').length;
   const pendingWithdrawals = withdrawalRequests.filter(w => w.status === 'pending').length;
   const pendingCompletions = completionRequests.length;
-  const pendingDeposits    = depositRequests.filter(d => d.status === 'pending' || d.status === 'awaiting_proof').length;
-  const unreadNotifs       = notifications.filter(n => !n.read).length;
+  const pendingDeposits = depositRequests.filter(d => d.status === 'pending' || d.status === 'awaiting_proof').length;
+  const unreadNotifs = notifications.filter(n => !n.read).length;
 
   const tabLabel = t => ({ email_templates: 'Email Templates', notifications: 'Notifications', 'audit-logs': 'Audit Logs', fees: 'Fee Settings', payouts: 'Payouts' }[t] || (t.charAt(0).toUpperCase() + t.slice(1)));
 
@@ -1288,25 +1292,25 @@ export default function AdminDashboard() {
         </div>
         <nav className="sb-nav">
           <div className="nav-sec">Main</div>
-          <SideNavBtn id="overview"   label="Dashboard"   icon={<LayoutDashboard size={18} />} />
-          <SideNavBtn id="campaigns"  label="Campaigns"   icon={<Target size={18} />} badge={pendingCampaigns} />
-          <SideNavBtn id="users"      label="Users"       icon={<Users size={18} />} />
+          <SideNavBtn id="overview" label="Dashboard" icon={<LayoutDashboard size={18} />} />
+          <SideNavBtn id="campaigns" label="Campaigns" icon={<Target size={18} />} badge={pendingCampaigns} />
+          <SideNavBtn id="users" label="Users" icon={<Users size={18} />} />
           <div className="nav-sec">Finance</div>
-          <SideNavBtn id="donations"   label="Donations"    icon={<DollarSign size={18} />} />
-          <SideNavBtn id="deposits"    label="Deposits"     icon={<CreditCard size={18} />} badge={pendingDeposits} badgeClass="am" />
-          <SideNavBtn id="withdrawals" label="Withdrawals"  icon={<Banknote size={18} />} badge={pendingWithdrawals} badgeClass="am" />
-          <SideNavBtn id="payouts"     label="Payouts"      icon={<Receipt size={18} />} />
-          <SideNavBtn id="fees"        label="Fee Settings" icon={<Settings size={18} />} />
+          <SideNavBtn id="donations" label="Donations" icon={<DollarSign size={18} />} />
+          <SideNavBtn id="deposits" label="Deposits" icon={<CreditCard size={18} />} badge={pendingDeposits} badgeClass="am" />
+          <SideNavBtn id="withdrawals" label="Withdrawals" icon={<Banknote size={18} />} badge={pendingWithdrawals} badgeClass="am" />
+          <SideNavBtn id="payouts" label="Payouts" icon={<Receipt size={18} />} />
+          <SideNavBtn id="fees" label="Fee Settings" icon={<Settings size={18} />} />
           <div className="nav-sec">Operations</div>
-          <SideNavBtn id="completions"   label="Completions"   icon={<CheckCircle size={18} />} badge={pendingCompletions} badgeClass="am" />
+          <SideNavBtn id="completions" label="Completions" icon={<CheckCircle size={18} />} badge={pendingCompletions} badgeClass="am" />
           <SideNavBtn id="notifications" label="Notifications" icon={<Bell size={18} />} />
-          <SideNavBtn id="audit-logs"    label="Audit Logs"    icon={<History size={18} />} />
-          <SideNavBtn id="maintenance"   label="Maintenance"   icon={<AlertCircle size={18} />} />
+          <SideNavBtn id="audit-logs" label="Audit Logs" icon={<History size={18} />} />
+          <SideNavBtn id="maintenance" label="Maintenance" icon={<AlertCircle size={18} />} />
           <div className="nav-sec">Admin</div>
           <SideNavBtn id="email_templates" label="Email Templates" icon={<MailIcon size={18} />} />
-          <SideNavBtn id="massmail"        label="Mass Mail"       icon={<Send size={18} />} />
-          <SideNavBtn id="content"         label="Content"         icon={<FileText size={18} />} />
-          <SideNavBtn id="settings"        label="Settings"        icon={<Settings size={18} />} />
+          <SideNavBtn id="massmail" label="Mass Mail" icon={<Send size={18} />} />
+          <SideNavBtn id="content" label="Content" icon={<FileText size={18} />} />
+          <SideNavBtn id="settings" label="Settings" icon={<Settings size={18} />} />
           <button className="nl" onClick={() => setDarkMode(d => !d)} style={{ marginTop: 8 }}>
             <Settings size={18} />{darkMode ? 'Light Mode' : 'Dark Mode'}
           </button>
@@ -1493,76 +1497,76 @@ export default function AdminDashboard() {
           </div>
 
           {/* Campaigns Section */}
-<div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
-  <div className="sh">
-    <div className="sht"><Target size={18} /> Campaign Management</div>
-    <button className="btn btn-g" onClick={() => setCreateCampaignModal(true)}><Plus size={16} /> Create Campaign</button>
-  </div>
-  <div className="card">
-    <div className="card-b" style={{ padding: 0 }}>
-      <table className="ut">
-        <thead>
-          <tr>
-            <th style={{ paddingLeft: 20 }}>Campaign</th>
-            <th>Goal</th>
-            <th>Raised</th>
-            <th>Progress</th>
-            <th>Status</th>
-            <th style={{ paddingRight: 20 }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {campaigns.map(c => (
-            <tr key={c.id}>
-              <td style={{ paddingLeft: 20 }}>
-                <div style={{ fontWeight: 600 }}>{c.title}</div>
-                <small style={{ color: 'var(--txt-3)' }}>{c.creator_name}</small>
-              </td>
-              <td>${c.goal.toLocaleString()}</td>
-              <td>${c.raised.toLocaleString()}</td>
-              <td>
-                <div className="pb" style={{ width: 80 }}>
-                  <div className="pf" style={{ width: `${Math.min((c.raised / c.goal) * 100, 100)}%` }} />
-                </div>
-                {Math.round((c.raised / c.goal) * 100)}%
-              </td>
-              <td>
-                <span className={`badge ${c.status === 'approved' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>
-                  {c.status}
-                </span>
-              </td>
-              <td style={{ paddingRight: 20 }}>
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                  {c.status === 'pending' && (
-                    <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>
-                      <CheckCircle size={12} /> Approve
-                    </button>
-                  )}
-                  <button className="db dbv" onClick={() => setEditCampaignModal({ open: true, campaign: c })}>
-                    <Edit size={12} /> Edit
-                  </button>
-                  <button className="db dbp" onClick={() => setProgressModal({ open: true, campaign: c })}>
-                    <TrendingUp size={12} /> Progress
-                  </button>
-                  <button 
-                    className="db dbr" 
-                    onClick={() => { 
-                      if (window.confirm(`Delete "${c.title}" permanently? This action cannot be undone.`)) {
-                        handleDeleteCampaign(c.id);
-                      } 
-                    }}
-                  >
-                    <Trash2 size={12} /> Delete
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
+          <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
+            <div className="sh">
+              <div className="sht"><Target size={18} /> Campaign Management</div>
+              <button className="btn btn-g" onClick={() => setCreateCampaignModal(true)}><Plus size={16} /> Create Campaign</button>
+            </div>
+            <div className="card">
+              <div className="card-b" style={{ padding: 0 }}>
+                <table className="ut">
+                  <thead>
+                    <tr>
+                      <th style={{ paddingLeft: 20 }}>Campaign</th>
+                      <th>Goal</th>
+                      <th>Raised</th>
+                      <th>Progress</th>
+                      <th>Status</th>
+                      <th style={{ paddingRight: 20 }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {campaigns.map(c => (
+                      <tr key={c.id}>
+                        <td style={{ paddingLeft: 20 }}>
+                          <div style={{ fontWeight: 600 }}>{c.title}</div>
+                          <small style={{ color: 'var(--txt-3)' }}>{c.creator_name}</small>
+                        </td>
+                        <td>${c.goal.toLocaleString()}</td>
+                        <td>${c.raised.toLocaleString()}</td>
+                        <td>
+                          <div className="pb" style={{ width: 80 }}>
+                            <div className="pf" style={{ width: `${Math.min((c.raised / c.goal) * 100, 100)}%` }} />
+                          </div>
+                          {Math.round((c.raised / c.goal) * 100)}%
+                        </td>
+                        <td>
+                          <span className={`badge ${c.status === 'approved' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>
+                            {c.status}
+                          </span>
+                        </td>
+                        <td style={{ paddingRight: 20 }}>
+                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                            {c.status === 'pending' && (
+                              <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>
+                                <CheckCircle size={12} /> Approve
+                              </button>
+                            )}
+                            <button className="db dbv" onClick={() => setEditCampaignModal({ open: true, campaign: c })}>
+                              <Edit size={12} /> Edit
+                            </button>
+                            <button className="db dbp" onClick={() => setProgressModal({ open: true, campaign: c })}>
+                              <TrendingUp size={12} /> Progress
+                            </button>
+                            <button 
+                              className="db dbr" 
+                              onClick={() => { 
+                                if (window.confirm(`Delete "${c.title}" permanently?`)) {
+                                  handleDeleteCampaign(c.id);
+                                } 
+                              }}
+                            >
+                              <Trash2 size={12} /> Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
 
           {/* Users Section */}
           <div className={`ps ${activeTab === 'users' ? 'active' : ''}`}>
@@ -1572,25 +1576,63 @@ export default function AdminDashboard() {
             </div>
             <div className="card"><div className="card-b" style={{ padding: 0 }}>
               <table className="ut">
-                <thead><tr><th style={{ paddingLeft: 20 }}>User</th><th>Role</th><th>Joined</th><th>Wallet</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead>
-                <tbody>{users.map(u => (
-                  <tr key={u.id}>
-                    <td style={{ paddingLeft: 20 }}><div className="uc"><div className="uav avg">{u.name?.charAt(0)}</div><div><div style={{ fontWeight: 600 }}>{u.name}</div><small style={{ color: 'var(--txt-3)' }}>{u.email}</small></div></div></td>
-                    <td><span className="badge br">{u.role}</span></td>
-                    <td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
-                    <td><div style={{ fontWeight: 600 }}>${(u.wallet_balance || 0).toFixed(2)}</div></td>
-                    <td><div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}><span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span>{u.is_verified && <span className="badge" style={{ background: 'var(--blue-l)', color: '#185FA5' }}>Verified</span>}</div></td>
-                    <td style={{ paddingRight: 20 }}>
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        <button className="db dbv" onClick={() => { setEditUser({ name: u.name, email: u.email, role: u.role, is_verified: u.is_verified }); setEditUserModal({ open: true, user: u }); }}><Edit size={12} /> Edit</button>
-                        <button className="db dbv" onClick={() => handleToggleUser(u.id)}>{u.is_active ? <Lock size={12} /> : <Unlock size={12} />} {u.is_active ? 'Suspend' : 'Restore'}</button>
-                        {!u.is_verified && u.role !== 'admin' && <button className="db dba" onClick={() => handleVerifyUser(u.id)}><UserCheck size={12} /> Verify</button>}
-                        <button className="db dbp" onClick={() => setWalletModal({ open: true, user: u })}><Wallet size={12} /> Wallet</button>
-                        {u.role !== 'admin' && <button className="db dbr" onClick={() => setDeleteUserModal({ open: true, userId: u.id, userName: u.name })}><Trash2 size={12} /></button>}
-                      </div>
-                    </td>
+                <thead>
+                  <tr>
+                    <th style={{ paddingLeft: 20 }}>User</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                    <th>Wallet</th>
+                    <th>Status</th>
+                    <th style={{ paddingRight: 20 }}>Actions</th>
                   </tr>
-                ))}</tbody>
+                </thead>
+                <tbody>
+                  {users.map(u => (
+                    <tr key={u.id}>
+                      <td style={{ paddingLeft: 20 }}>
+                        <div className="uc">
+                          <div className="uav avg">{u.name?.charAt(0)}</div>
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{u.name}</div>
+                            <small style={{ color: 'var(--txt-3)' }}>{u.email}</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td><span className="badge br">{u.role}</span></td>
+                      <td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
+                      <td><div style={{ fontWeight: 600 }}>${(u.wallet_balance || 0).toFixed(2)}</div></td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          <span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span>
+                          {u.is_verified && <span className="badge" style={{ background: 'var(--blue-l)', color: '#185FA5' }}>Verified</span>}
+                        </div>
+                      </td>
+                      <td style={{ paddingRight: 20 }}>
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          <button className="db dbv" onClick={() => { setEditUser({ name: u.name, email: u.email, role: u.role, is_verified: u.is_verified }); setEditUserModal({ open: true, user: u }); }}>
+                            <Edit size={12} /> Edit
+                          </button>
+                          <button className="db dbv" onClick={() => handleToggleUser(u.id)}>
+                            {u.is_active ? <Lock size={12} /> : <Unlock size={12} />} {u.is_active ? 'Suspend' : 'Restore'}
+                          </button>
+                          {!u.is_verified && u.role !== 'admin' && (
+                            <button className="db dba" onClick={() => handleVerifyUser(u.id)}>
+                              <UserCheck size={12} /> Verify
+                            </button>
+                          )}
+                          <button className="db dbp" onClick={() => setWalletModal({ open: true, user: u })}>
+                            <Wallet size={12} /> Wallet
+                          </button>
+                          {u.role !== 'admin' && (
+                            <button className="db dbr" onClick={() => setDeleteUserModal({ open: true, userId: u.id, userName: u.name })}>
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div></div>
           </div>
@@ -1600,10 +1642,26 @@ export default function AdminDashboard() {
             <div className="sh"><div className="sht"><DollarSign size={18} /> All Donations</div></div>
             <div className="card"><div className="card-b" style={{ padding: 0 }}>
               <table className="ut">
-                <thead><tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Monthly</th><th>Date</th></tr></thead>
-                <tbody>{donations.map(d => (
-                  <tr key={d.id}><td>{d.donor_name || 'Anonymous'}</td><td>{d.campaign_title}</td><td>${d.amount.toLocaleString()}</td><td>{d.is_monthly ? '✅' : '—'}</td><td>{new Date(d.created_at).toLocaleDateString()}</td></tr>
-                ))}</tbody>
+                <thead>
+                  <tr>
+                    <th>Donor</th>
+                    <th>Campaign</th>
+                    <th>Amount</th>
+                    <th>Monthly</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {donations.map(d => (
+                    <tr key={d.id}>
+                      <td>{d.donor_name || 'Anonymous'}</td>
+                      <td>{d.campaign_title}</td>
+                      <td>${d.amount.toLocaleString()}</td>
+                      <td>{d.is_monthly ? '✅' : '—'}</td>
+                      <td>{new Date(d.created_at).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div></div>
           </div>
@@ -1784,12 +1842,12 @@ export default function AdminDashboard() {
       <nav className="bnav">
         <div className="bnav-inner">
           {[
-            { id: 'overview',      icon: <LayoutDashboard size={20} />, label: 'Home' },
-            { id: 'campaigns',     icon: <Target size={20} />,          label: 'Campaigns' },
-            { id: 'deposits',      icon: <CreditCard size={20} />,      label: 'Deposits' },
-            { id: 'withdrawals',   icon: <Banknote size={20} />,        label: 'Withdrawals' },
-            { id: 'notifications', icon: <Bell size={20} />,            label: 'Alerts' },
-            { id: 'settings',      icon: <Settings size={20} />,        label: 'Settings' },
+            { id: 'overview', icon: <LayoutDashboard size={20} />, label: 'Home' },
+            { id: 'campaigns', icon: <Target size={20} />, label: 'Campaigns' },
+            { id: 'deposits', icon: <CreditCard size={20} />, label: 'Deposits' },
+            { id: 'withdrawals', icon: <Banknote size={20} />, label: 'Withdrawals' },
+            { id: 'notifications', icon: <Bell size={20} />, label: 'Alerts' },
+            { id: 'settings', icon: <Settings size={20} />, label: 'Settings' },
           ].map(({ id, icon, label }) => (
             <button key={id} className={`bni ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}>
               <div className="bni-icon" style={{ color: activeTab === id ? 'var(--green)' : 'var(--txt-3)' }}>{icon}</div>
