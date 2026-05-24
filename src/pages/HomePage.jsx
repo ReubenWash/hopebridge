@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import CauseCard from '../components/CauseCard'
 import DonationForm from '../components/DonationForm'
-import GuestDonationModal from '../components/GuestDonationModal'
 
 const HOW_STEPS = [
   { n: 1, title: 'Browse Causes',   desc: 'Explore verified campaigns across education, health, and environment.' },
@@ -26,8 +25,8 @@ const TESTIMONIALS = [
 export default function HomePage() {
   const { currentUser, approvedCampaigns, totalFunds, loadCampaigns, openAuth, showToast } = useApp()
   const navigate = useNavigate()
-  const [selectedCampaign, setSelectedCampaign] = useState(null)
-  const [showGuestDonate, setShowGuestDonate] = useState(false)
+  const [selectedCampaignId, setSelectedCampaignId] = useState(null)
+  const [donationKey, setDonationKey] = useState(Date.now())
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
 
@@ -37,15 +36,12 @@ export default function HomePage() {
     console.log('Donate clicked for campaign:', campaign?.title)
     console.log('Current user:', currentUser ? 'Logged in' : 'Guest')
     
-    if (currentUser) {
-      // Logged in user - scroll to donation form with preselected campaign
-      setSelectedCampaign(campaign)
-      scrollTo('donate')
-    } else {
-      // Guest user - open guest donation modal
-      setSelectedCampaign(campaign)
-      setShowGuestDonate(true)
-    }
+    // Set the selected campaign ID for the donation form
+    setSelectedCampaignId(campaign.id)
+    // Force DonationForm to re-render with new campaign
+    setDonationKey(Date.now())
+    // Scroll to donation form
+    scrollTo('donate')
   }
 
   return (
@@ -189,7 +185,15 @@ export default function HomePage() {
                 </div>
               )}
             </div>
-            <DonationForm preselectedCampaign={selectedCampaign} />
+            <DonationForm 
+              key={donationKey}
+              campaignId={selectedCampaignId}
+              onSuccess={() => {
+                setSelectedCampaignId(null)
+                loadCampaigns()
+                showToast('Donation successful! Thank you for your support.', false)
+              }}
+            />
           </div>
         </div>
       </section>
@@ -272,25 +276,6 @@ export default function HomePage() {
           <p>Made with <span style={{ color: 'var(--primary)' }}>❤</span> for a better world</p>
         </div>
       </footer>
-
-      {/* Guest Donation Modal */}
-      {selectedCampaign && (
-        <GuestDonationModal
-          isOpen={showGuestDonate}
-          onClose={() => {
-            setShowGuestDonate(false)
-            setSelectedCampaign(null)
-          }}
-          campaignId={selectedCampaign.id}
-          campaignTitle={selectedCampaign.title}
-          onSuccess={() => {
-            setShowGuestDonate(false)
-            setSelectedCampaign(null)
-            loadCampaigns()
-            showToast('Thank you for your donation! Admin will verify it shortly.', false)
-          }}
-        />
-      )}
     </>
   )
 }
