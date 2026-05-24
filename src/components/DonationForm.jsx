@@ -499,16 +499,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
             <small style={{ fontSize: 11, color: 'var(--text-light)' }}>Instructions will be sent here and displayed below</small>
           </div>
 
-          <div className="form-group">
-            <label className="form-label-custom">Phone Number (Optional)</label>
-            <input
-              type="tel"
-              className="form-ctrl"
-              value={donorPhone}
-              onChange={(e) => setDonorPhone(e.target.value)}
-              placeholder="+1234567890 for WhatsApp updates"
-            />
-          </div>
+          
 
           <div className="form-group">
             <label className="form-label-custom">Donation Amount (USD) *</label>
