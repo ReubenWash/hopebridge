@@ -1493,34 +1493,76 @@ export default function AdminDashboard() {
           </div>
 
           {/* Campaigns Section */}
-          <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
-            <div className="sh">
-              <div className="sht"><Target size={18} /> Campaign Management</div>
-              <button className="btn btn-g" onClick={() => setCreateCampaignModal(true)}><Plus size={16} /> Create Campaign</button>
-            </div>
-            <div className="card"><div className="card-b" style={{ padding: 0 }}>
-              <table className="ut">
-                <thead><tr><th style={{ paddingLeft: 20 }}>Campaign</th><th>Goal</th><th>Raised</th><th>Progress</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead>
-                <tbody>{campaigns.map(c => (
-                  <tr key={c.id}>
-                    <td style={{ paddingLeft: 20 }}><div style={{ fontWeight: 600 }}>{c.title}</div><small style={{ color: 'var(--txt-3)' }}>{c.creator_name}</small></td>
-                    <td>${c.goal.toLocaleString()}</td>
-                    <td>${c.raised.toLocaleString()}</td>
-                    <td><div className="pb" style={{ width: 80 }}><div className="pf" style={{ width: `${Math.min((c.raised / c.goal) * 100, 100)}%` }} /></div>{Math.round((c.raised / c.goal) * 100)}%</div></td>
-                    <td><span className={`badge ${c.status === 'approved' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td>
-                    <td style={{ paddingRight: 20 }}>
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {c.status === 'pending' && <button className="db dba" onClick={() => handleApproveCampaign(c.id)}><CheckCircle size={12} /> Approve</button>}
-                        <button className="db dbv" onClick={() => setEditCampaignModal({ open: true, campaign: c })}><Edit size={12} /> Edit</button>
-                        <button className="db dbp" onClick={() => setProgressModal({ open: true, campaign: c })}><TrendingUp size={12} /> Progress</button>
-                        <button className="db dbr" onClick={() => { if (window.confirm(`Delete "${c.title}" permanently?`)) handleDeleteCampaign(c.id); }}><Trash2 size={12} /> Delete</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}</tbody>
-              </table>
-            </div></div>
-          </div>
+<div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
+  <div className="sh">
+    <div className="sht"><Target size={18} /> Campaign Management</div>
+    <button className="btn btn-g" onClick={() => setCreateCampaignModal(true)}><Plus size={16} /> Create Campaign</button>
+  </div>
+  <div className="card">
+    <div className="card-b" style={{ padding: 0 }}>
+      <table className="ut">
+        <thead>
+          <tr>
+            <th style={{ paddingLeft: 20 }}>Campaign</th>
+            <th>Goal</th>
+            <th>Raised</th>
+            <th>Progress</th>
+            <th>Status</th>
+            <th style={{ paddingRight: 20 }}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {campaigns.map(c => (
+            <tr key={c.id}>
+              <td style={{ paddingLeft: 20 }}>
+                <div style={{ fontWeight: 600 }}>{c.title}</div>
+                <small style={{ color: 'var(--txt-3)' }}>{c.creator_name}</small>
+              </td>
+              <td>${c.goal.toLocaleString()}</td>
+              <td>${c.raised.toLocaleString()}</td>
+              <td>
+                <div className="pb" style={{ width: 80 }}>
+                  <div className="pf" style={{ width: `${Math.min((c.raised / c.goal) * 100, 100)}%` }} />
+                </div>
+                {Math.round((c.raised / c.goal) * 100)}%
+              </td>
+              <td>
+                <span className={`badge ${c.status === 'approved' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>
+                  {c.status}
+                </span>
+              </td>
+              <td style={{ paddingRight: 20 }}>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {c.status === 'pending' && (
+                    <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>
+                      <CheckCircle size={12} /> Approve
+                    </button>
+                  )}
+                  <button className="db dbv" onClick={() => setEditCampaignModal({ open: true, campaign: c })}>
+                    <Edit size={12} /> Edit
+                  </button>
+                  <button className="db dbp" onClick={() => setProgressModal({ open: true, campaign: c })}>
+                    <TrendingUp size={12} /> Progress
+                  </button>
+                  <button 
+                    className="db dbr" 
+                    onClick={() => { 
+                      if (window.confirm(`Delete "${c.title}" permanently? This action cannot be undone.`)) {
+                        handleDeleteCampaign(c.id);
+                      } 
+                    }}
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
           {/* Users Section */}
           <div className={`ps ${activeTab === 'users' ? 'active' : ''}`}>
