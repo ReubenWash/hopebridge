@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 
 export default function AuthModal() {
-  const { authOpen, authMode, authRole, closeAuth, login, register, showToast, openAuth } = useApp();
+  const { authOpen, authMode, authRole, closeAuth, login, register, showToast, openAuth, setCurrentUser } = useApp();
   const navigate = useNavigate();
 
   const [mode, setMode] = useState(authMode);
@@ -41,6 +41,7 @@ export default function AuthModal() {
   const [showPass, setShowPass] = useState(false);
   const [verificationEnabled, setVerificationEnabled] = useState(true);
   const [pendingEmail, setPendingEmail] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   useEffect(() => {
     if (authOpen) {
@@ -50,6 +51,14 @@ export default function AuthModal() {
     }
   }, [authOpen]);
 
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
   if (!authOpen) return null;
 
   const switchMode = (m, r) => {
@@ -57,6 +66,8 @@ export default function AuthModal() {
     if (r) setRole(r);
     setName(''); setEmail(''); setPassword(''); setCode('');
     setNeedsVerify(false);
+    setVerifyEmail('');
+    setResendCooldown(0);
   };
 
   const handleSubmit = async (e) => {
@@ -80,6 +91,15 @@ export default function AuthModal() {
           if (pendingDonation) {
             sessionStorage.removeItem('pendingDonation');
             showToast('You can now complete your donation!');
+          }
+          
+          // Redirect to appropriate dashboard
+          if (response.user?.role === 'admin') {
+            navigate('/admin-dashboard');
+          } else if (response.user?.role === 'creator') {
+            navigate('/creator-dashboard');
+          } else if (response.user?.role === 'donor') {
+            navigate('/donor-dashboard');
           }
         }
       } else if (mode === 'login') {
@@ -116,21 +136,36 @@ export default function AuthModal() {
     setBusy(true);
     try {
       const response = await authApi.verifyCode({ email: verifyEmail, code });
+      
       if (response.token && response.user) {
         const { saveToken } = await import('../services/api');
         saveToken(response.token);
-        showToast('Email verified! Your account has been created. Please login.');
-        setMode('login');
-        setNeedsVerify(false);
-        setCode('');
-        setEmail(verifyEmail);
-        setPassword('');
+        
+        // Set current user in context
+        if (setCurrentUser) {
+          setCurrentUser(response.user);
+        }
+        
+        showToast('Email verified! Account created successfully.');
+        closeAuth();
+        
+        // Redirect to appropriate dashboard
+        if (response.user.role === 'admin') {
+          navigate('/admin-dashboard');
+        } else if (response.user.role === 'creator') {
+          navigate('/creator-dashboard');
+        } else if (response.user.role === 'donor') {
+          navigate('/donor-dashboard');
+        } else {
+          navigate('/');
+        }
       } else {
         showToast('Email verified! You can now log in.');
         setMode('login');
         setNeedsVerify(false);
         setCode('');
         setEmail(verifyEmail);
+        setPassword('');
       }
     } catch (err) {
       showToast(err.message, true);
@@ -140,11 +175,27 @@ export default function AuthModal() {
   };
 
   const handleResendCode = async () => {
+    if (resendCooldown > 0) {
+      showToast(`Please wait ${resendCooldown} seconds before resending`, true);
+      return;
+    }
+    
     try {
       await authApi.resendCode(verifyEmail);
       showToast('Verification code resent! Please check your email.');
+      setResendCooldown(60); // 60 second cooldown
     } catch (err) {
-      showToast(err.message, true);
+      // Check if the error is "email already verified"
+      if (err.message && err.message.includes('already verified')) {
+        showToast('Your email is already verified! Please login.', true);
+        setMode('login');
+        setNeedsVerify(false);
+        setEmail(verifyEmail);
+        setPassword('');
+        setCode('');
+      } else {
+        showToast(err.message, true);
+      }
     }
   };
 
@@ -268,10 +319,17 @@ export default function AuthModal() {
               Didn't receive it?{' '}
               <span
                 onClick={handleResendCode}
-                style={{ color: '#e8531e', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                style={{ 
+                  color: resendCooldown > 0 ? '#9ca3af' : '#e8531e', 
+                  fontWeight: 700, 
+                  cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer', 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: 4 
+                }}
               >
                 <RefreshCw size={12} />
-                Resend code
+                {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : 'Resend code'}
               </span>
             </div>
             <div style={{ textAlign: 'center', marginTop: 10, fontSize: '0.85rem' }}>

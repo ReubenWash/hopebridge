@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { walletApi, campaignApi, donationApi } from '../services/api';
 import DonationForm from '../components/DonationForm';
+import NotificationBell from '../components/NotificationBell';
 import {
   Heart,
   LayoutDashboard,
@@ -108,8 +109,8 @@ const injectStyles = () => {
     .logo-sub { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); }
     .sb-user { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
     .user-av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--green-d)); display: flex; align-items: center; justify-content: center; font-weight: 600; color: #fff; }
-    .user-name { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; }
-    .verified-badge { color: #378ADD; }
+    .user-name { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .verified-badge { color: #378ADD; background: rgba(55,138,221,0.15); border-radius: 20px; padding: 2px 6px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
     .user-badge { font-size: 11px; color: var(--txt-3); background: var(--green-l); padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 4px; }
     .sb-nav { flex: 1; padding: 10px; }
     .nav-sec { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); padding: 10px 10px 4px; }
@@ -128,6 +129,157 @@ const injectStyles = () => {
     .page { padding: 28px; }
     .ps { display: none; }
     .ps.active { display: block; }
+    
+    /* Mobile Menu Button */
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      color: var(--txt);
+    }
+    
+    .mobile-sidebar {
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 280px;
+      height: 100vh;
+      background: var(--surface);
+      z-index: 300;
+      transition: left 0.3s ease;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+      overflow-y: auto;
+    }
+    
+    .mobile-sidebar.open {
+      left: 0;
+    }
+    
+    .mobile-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 299;
+      display: none;
+    }
+    
+    .mobile-overlay.open {
+      display: block;
+    }
+    
+    /* Mobile Bottom Navigation */
+    .mobile-bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 200;
+      padding: 8px 16px;
+      padding-bottom: env(safe-area-inset-bottom, 8px);
+    }
+    
+    .mobile-bottom-nav-inner {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    .mobile-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: var(--r-md);
+      transition: all 0.2s;
+      color: var(--txt-3);
+      font-size: 10px;
+      font-weight: 600;
+      position: relative;
+    }
+    
+    .mobile-nav-item.active {
+      color: var(--green);
+      background: var(--green-l);
+    }
+    
+    .mobile-nav-item svg {
+      width: 22px;
+      height: 22px;
+    }
+    
+    .mobile-nav-badge {
+      position: absolute;
+      top: 2px;
+      right: 5px;
+      background: var(--red);
+      color: #fff;
+      font-size: 9px;
+      border-radius: 50%;
+      min-width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* Campaign Card Styles */
+    .campaign-card {
+      background: var(--surface);
+      border-radius: var(--r-lg);
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid var(--border);
+    }
+    .campaign-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--sh-md);
+    }
+    .campaign-card-title {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: 8px;
+      color: var(--txt);
+    }
+    .campaign-card-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      font-size: 0.8rem;
+    }
+    .campaign-card-progress {
+      margin-top: 8px;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .topbar { display: none; }
+      .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
+      .mob-top { display: flex; height: 58px; background: var(--surface); align-items: center; padding: 0 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
+      .mobile-bottom-nav { display: block; }
+      .page { padding: 16px; padding-bottom: 90px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .card-h { flex-direction: column; gap: 8px; align-items: flex-start; }
+      .ut { display: block; overflow-x: auto; white-space: nowrap; }
+    }
+    
     .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
     .sc { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--sh-sm); cursor: pointer; transition: transform 0.2s; }
     .sc:hover { transform: translateY(-2px); }
@@ -165,22 +317,6 @@ const injectStyles = () => {
     .btn-gh { background: var(--surface-2); border: 1px solid var(--border); }
     .fi { width: 100%; padding: 10px 12px; border: 1px solid var(--border-2); border-radius: var(--r-sm); margin-bottom: 16px; font-family: var(--fb); }
     .fl { font-size: 12px; font-weight: 700; color: var(--txt-2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; display: block; }
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(17,19,24,0.93); color: #fff; padding: 10px 24px; border-radius: 40px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; pointer-events: none; }
-    .toast.show { opacity: 1; }
-    .mob-top, .bnav { display: none; }
-    @media (max-width: 768px) {
-      .sidebar { display: none; }
-      .main { margin-left: 0; }
-      .topbar { display: none; }
-      .mob-top { display: flex; height: 58px; background: var(--surface); align-items: center; padding: 0 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
-      .bnav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 68px; background: var(--surface); border-top: 1px solid var(--border); z-index: 200; }
-      .bnav-inner { display: flex; width: 100%; max-width: 500px; margin: 0 auto; }
-      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; }
-      .bni.active .bni-icon svg { stroke: var(--green); }
-      .bni-lbl { font-size: 10px; font-weight: 600; color: var(--txt-3); }
-      .page { padding: 16px; padding-bottom: 90px; }
-      .stats-grid { grid-template-columns: 1fr 1fr; }
-    }
   `;
   document.head.appendChild(styleEl);
 };
@@ -233,6 +369,24 @@ function TransactionHistory({ transactions, loading, onRefresh }) {
   );
 }
 
+// Campaign Card Component for clicking to view profile
+function CampaignCard({ campaign, onClick }) {
+  const progress = (toNumber(campaign.raised) / toNumber(campaign.goal)) * 100;
+  
+  return (
+    <div className="campaign-card" onClick={() => onClick(campaign.id)}>
+      <div className="campaign-card-title">{campaign.title}</div>
+      <div className="campaign-card-progress">
+        <div className="pb"><div className="pf" style={{ width: `${Math.min(progress, 100)}%` }}></div></div>
+      </div>
+      <div className="campaign-card-stats">
+        <span>${toNumber(campaign.raised).toLocaleString()} raised</span>
+        <span className="badge ba">{Math.round(progress)}%</span>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Main Component ----------
 export default function DonorDashboard() {
   injectStyles();
@@ -244,6 +398,7 @@ export default function DonorDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [loadingData, setLoadingData] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Data state
   const [donations, setDonations] = useState([]);
@@ -279,6 +434,17 @@ export default function DonorDashboard() {
       document.body.classList.remove('dark-mode');
     }
   }, [darkMode]);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (mobileMenuOpen && !e.target.closest('.mobile-sidebar') && !e.target.closest('.mobile-menu-btn')) {
+        setMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [mobileMenuOpen]);
 
   // Auth guard
   useEffect(() => {
@@ -485,14 +651,87 @@ export default function DonorDashboard() {
     setActiveTab('donate');
   };
 
+  // Navigate to campaign profile
+  const handleViewCampaign = (campaignId) => {
+    navigate(`/campaign/${campaignId}`);
+  };
+
   const initials = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   const pendingDeposit = depositRequests.find(r => ['pending', 'instructions_sent', 'awaiting_proof'].includes(r.status));
   const isVerified = currentUser?.is_verified === true;
 
+  // Mobile bottom navigation items
+  const mobileBottomNavItems = [
+    { id: 'overview', label: 'Home', icon: <LayoutDashboard size={20} /> },
+    { id: 'donations', label: 'Donations', icon: <DollarSign size={20} /> },
+    { id: 'donate', label: 'Donate', icon: <Gift size={20} /> },
+    { id: 'wallet', label: 'Wallet', icon: <Wallet size={20} /> },
+    { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
+  ];
+
+  // Sidebar navigation items for mobile
+  const sidebarNavItems = [
+    { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+    { id: 'donations', label: 'My Donations', icon: <DollarSign size={18} /> },
+    { id: 'donate', label: 'Donate Now', icon: <Gift size={18} /> },
+    { id: 'wallet', label: 'Wallet', icon: <Wallet size={18} /> },
+    { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
+  ];
+
   // ----- Render -----
   return (
     <div className="shell">
-      {/* Sidebar */}
+      {/* Mobile Sidebar Overlay */}
+      <div className={`mobile-overlay ${mobileMenuOpen ? 'open' : ''}`} onClick={() => setMobileMenuOpen(false)} />
+      
+      {/* Mobile Sidebar */}
+      <div className={`mobile-sidebar ${mobileMenuOpen ? 'open' : ''}`}>
+        <div className="sb-logo">
+          <div className="logo-mark">
+            <div className="logo-icon"><Heart size={20} color="#fff" strokeWidth={2} /></div>
+            <div><div className="logo-text">HopeBridge</div><div className="logo-sub">Donor Portal</div></div>
+          </div>
+        </div>
+        
+        <div className="sb-user">
+          <div className="user-av">{initials}</div>
+          <div>
+            <div className="user-name">
+              {currentUser?.name}
+              {isVerified && (
+                <span className="verified-badge">
+                  <CheckCircle size={12} /> Verified
+                </span>
+              )}
+            </div>
+            <div className="user-badge">Donor</div>
+          </div>
+        </div>
+        
+        <nav className="sb-nav">
+          {sidebarNavItems.map(item => (
+            <button
+              key={item.id}
+              className={`nl ${activeTab === item.id ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab(item.id);
+                setMobileMenuOpen(false);
+              }}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
+          <button className="nl" onClick={() => setDarkMode(!darkMode)}>
+            {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
+          </button>
+          <button className="nl" style={{ color: 'var(--red)' }} onClick={handleLogout}>
+            <LogOut size={18} /> Sign Out
+          </button>
+        </nav>
+      </div>
+
+      {/* Sidebar (Desktop) */}
       <aside className="sidebar">
         <div className="sb-logo">
           <div className="logo-mark">
@@ -558,11 +797,9 @@ export default function DonorDashboard() {
             {activeTab === 'settings' && 'Settings'}
           </div>
           <div className="tb-actions">
-            <div className="tb-btn" onClick={() => showToast('Notifications coming soon')}>
-              <Bell size={18} />
-            </div>
-            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
-              <LogOut size={18} style={{ stroke: 'var(--red)' }} />
+            <NotificationBell showToast={showToast} />
+            <button className="tb-btn" onClick={() => setDarkMode(!darkMode)}>
+              {darkMode ? '🌙' : '☀️'}
             </button>
             <div className="tb-btn" onClick={() => showToast('Profile')}>
               <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
@@ -571,14 +808,15 @@ export default function DonorDashboard() {
         </div>
 
         <div className="mob-top">
-          <div className="mob-logo">HopeBridge</div>
+          <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(true)}>
+            <Menu size={24} />
+          </button>
+          <div style={{ fontFamily: 'var(--fd)', fontSize: 18, flex: 1, textAlign: 'center' }}>HopeBridge</div>
           <div className="tb-actions">
-            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
-              <LogOut size={18} style={{ stroke: 'var(--red)' }} />
+            <NotificationBell showToast={showToast} />
+            <button className="tb-btn" onClick={() => setDarkMode(!darkMode)}>
+              {darkMode ? '🌙' : '☀️'}
             </button>
-            <div className="tb-btn" onClick={() => showToast('Profile')}>
-              <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
-            </div>
           </div>
         </div>
 
@@ -613,6 +851,17 @@ export default function DonorDashboard() {
                 <div className="sd">Click to donate →</div>
               </div>
             </div>
+            
+            <div className="card">
+              <div className="card-h"><div className="card-t"><Target size={18} /> Support a Campaign</div><button className="card-a" onClick={handleBrowseCampaigns}>Browse all <ArrowRight size={14} /></button></div>
+              <div className="card-b">
+                {approvedCampaigns.slice(0, 3).map(c => (
+                  <CampaignCard key={c.id} campaign={c} onClick={handleViewCampaign} />
+                ))}
+                {approvedCampaigns.length === 0 && <div className="cr" style={{ color: 'var(--txt-3)' }}>No active campaigns available</div>}
+              </div>
+            </div>
+            
             <div className="card">
               <div className="card-h"><div className="card-t"><History size={18} /> Recent Donations</div><button className="card-a" onClick={() => setActiveTab('donations')}>View all <ArrowRight size={14} /></button></div>
               <div className="card-b">
@@ -628,29 +877,14 @@ export default function DonorDashboard() {
                 {donations.length === 0 && <div className="cr">No donations yet</div>}
               </div>
             </div>
-            <div className="card">
-              <div className="card-h"><div className="card-t"><Target size={18} /> Support a Campaign</div><button className="card-a" onClick={handleBrowseCampaigns}>Browse all <ArrowRight size={14} /></button></div>
-              <div className="card-b">
-                {approvedCampaigns.slice(0, 3).map(c => (
-                  <div key={c.id} className="cr">
-                    <div className="ci">
-                      <div className="cn">{c.title}</div>
-                      <div className="cm">${toNumber(c.raised).toLocaleString()} raised of ${toNumber(c.goal).toLocaleString()}</div>
-                      <div className="pb"><div className="pf" style={{ width: `${(toNumber(c.raised) / toNumber(c.goal)) * 100}%` }}></div></div>
-                    </div>
-                    <button className="db dba" onClick={handleBrowseCampaigns}>Donate</button>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* ========== DONATIONS TAB ========== */}
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t"><DollarSign size={18} /> All Donations</div></div>
-              <div className="card-b" style={{ padding: 0 }}>
-                <table className="ut">
+              <div className="card-b" style={{ padding: 0, overflowX: 'auto' }}>
+                <table className="ut" style={{ minWidth: 500 }}>
                   <thead>
                     <tr>
                       <th>Campaign</th>
@@ -662,16 +896,16 @@ export default function DonorDashboard() {
                   <tbody>
                     {donations.map(d => (
                       <tr key={d.id}>
-                        <td>{d.campaign_title || `Campaign #${d.campaign_id}`}</td>
+                        <td style={{ cursor: 'pointer' }} onClick={() => handleViewCampaign(d.campaign_id)}>
+                          <span style={{ color: 'var(--green)', textDecoration: 'underline' }}>{d.campaign_title || `Campaign #${d.campaign_id}`}</span>
+                        </td>
                         <td>${toNumber(d.amount).toFixed(2)}</td>
                         <td>{new Date(d.created_at).toLocaleDateString()}</td>
                         <td><span className="badge ba">{d.escrow_status || 'held'}</span></td>
                       </tr>
                     ))}
                     {donations.length === 0 && (
-                      <tr>
-                        <td colSpan="4" style={{ textAlign: 'center', padding: '40px' }}>No donations yet</td>
-                      </tr>
+                      <tr><td colSpan="4" style={{ textAlign: 'center', padding: '40px' }}>No donations yet</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -732,7 +966,7 @@ export default function DonorDashboard() {
                   <form onSubmit={handleRequestDeposit}>
                     <label className="fl">Amount (USD)</label>
                     <input type="number" min="1" step="0.01" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} required className="fi" placeholder="Min $1" />
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
                       {[20, 50, 100, 200, 500].map(a => (
                         <button key={a} type="button" onClick={() => setDepositAmount(a)} style={{ padding: '6px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6 }}>${a}</button>
                       ))}
@@ -792,6 +1026,12 @@ export default function DonorDashboard() {
                 <input className="fi" type="text" defaultValue={currentUser?.name} />
                 <label className="fl">Email</label>
                 <input className="fi" type="email" defaultValue={currentUser?.email} />
+                <div className="verified-status" style={{ marginBottom: 16, padding: '8px 12px', background: isVerified ? 'var(--green-l)' : 'var(--amber-l)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {isVerified ? <CheckCircle size={16} color="var(--green-d)" /> : <AlertCircle size={16} color="#854F0B" />}
+                  <span style={{ fontSize: 13, color: isVerified ? 'var(--green-d)' : '#854F0B' }}>
+                    {isVerified ? 'Your account is verified' : 'Your account is not yet verified. Contact support for verification.'}
+                  </span>
+                </div>
                 <button className="btn btn-g" onClick={() => showToast('Profile update coming soon')}>Save Changes</button>
               </div>
             </div>
@@ -799,22 +1039,21 @@ export default function DonorDashboard() {
         </div>
       </div>
 
-      {/* Mobile Bottom Nav - REMOVED FAB BUTTON */}
-      <nav className="bnav">
-        <div className="bnav-inner">
-          {['overview', 'donations', 'donate', 'wallet'].map(tab => (
-            <button key={tab} className={`bni ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
-              <div className="bni-icon">
-                {tab === 'overview' && <LayoutDashboard size={20} />}
-                {tab === 'donations' && <DollarSign size={20} />}
-                {tab === 'donate' && <Gift size={20} />}
-                {tab === 'wallet' && <Wallet size={20} />}
-              </div>
-              <span className="bni-lbl">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+      {/* Mobile Bottom Navigation */}
+      <div className="mobile-bottom-nav">
+        <div className="mobile-bottom-nav-inner">
+          {mobileBottomNavItems.map(item => (
+            <button
+              key={item.id}
+              className={`mobile-nav-item ${activeTab === item.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(item.id)}
+            >
+              {item.icon}
+              <span>{item.label}</span>
             </button>
           ))}
         </div>
-      </nav>
+      </div>
     </div>
   );
 }

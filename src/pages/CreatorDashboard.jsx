@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { donationApi, campaignApi, walletApi } from '../services/api';
 import CampaignModal from '../components/CampaignModal';
 import DonationsModal from '../components/DonationsModal';
+import NotificationBell from '../components/NotificationBell';
 import {
   Heart,
   LayoutDashboard,
@@ -66,6 +67,13 @@ const injectStyles = () => {
       --fd: 'Instrument Serif', Georgia, serif; --fb: 'DM Sans', sans-serif; --tr: 0.2s ease;
     }
     body { font-family: var(--fb); background: var(--bg); color: var(--txt); min-height: 100vh; }
+    
+    /* Dark Mode Support */
+    body.dark-mode {
+      --bg: #121212; --surface: #1E1E1E; --surface-2: #2A2A2A; --border: rgba(255,255,255,0.1);
+      --txt: #EEEEEE; --txt-2: #AAAAAA; --txt-3: #777777;
+    }
+    
     .shell { display: flex; min-height: 100vh; }
     .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; z-index: 200; overflow-y: auto; }
     .sb-logo { padding: 22px 20px 14px; border-bottom: 1px solid var(--border); }
@@ -76,8 +84,8 @@ const injectStyles = () => {
     .logo-sub { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); }
     .sb-creator { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
     .creator-av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--green-d)); display: flex; align-items: center; justify-content: center; font-weight: 600; color: #fff; }
-    .creator-name { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; }
-    .verified-badge { color: #378ADD; }
+    .creator-name { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .verified-badge { color: #378ADD; background: rgba(55,138,221,0.15); border-radius: 20px; padding: 2px 8px; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; }
     .creator-badge { font-size: 11px; color: var(--txt-3); background: var(--green-l); padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 4px; }
     .sb-nav { flex: 1; padding: 10px; }
     .nav-sec { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); padding: 10px 10px 4px; }
@@ -96,13 +104,134 @@ const injectStyles = () => {
     .page { padding: 28px; }
     .ps { display: none; }
     .ps.active { display: block; }
+    
+    /* Mobile Menu Button */
+    .mobile-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      color: var(--txt);
+    }
+    
+    .mobile-sidebar {
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 280px;
+      height: 100vh;
+      background: var(--surface);
+      z-index: 300;
+      transition: left 0.3s ease;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+      overflow-y: auto;
+    }
+    
+    .mobile-sidebar.open {
+      left: 0;
+    }
+    
+    .mobile-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 299;
+      display: none;
+    }
+    
+    .mobile-overlay.open {
+      display: block;
+    }
+    
+    /* Mobile Bottom Navigation */
+    .mobile-bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 200;
+      padding: 8px 16px;
+      padding-bottom: env(safe-area-inset-bottom, 8px);
+    }
+    
+    .mobile-bottom-nav-inner {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    .mobile-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: var(--r-md);
+      transition: all 0.2s;
+      color: var(--txt-3);
+      font-size: 10px;
+      font-weight: 600;
+      position: relative;
+    }
+    
+    .mobile-nav-item.active {
+      color: var(--green);
+      background: var(--green-l);
+    }
+    
+    .mobile-nav-item svg {
+      width: 22px;
+      height: 22px;
+    }
+    
+    .mobile-nav-badge {
+      position: absolute;
+      top: 2px;
+      right: 5px;
+      background: var(--red);
+      color: #fff;
+      font-size: 9px;
+      border-radius: 50%;
+      min-width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .topbar { display: none; }
+      .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
+      .mob-top { display: flex; height: 58px; background: var(--surface); align-items: center; padding: 0 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
+      .mobile-bottom-nav { display: block; }
+      .page { padding: 16px; padding-bottom: 90px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .card-h { flex-direction: column; gap: 8px; align-items: flex-start; }
+      .ut { display: block; overflow-x: auto; white-space: nowrap; }
+    }
+    
     .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
-    .sc { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--sh-sm); position: relative; overflow: hidden; }
+    .sc { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--sh-sm); position: relative; overflow: hidden; cursor: pointer; transition: transform 0.2s; }
+    .sc:hover { transform: translateY(-2px); }
     .sc .si { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--green-l); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
     .sc .si svg { stroke: var(--green-d); width: 18px; height: 18px; }
     .sv { font-family: var(--fd); font-size: 32px; line-height: 1; }
     .sl { font-size: 12px; color: var(--txt-2); margin-top: 4px; }
-    .sd { font-size: 11px; font-weight: 700; margin-top: 8px; }
+    .sd { font-size: 11px; font-weight: 700; margin-top: 8px; color: var(--green); }
     .card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--sh-sm); overflow: hidden; margin-bottom: 24px; }
     .card-h { display: flex; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
     .card-t { font-family: var(--fd); font-size: 17px; display: flex; align-items: center; gap: 8px; }
@@ -134,28 +263,12 @@ const injectStyles = () => {
     .modal-bd.open { opacity: 1; pointer-events: all; }
     .modal { background: var(--surface); border-radius: var(--r-xl); padding: 28px; width: 90%; max-width: 420px; }
     .fi { width: 100%; padding: 10px 12px; border: 1px solid var(--border-2); border-radius: var(--r-sm); margin-bottom: 16px; font-family: var(--fb); }
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(17,19,24,0.93); color: #fff; padding: 10px 24px; border-radius: 40px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; pointer-events: none; }
-    .toast.show { opacity: 1; }
-    .mob-top, .bnav { display: none; }
-    @media (max-width: 768px) {
-      .sidebar { display: none; }
-      .main { margin-left: 0; }
-      .topbar { display: none; }
-      .mob-top { display: flex; height: 58px; background: var(--surface); align-items: center; padding: 0 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
-      .bnav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 68px; background: var(--surface); border-top: 1px solid var(--border); z-index: 200; }
-      .bnav-inner { display: flex; width: 100%; max-width: 500px; margin: 0 auto; }
-      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; }
-      .bni.active .bni-icon svg { stroke: var(--green); }
-      .bni-lbl { font-size: 10px; font-weight: 600; color: var(--txt-3); }
-      .page { padding: 16px; padding-bottom: 90px; }
-      .stats-grid { grid-template-columns: 1fr 1fr; }
-    }
   `;
   document.head.appendChild(styleEl);
 };
 
 // Transaction History Component
-function TransactionHistory({ transactions, loading }) {
+function TransactionHistory({ transactions, loading, onRefresh }) {
   const [showAll, setShowAll] = useState(false);
   const displayTransactions = showAll ? transactions : transactions.slice(0, 5);
   
@@ -194,6 +307,9 @@ function TransactionHistory({ transactions, loading }) {
           <ChevronRight size={12} />
         </button>
       )}
+      <button className="card-a" onClick={onRefresh} style={{ marginTop: 8 }}>
+        <RefreshCw size={12} /> Refresh
+      </button>
     </div>
   );
 }
@@ -211,6 +327,7 @@ export default function CreatorDashboard() {
   const [selectedCampaignId, setSelectedCampaignId] = useState(null);
   const [progressAmount, setProgressAmount] = useState('');
   const [darkMode, setDarkMode] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // All state initialized with safe defaults
   const [donations, setDonations] = useState([]);
@@ -245,6 +362,17 @@ export default function CreatorDashboard() {
     loadPaymentMethod();
     loadTransactions();
   }, [currentUser]);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (mobileMenuOpen && !e.target.closest('.mobile-sidebar') && !e.target.closest('.mobile-menu-btn')) {
+        setMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [mobileMenuOpen]);
 
   const loadTransactions = async () => {
     setTransactionsLoading(true);
@@ -385,9 +513,84 @@ export default function CreatorDashboard() {
   const pendingPayoutSum = pendingPayouts.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
   const isVerified = currentUser?.is_verified === true;
 
+  // Mobile bottom navigation items
+  const mobileNavItems = [
+    { id: 'overview', label: 'Home', icon: <LayoutDashboard size={20} /> },
+    { id: 'campaigns', label: 'Campaigns', icon: <Target size={20} />, badge: safeCampaigns.length },
+    { id: 'donations', label: 'Donations', icon: <DollarSign size={20} /> },
+    { id: 'wallet', label: 'Wallet', icon: <Wallet size={20} /> },
+    { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
+  ];
+
+  // Sidebar navigation items for mobile
+  const sidebarNavItems = [
+    { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+    { id: 'campaigns', label: 'My Campaigns', icon: <Target size={18} />, badge: safeCampaigns.length },
+    { id: 'donations', label: 'Donations', icon: <DollarSign size={18} /> },
+    { id: 'payouts', label: 'Payouts', icon: <Banknote size={18} />, badge: pendingPayouts.length },
+    { id: 'wallet', label: 'Wallet', icon: <Wallet size={18} /> },
+    { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
+  ];
+
   return (
     <div className="shell">
-      {/* Sidebar */}
+      {/* Mobile Sidebar Overlay */}
+      <div className={`mobile-overlay ${mobileMenuOpen ? 'open' : ''}`} onClick={() => setMobileMenuOpen(false)} />
+      
+      {/* Mobile Sidebar */}
+      <div className={`mobile-sidebar ${mobileMenuOpen ? 'open' : ''}`}>
+        <div className="sb-logo">
+          <div className="logo-mark">
+            <div className="logo-icon">
+              <Heart size={20} color="#fff" strokeWidth={2} />
+            </div>
+            <div>
+              <div className="logo-text">HopeBridge</div>
+              <div className="logo-sub">Creator Studio</div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="sb-creator">
+          <div className="creator-av">{initials}</div>
+          <div>
+            <div className="creator-name">
+              {currentUser?.name}
+              {isVerified && (
+                <span className="verified-badge">
+                  <CheckCircle size={12} /> Verified
+                </span>
+              )}
+            </div>
+            <div className="creator-badge">Creator</div>
+          </div>
+        </div>
+        
+        <nav className="sb-nav">
+          {sidebarNavItems.map(item => (
+            <button
+              key={item.id}
+              className={`nl ${activeTab === item.id ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab(item.id);
+                setMobileMenuOpen(false);
+              }}
+            >
+              {item.icon}
+              {item.label}
+              {item.badge > 0 && <span className="nb">{item.badge}</span>}
+            </button>
+          ))}
+          <button className="nl" onClick={() => setDarkMode(!darkMode)}>
+            {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
+          </button>
+          <button className="nl" style={{ color: 'var(--red)' }} onClick={handleLogout}>
+            <LogOut size={18} /> Sign Out
+          </button>
+        </nav>
+      </div>
+
+      {/* Sidebar (Desktop) */}
       <aside className="sidebar">
         <div className="sb-logo">
           <div className="logo-mark">
@@ -443,8 +646,7 @@ export default function CreatorDashboard() {
             Settings
           </button>
           <button className="nl" onClick={() => setDarkMode(!darkMode)}>
-            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-            {darkMode ? 'Light Mode' : 'Dark Mode'}
+            {darkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}
           </button>
         </nav>
 
@@ -468,11 +670,9 @@ export default function CreatorDashboard() {
             {activeTab === 'settings' && 'Settings'}
           </div>
           <div className="tb-actions">
-            <div className="tb-btn" onClick={() => showToast('Notifications')}>
-              <Bell size={18} />
-            </div>
-            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
-              <LogOut size={18} style={{ stroke: 'var(--red)' }} />
+            <NotificationBell showToast={showToast} />
+            <button className="tb-btn" onClick={() => setDarkMode(!darkMode)}>
+              {darkMode ? '🌙' : '☀️'}
             </button>
             <div className="tb-btn">
               <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
@@ -481,10 +681,14 @@ export default function CreatorDashboard() {
         </div>
 
         <div className="mob-top">
-          <div style={{ fontFamily: 'var(--fd)', fontSize: 18, flex: 1 }}>HopeBridge</div>
+          <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(true)}>
+            <Menu size={24} />
+          </button>
+          <div style={{ fontFamily: 'var(--fd)', fontSize: 18, flex: 1, textAlign: 'center' }}>HopeBridge</div>
           <div className="tb-actions">
-            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
-              <LogOut size={18} style={{ stroke: 'var(--red)' }} />
+            <NotificationBell showToast={showToast} />
+            <button className="tb-btn" onClick={() => setDarkMode(!darkMode)}>
+              {darkMode ? '🌙' : '☀️'}
             </button>
           </div>
         </div>
@@ -499,25 +703,29 @@ export default function CreatorDashboard() {
           {/* Overview Tab */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
             <div className="stats-grid">
-              <div className="sc">
+              <div className="sc" onClick={() => setActiveTab('campaigns')}>
                 <div className="si"><TrendingUp size={18} /></div>
                 <div className="sv">${totalRaised.toLocaleString()}</div>
                 <div className="sl">Total raised</div>
+                <div className="sd">Click to view →</div>
               </div>
-              <div className="sc">
+              <div className="sc" onClick={() => setActiveTab('campaigns')}>
                 <div className="si"><Target size={18} /></div>
                 <div className="sv">{activeCampaigns}</div>
                 <div className="sl">Active campaigns</div>
+                <div className="sd">Click to view →</div>
               </div>
-              <div className="sc">
+              <div className="sc" onClick={() => setActiveTab('donations')}>
                 <div className="si"><Users size={18} /></div>
                 <div className="sv">{safeDonations.length}</div>
                 <div className="sl">Total donations</div>
+                <div className="sd">Click to view →</div>
               </div>
-              <div className="sc">
+              <div className="sc" onClick={() => setActiveTab('wallet')}>
                 <div className="si"><Wallet size={18} /></div>
                 <div className="sv">${walletBalance.toLocaleString()}</div>
                 <div className="sl">Wallet balance</div>
+                <div className="sd">Click to view →</div>
               </div>
             </div>
 
@@ -547,7 +755,7 @@ export default function CreatorDashboard() {
                 <button className="card-a" onClick={() => setActiveTab('campaigns')}>Manage <ArrowRight size={14} /></button>
               </div>
               <div className="card-b">
-                {safeCampaigns.filter(c => c.status === 'approved' || c.status === 'active').map(c => (
+                {safeCampaigns.filter(c => c.status === 'approved' || c.status === 'active').slice(0, 3).map(c => (
                   <div key={c.id} className="cr">
                     <div className="ci">
                       <div className="cn">{c.title}</div>
@@ -566,15 +774,15 @@ export default function CreatorDashboard() {
 
           {/* Campaigns Tab */}
           <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
               <div style={{ fontFamily: 'var(--fd)', fontSize: 20 }}>My Campaigns</div>
               <button className="btn btn-g" onClick={() => { setEditCampaign(null); setModalOpen(true); }}>
                 <Plus size={16} /> New Campaign
               </button>
             </div>
             <div className="card">
-              <div className="card-b" style={{ padding: 0 }}>
-                <table className="ut">
+              <div className="card-b" style={{ padding: 0, overflowX: 'auto' }}>
+                <table className="ut" style={{ minWidth: 600 }}>
                   <thead>
                     <tr>
                       <th>Campaign</th><th>Goal</th><th>Raised</th><th>Progress</th><th>Status</th><th>Actions</th>
@@ -591,19 +799,19 @@ export default function CreatorDashboard() {
                           <td>
                             <strong>{c.title}</strong>
                             <div style={{ fontSize: 11, color: 'var(--txt-3)' }}>Created {new Date(c.created_at).toLocaleDateString()}</div>
-                          </td>
+                           </td>
                           <td>${parseFloat(c.goal).toLocaleString()}</td>
                           <td>${parseFloat(c.raised || 0).toLocaleString()}</td>
                           <td>
                             <div className="pb" style={{ width: 100 }}><div className="pf" style={{ width: `${percent}%` }}></div></div>
                             {Math.round(percent)}%
-                          </td>
-                          <td><span className="badge ba">{c.status}</span></td>
+                           </td>
+                          <td><span className={`badge ${c.status === 'approved' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td>
                           <td>
                             <button className="db dba" onClick={() => { setSelectedCampaignId(c.id); setProgressModalOpen(true); }}>Update</button>
                             <button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}>Delete</button>
-                          </td>
-                        </tr>
+                           </td>
+                         </tr>
                       );
                     })}
                   </tbody>
@@ -615,11 +823,12 @@ export default function CreatorDashboard() {
           {/* Donations Tab */}
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
             <div className="card">
-              <div className="card-h"><div className="card-t"><DollarSign size={18} /> Donations Received</div></div>
-              <div className="card-b" style={{ padding: 0 }}>
-                <table className="ut">
+              <div className="card-b" style={{ padding: 0, overflowX: 'auto' }}>
+                <table className="ut" style={{ minWidth: 500 }}>
                   <thead>
-                    <tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Date</th></tr>
+                    <tr>
+                      <th>Donor</th><th>Campaign</th><th>Amount</th><th>Date</th>
+                     </tr>
                   </thead>
                   <tbody>
                     {safeDonations.length === 0 && (
@@ -663,7 +872,7 @@ export default function CreatorDashboard() {
                   <div style={{ padding: '10px 0', color: 'var(--txt-3)' }}>No payout requests yet</div>
                 )}
                 {safePayoutRequests.map(p => (
-                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)', flexWrap: 'wrap', gap: 8 }}>
                     <span>${parseFloat(p.amount || 0).toFixed(2)} · {new Date(p.created_at).toLocaleDateString()}</span>
                     <span className={`badge ${p.status === 'pending' ? 'bp' : p.status === 'rejected' ? 'bx' : 'ba'}`}>
                       {p.status === 'pending' && <Clock size={10} />}
@@ -702,7 +911,7 @@ export default function CreatorDashboard() {
                 </button>
               </div>
               <div className="card-b">
-                <TransactionHistory transactions={transactions} loading={transactionsLoading} />
+                <TransactionHistory transactions={transactions} loading={transactionsLoading} onRefresh={loadTransactions} />
               </div>
             </div>
           </div>
@@ -716,6 +925,12 @@ export default function CreatorDashboard() {
                 <input className="fi" type="text" defaultValue={currentUser?.name} />
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>Email</label>
                 <input className="fi" type="email" defaultValue={currentUser?.email} />
+                <div className="verified-status" style={{ marginBottom: 16, padding: '8px 12px', background: isVerified ? 'var(--green-l)' : 'var(--amber-l)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {isVerified ? <CheckCircle size={16} color="var(--green-d)" /> : <AlertCircle size={16} color="#854F0B" />}
+                  <span style={{ fontSize: 13, color: isVerified ? 'var(--green-d)' : '#854F0B' }}>
+                    {isVerified ? 'Your account is verified' : 'Your account is not yet verified. Contact support for verification.'}
+                  </span>
+                </div>
                 <button className="btn btn-g" onClick={() => showToast('Profile update coming soon')}>Save Changes</button>
               </div>
             </div>
@@ -751,22 +966,22 @@ export default function CreatorDashboard() {
         </div>
       </div>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="bnav">
-        <div className="bnav-inner">
-          {[
-            { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
-            { id: 'campaigns', label: 'Campaigns', icon: <Target size={20} /> },
-            { id: 'donations', label: 'Donations', icon: <DollarSign size={20} /> },
-            { id: 'wallet', label: 'Wallet', icon: <Wallet size={20} /> },
-          ].map(({ id, label, icon }) => (
-            <button key={id} className={`bni ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}>
-              <div className="bni-icon">{icon}</div>
-              <span className="bni-lbl">{label}</span>
+      {/* Mobile Bottom Navigation */}
+      <div className="mobile-bottom-nav">
+        <div className="mobile-bottom-nav-inner">
+          {mobileNavItems.map(item => (
+            <button
+              key={item.id}
+              className={`mobile-nav-item ${activeTab === item.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(item.id)}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+              {item.badge > 0 && <span className="mobile-nav-badge">{item.badge > 9 ? '9+' : item.badge}</span>}
             </button>
           ))}
         </div>
-      </nav>
+      </div>
 
       {/* Progress Update Modal */}
       <div className={`modal-bd ${progressModalOpen ? 'open' : ''}`} onClick={() => setProgressModalOpen(false)}>
@@ -798,13 +1013,4 @@ export default function CreatorDashboard() {
       )}
     </div>
   );
-}
-
-// Add missing icon components
-function Sun(props) {
-  return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>;
-}
-
-function Moon(props) {
-  return <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
 }

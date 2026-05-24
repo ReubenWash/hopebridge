@@ -239,9 +239,23 @@ export function AppProvider({ children }) {
   const approvedCampaigns = campaigns.filter(c => c.status === 'approved')
   const totalFunds = campaigns.reduce((s, c) => s + parseFloat(c.raised || 0), 0)
 
+  // Refresh user data (for after verification)
+  const refreshUser = useCallback(async () => {
+    try {
+      const data = await authApi.me()
+      const user = data.user ?? data
+      setCurrentUser(user)
+      return user
+    } catch (err) {
+      console.error('Failed to refresh user:', err)
+      return null
+    }
+  }, [])
+
   return (
     <AppContext.Provider value={{
       currentUser,
+      setCurrentUser,  // ← ADDED: This is needed for AuthModal to update user after verification
       campaigns,
       approvedCampaigns,
       myCampaigns,
@@ -270,6 +284,7 @@ export function AppProvider({ children }) {
       refreshWallet: fetchWalletBalance,
       pendingVerificationEmail,
       redirectToDashboard,
+      refreshUser,  // ← ADDED: For refreshing user data
     }}>
       {children}
     </AppContext.Provider>

@@ -4,20 +4,21 @@ import { useApp } from '../context/AppContext'
 import { publicApi } from '../services/api'
 import CauseCard from '../components/CauseCard'
 import DonationForm from '../components/DonationForm'
+import { Download, Heart, Star, Shield, CheckCircle, Eye, Receipt, ArrowRight, Plus, Search, HandHeart, ChartLine, Gift, InfoCircle, QuoteRight } from 'lucide-react'
 
 // Static content that doesn't need to be dynamic
 const HOW_STEPS = [
-  { n: 1, title: 'Browse Causes', desc: 'Explore verified campaigns across education, health, and environment.', icon: 'fa-search' },
-  { n: 2, title: 'Choose Amount', desc: 'Pick any amount — every dollar directly helps those in need.', icon: 'fa-dollar-sign' },
-  { n: 3, title: 'Donate Securely', desc: 'Your donation is processed with full security and transparency.', icon: 'fa-shield-alt' },
-  { n: 4, title: 'See the Change', desc: 'Track your impact and get updates from the campaigns you support.', icon: 'fa-chart-line' },
+  { n: 1, title: 'Browse Causes', desc: 'Explore verified campaigns across education, health, and environment.' },
+  { n: 2, title: 'Choose Amount', desc: 'Pick any amount — every dollar directly helps those in need.' },
+  { n: 3, title: 'Donate Securely', desc: 'Your donation is processed with full security and transparency.' },
+  { n: 4, title: 'See the Change', desc: 'Track your impact and get updates from the campaigns you support.' },
 ]
 
 const TRUST_ITEMS = [
-  { icon: 'fa-shield-alt', title: '100% Secure', desc: 'Your payment info is encrypted and protected.' },
-  { icon: 'fa-check-circle', title: 'Verified Campaigns', desc: 'All campaigns are reviewed by our admin team.' },
-  { icon: 'fa-eye', title: 'Full Transparency', desc: 'See exactly where your money goes.' },
-  { icon: 'fa-receipt', title: 'Tax Receipt', desc: 'Get a receipt for your donation instantly.' },
+  { icon: Shield, title: '100% Secure', desc: 'Your payment info is encrypted and protected.' },
+  { icon: CheckCircle, title: 'Verified Campaigns', desc: 'All campaigns are reviewed by our admin team.' },
+  { icon: Eye, title: 'Full Transparency', desc: 'See exactly where your money goes.' },
+  { icon: Receipt, title: 'Tax Receipt', desc: 'Get a receipt for your donation instantly.' },
 ]
 
 const TESTIMONIALS = [
@@ -25,6 +26,38 @@ const TESTIMONIALS = [
   { stars: 5, text: 'I started a campaign for clean water and the support was overwhelming. This platform works!', author: 'Marcus T.', role: 'Campaign Creator' },
   { stars: 5, text: 'The admin team is responsive and every campaign feels legitimate. I trust HopeBridge completely.', author: 'Priya S.', role: 'Monthly Donor' },
 ]
+
+// PWA Install Button Component
+const PWAInstallButton = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstall, setShowInstall] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstall(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
+      setShowInstall(false);
+    }
+  };
+
+  if (!showInstall) return null;
+
+  return (
+    <button onClick={handleInstall} className="pwa-install-footer-btn">
+      <Download size={16} /> Install App
+    </button>
+  );
+};
 
 // Global style injection
 let stylesInjected = false
@@ -50,6 +83,19 @@ const injectStyles = () => {
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Open Sans', sans-serif; color: var(--text); line-height: 1.7; background: #fff; }
     h1, h2, h3, h4, h5, h6 { font-family: 'Raleway', sans-serif; font-weight: 700; }
+    
+    /* Dark Mode Support */
+    body.dark-mode {
+      --bg-light: #1a1a2e;
+      --text: #e0e0e0;
+      --text-light: #aaa;
+    }
+    body.dark-mode .how-item,
+    body.dark-mode .testimonial-card,
+    body.dark-mode .donation-form-card {
+      background: #252540;
+      color: #e0e0e0;
+    }
     
     /* Hero Section */
     .hero {
@@ -220,10 +266,11 @@ const injectStyles = () => {
     .col-md-3 { width: 25%; padding: 12px; }
     .col-6 { width: 50%; padding: 12px; }
     @media (max-width: 768px) { .col-md-3 { width: 50%; } }
+    @media (max-width: 480px) { .col-md-3 { width: 100%; } }
     
     /* How It Works */
-    .how-item { text-align: center; padding: 24px 20px; background: white; border-radius: 20px; transition: transform 0.3s; height: 100%; }
-    .how-item:hover { transform: translateY(-5px); box-shadow: var(--shadow-card); }
+    .how-item { text-align: center; padding: 24px 20px; background: white; border-radius: 20px; transition: transform 0.3s; height: 100%; box-shadow: var(--shadow-card); }
+    .how-item:hover { transform: translateY(-5px); }
     .how-num {
       width: 64px;
       height: 64px;
@@ -301,12 +348,20 @@ const injectStyles = () => {
       width: 44px; height: 44px;
       border-radius: 50%;
       background: rgba(232,83,30,.1);
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       color: var(--primary);
       flex-shrink: 0;
     }
     .trust-text strong { display: block; font-size: .9rem; color: var(--dark); }
     .trust-text span { font-size: .82rem; color: var(--text-light); }
+    .donation-form-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: var(--shadow-card);
+    }
     
     /* Testimonials */
     .testimonial-section { padding: 90px 0; background: #fff; }
@@ -318,6 +373,7 @@ const injectStyles = () => {
       text-align: center;
       height: 100%;
       transition: transform 0.3s;
+      box-shadow: var(--shadow-card);
     }
     .testimonial-card:hover { transform: translateY(-5px); }
     .testimonial-text {
@@ -400,10 +456,66 @@ const injectStyles = () => {
     }
     .social-icons a:hover { background: var(--primary); color: #fff; }
     
+    /* PWA Install Button in Footer */
+    .pwa-install-footer-btn {
+      background: var(--grad1);
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      transition: all 0.2s;
+    }
+    .pwa-install-footer-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+    
+    /* Mobile Scroll to Top Button */
+    .scroll-top-btn {
+      position: fixed;
+      bottom: 80px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--grad1);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transition: all 0.2s;
+      z-index: 99;
+      opacity: 0;
+      visibility: hidden;
+    }
+    .scroll-top-btn.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    .scroll-top-btn:hover {
+      transform: translateY(-2px);
+    }
+    
     @media (max-width: 768px) {
       .hero-visual { display: none; }
-      .parallax-stats { gap: 32px; }
+      .parallax-stats { gap: 32px; flex-wrap: wrap; justify-content: center; }
       .stats-grid { grid-template-columns: 1fr 1fr; }
+      .section-wrap { padding: 60px 0; }
+      .donation-section, .testimonial-section { padding: 60px 0; }
+      .cta-strip { padding: 40px 0; }
+      .site-footer { padding: 40px 0 20px; }
+      .footer-inner { gap: 24px; }
+      .scroll-top-btn { bottom: 70px; right: 16px; width: 40px; height: 40px; }
     }
   `
   document.head.appendChild(styleEl)
@@ -424,12 +536,29 @@ export default function HomePage() {
     social_links: { facebook: '#', twitter: '#', instagram: '#', linkedin: '#' }
   })
   const [loadingContent, setLoadingContent] = useState(true)
+  const [showScrollTop, setShowScrollTop] = useState(false)
 
-  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+  const scrollTo = (id) => {
+    const element = document.getElementById(id)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
 
-  useEffect(() => { 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  useEffect(() => {
     loadCampaigns()
     loadContent()
+
+    // Scroll to top button visibility
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   const loadContent = async () => {
@@ -471,13 +600,15 @@ export default function HomePage() {
         <div className="hero-inner">
           <div className="hero-content">
             <div className="hero-badge">
-              <i className="fas fa-star"></i> {content.hero_badge}
+              <Star size={14} /> {content.hero_badge}
             </div>
-            <h1>{content.hero_title.split(' ').map((word, i) => 
-              word.toLowerCase() === 'tomorrow' || word.toLowerCase() === 'difference' 
-                ? <span key={i} className="highlight">{word} </span>
-                : word + ' '
-            )}</h1>
+            <h1>
+              {content.hero_title.split(' ').map((word, i) => 
+                word.toLowerCase() === 'tomorrow' || word.toLowerCase() === 'difference' 
+                  ? <span key={i} className="highlight">{word} </span>
+                  : word + ' '
+              )}
+            </h1>
             <p>{content.hero_subtitle}</p>
             <div className="hero-stats">
               <div className="hero-stat-item">
@@ -497,10 +628,10 @@ export default function HomePage() {
             </div>
             <div className="hero-cta">
               <button className="btn-hero-primary" onClick={() => scrollTo('donate')}>
-                <i className="fas fa-hand-holding-heart"></i> Donate Now
+                <HandHeart size={18} /> Donate Now
               </button>
               <button className="btn-hero-outline" onClick={() => scrollTo('causes')}>
-                <i className="fas fa-search"></i> Browse Causes
+                <Search size={18} /> Browse Causes
               </button>
             </div>
           </div>
@@ -524,7 +655,7 @@ export default function HomePage() {
       <section id="how-it-works" className="section-wrap">
         <div className="container-inner">
           <div className="text-center">
-            <div className="section-tag"><i className="fas fa-info-circle"></i> How It Works</div>
+            <div className="section-tag"><InfoCircle size={14} /> How It Works</div>
             <h2 className="section-title">Simple Steps to <span className="accent">Make an Impact</span></h2>
             <div className="section-divider mx-auto"></div>
           </div>
@@ -545,7 +676,7 @@ export default function HomePage() {
       {/* CAUSES */}
       <section id="causes" className="section-wrap bg-light">
         <div className="container-inner">
-          <div className="section-tag"><i className="fas fa-heart"></i> Active Causes</div>
+          <div className="section-tag"><Heart size={14} /> Active Causes</div>
           <h2 className="section-title">Urgent Causes <span className="accent">You Can Change</span></h2>
           <div className="section-divider"></div>
           <p className="section-sub">Every donation goes directly to verified campaigns.</p>
@@ -564,11 +695,11 @@ export default function HomePage() {
       {/* IMPACT PARALLAX */}
       <section id="impact" className="parallax-banner">
         <div className="parallax-content container-inner">
-          <div className="parallax-tag"><i className="fas fa-chart-line"></i> {content.impact_title}</div>
+          <div className="parallax-tag"><ChartLine size={14} /> {content.impact_title}</div>
           <h2>{content.impact_subtitle} <span style={{ color: 'var(--primary-light)' }}>Goes</span></h2>
           <p>We operate with 100% transparency. Every cent is tracked and reported.</p>
           <button className="btn-hero-primary" onClick={() => scrollTo('donate')}>
-            <i className="fas fa-heart"></i> Donate Now
+            <Heart size={18} /> Donate Now
           </button>
           <div className="parallax-stats">
             <div className="pstat">
@@ -594,7 +725,7 @@ export default function HomePage() {
       {/* DONATION FORM */}
       <section id="donate" className="donation-section">
         <div className="container-inner">
-          <div className="section-tag"><i className="fas fa-gift"></i> Make A Donation</div>
+          <div className="section-tag"><Gift size={14} /> Make A Donation</div>
           <h2 className="section-title mb-0">Give <span className="accent">Today</span></h2>
           <div className="section-divider"></div>
           <div className="donation-wrapper">
@@ -604,7 +735,7 @@ export default function HomePage() {
               <div className="trust-items">
                 {TRUST_ITEMS.map(t => (
                   <div key={t.title} className="trust-item">
-                    <div className="trust-icon"><i className={`fas ${t.icon}`}></i></div>
+                    <div className="trust-icon"><t.icon size={20} /></div>
                     <div className="trust-text"><strong>{t.title}</strong><span>{t.desc}</span></div>
                   </div>
                 ))}
@@ -619,7 +750,7 @@ export default function HomePage() {
       <section className="testimonial-section">
         <div className="container-inner">
           <div className="text-center mb-5">
-            <div className="section-tag"><i className="fas fa-quote-right"></i> Testimonials</div>
+            <div className="section-tag"><QuoteRight size={14} /> Testimonials</div>
             <h2 className="section-title">What Our <span className="accent">Donors Say</span></h2>
             <div className="section-divider mx-auto"></div>
           </div>
@@ -649,10 +780,10 @@ export default function HomePage() {
               style={{ borderColor: 'rgba(255,255,255,.8)' }} 
               onClick={() => openAuth('register', 'creator')}
             >
-              <i className="fas fa-plus"></i> Start a Campaign
+              <Plus size={16} /> Start a Campaign
             </button>
             <button className="cta-strip-btn-white" onClick={() => scrollTo('donate')}>
-              Donate Now <i className="fas fa-arrow-right"></i>
+              Donate Now <ArrowRight size={16} />
             </button>
           </div>
         </div>
@@ -662,7 +793,7 @@ export default function HomePage() {
       <footer className="site-footer">
         <div className="footer-inner">
           <div>
-            <div className="footer-logo"><i className="fas fa-heart"></i> HopeBridge</div>
+            <div className="footer-logo"><Heart size={20} /> HopeBridge</div>
             <p style={{ fontSize: '.88rem', lineHeight: 1.8, maxWidth: 240 }}>Empowering communities through transparent giving.</p>
             <div className="social-icons">
               <a href={content.social_links?.facebook || '#'} target="_blank" rel="noopener noreferrer"><i className="fab fa-facebook-f"></i></a>
@@ -670,6 +801,7 @@ export default function HomePage() {
               <a href={content.social_links?.instagram || '#'} target="_blank" rel="noopener noreferrer"><i className="fab fa-instagram"></i></a>
               <a href={content.social_links?.linkedin || '#'} target="_blank" rel="noopener noreferrer"><i className="fab fa-linkedin-in"></i></a>
             </div>
+            <PWAInstallButton />
           </div>
           <div>
             <h4>Explore</h4>
@@ -699,6 +831,11 @@ export default function HomePage() {
           <p>Made with <span style={{ color: 'var(--primary)' }}>❤</span> for a better world</p>
         </div>
       </footer>
+
+      {/* Scroll to Top Button */}
+      <button className={`scroll-top-btn ${showScrollTop ? 'visible' : ''}`} onClick={scrollToTop}>
+        <ArrowRight size={20} style={{ transform: 'rotate(-90deg)' }} />
+      </button>
     </>
   )
 }
