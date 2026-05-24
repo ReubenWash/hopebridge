@@ -17,7 +17,6 @@ const safeGet = async (fn, fallback) => { try { return await fn(); } catch { ret
 const toNum   = (v, f = 0) => { const n = parseFloat(v); return isNaN(n) ? f : n; };
 
 // ── Styles ────────────────────────────────────────
-// ── Styles ────────────────────────────────────────
 let stylesInjected = false;
 const injectStyles = () => {
   if (stylesInjected) return;
@@ -814,7 +813,7 @@ function DepositRequestsManager({ requests, onApprove, onReject, onProvideInstru
         <div key={req.id} style={{ borderBottom: '1px solid var(--border)', padding: '16px 0' }}>
           <div style={{ marginBottom: 4 }}><strong>{req.userName || req.name}</strong> ({req.email})</div>
           <div style={{ fontSize: 13, color: 'var(--txt-2)', marginBottom: 8 }}>
-            Amount: <strong>${toNum(req.amount).toFixed(2)}</strong> ·{' '}
+            Amount: <strong>$${toNum(req.amount).toFixed(2)}</strong> ·{' '}
             <span className={`badge ${req.status === 'pending' ? 'bp' : req.status === 'approved' ? 'ba' : 'bx'}`}>{req.status}</span>
           </div>
           {req.admin_instructions && (
@@ -858,7 +857,7 @@ function WithdrawalRequestsManager({ requests, onApprove, onReject }) {
       {requests.map(req => (
         <div key={req.id} style={{ borderBottom: '1px solid var(--border)', padding: '16px 0' }}>
           <div style={{ marginBottom: 4 }}><strong>{req.name}</strong> ({req.email})</div>
-          <div style={{ fontSize: 13, color: 'var(--txt-2)', marginBottom: 4 }}>Amount: <strong>${toNum(req.amount).toFixed(2)}</strong> · {req.payment_method}</div>
+          <div style={{ fontSize: 13, color: 'var(--txt-2)', marginBottom: 4 }}>Amount: <strong>$${toNum(req.amount).toFixed(2)}</strong> · {req.payment_method}</div>
           <div style={{ fontSize: 12, color: 'var(--txt-3)', marginBottom: 8 }}>{req.payment_details}</div>
           <span className={`badge ${req.status === 'pending' ? 'bp' : req.status === 'approved' ? 'ba' : 'bx'}`}>{req.status}</span>
           {req.status === 'pending' && (
@@ -926,7 +925,7 @@ function PayoutsManager({ payouts, onMarkPaid }) {
           {filtered.map(p => (
             <tr key={p.id}>
               <td><strong>{p.user_name}</strong><br /><small style={{ color: 'var(--txt-3)' }}>{p.user_email}</small></td>
-              <td><strong>${toNum(p.amount).toFixed(2)}</strong></td>
+              <td><strong>$${toNum(p.amount).toFixed(2)}</strong></td>
               <td>{p.payment_method}<br /><small>{p.payment_details?.substring(0, 30)}</small></td>
               <td><span className={`badge ${p.status === 'paid' ? 'ba' : p.status === 'approved' ? 'bp' : 'bx'}`}>{p.status}</span></td>
               <td>{new Date(p.created_at).toLocaleDateString()}</td>
@@ -1092,6 +1091,11 @@ export default function AdminDashboard() {
   const [togglingVerification, setTogglingVerification] = useState(false);
   const [togglingRecaptcha, setTogglingRecaptcha] = useState(false);
 
+  // Guest donations state
+  const [guestDonations, setGuestDonations] = useState([]);
+  const [guestDonationFilter, setGuestDonationFilter] = useState('all');
+  const [sendingInstructions, setSendingInstructions] = useState({});
+
   const [campaigns, setCampaigns] = useState([]);
   const [users, setUsers] = useState([]);
   const [donations, setDonations] = useState([]);
@@ -1189,7 +1193,29 @@ export default function AdminDashboard() {
     try { const v = await adminApi.getVerificationSetting?.(); if (v) setVerificationEnabled(v.enabled !== false); } catch {}
   };
 
-  useEffect(() => { if (authChecked) { fetchAll(); fetchExtras(); } }, [authChecked]);
+  // Fetch guest donations
+  const fetchGuestDonations = async () => {
+    try {
+      const token = localStorage.getItem('hb_token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/guest-donations/admin/guest-donations`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      setGuestDonations(data.requests || []);
+    } catch (err) {
+      console.error('Failed to fetch guest donations:', err);
+    }
+  };
+
+  useEffect(() => { 
+    if (authChecked) { 
+      fetchAll(); 
+      fetchExtras();
+      fetchGuestDonations();
+    } 
+  }, [authChecked]);
 
   const handleToggleMaintenance = async val => { setTogglingMaintenance(true); try { await adminApi.saveSettings({ keys: { maintenance_mode: val ? 'true' : 'false' } }); setMaintenanceMode(p => ({ ...p, enabled: val })); showToast(`Maintenance ${val ? 'enabled' : 'disabled'}`); addNotif(`Maintenance mode ${val ? 'enabled' : 'disabled'}`, 'warning'); } catch (err) { showToast(err.message, true); } finally { setTogglingMaintenance(false); } };
   const handleToggleVerification = async val => { setTogglingVerification(true); try { await adminApi.updateVerificationSetting?.({ enabled: val }); setVerificationEnabled(val); showToast(`Email verification ${val ? 'enabled' : 'disabled'}`); } catch (err) { showToast(err.message, true); } finally { setTogglingVerification(false); } };
@@ -1257,6 +1283,84 @@ export default function AdminDashboard() {
   const handleChangePassword = async data => { await adminApi.changePassword?.(data); };
   const handleLogout = () => { logout(); navigate('/'); };
 
+  // Guest donation handlers
+  const handleSendInstructions = async (id, instructions, paymentMethod) => {
+    setSendingInstructions(prev => ({ ...prev, [id]: true }));
+    try {
+      const token = localStorage.getItem('hb_token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/guest-donations/admin/send-instructions/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ instructions, payment_method: paymentMethod })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        showToast('Payment instructions sent to guest');
+        fetchGuestDonations();
+        addNotif(`Payment instructions sent for guest donation #${id}`, 'info');
+      } else {
+        showToast(data.error, true);
+      }
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setSendingInstructions(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const handleApproveGuestDonation = async (id) => {
+    try {
+      const token = localStorage.getItem('hb_token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/guest-donations/admin/approve/${id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        showToast('Donation approved and credited to campaign');
+        addNotif(`Guest donation #${id} approved and credited`, 'success');
+        fetchGuestDonations();
+        fetchAll();
+      } else {
+        showToast(data.error, true);
+      }
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  };
+
+  const handleRejectGuestDonation = async (id) => {
+    const reason = prompt('Reason for rejection:');
+    if (!reason) return;
+    
+    try {
+      const token = localStorage.getItem('hb_token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/guest-donations/admin/reject/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ reason })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        showToast('Donation rejected');
+        addNotif(`Guest donation #${id} rejected`, 'warning');
+        fetchGuestDonations();
+      } else {
+        showToast(data.error, true);
+      }
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  };
+
   if (sessionLoading || !authChecked) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading admin panel…</div>;
 
   const totalRaised = campaigns.reduce((s, c) => s + c.raised, 0);
@@ -1269,7 +1373,7 @@ export default function AdminDashboard() {
   const pendingDeposits = depositRequests.filter(d => d.status === 'pending' || d.status === 'awaiting_proof').length;
   const unreadNotifs = notifications.filter(n => !n.read).length;
 
-  const tabLabel = t => ({ email_templates: 'Email Templates', notifications: 'Notifications', 'audit-logs': 'Audit Logs', fees: 'Fee Settings', payouts: 'Payouts' }[t] || (t.charAt(0).toUpperCase() + t.slice(1)));
+  const tabLabel = t => ({ email_templates: 'Email Templates', notifications: 'Notifications', 'audit-logs': 'Audit Logs', fees: 'Fee Settings', payouts: 'Payouts', guest_donations: 'Guest Donations' }[t] || (t.charAt(0).toUpperCase() + t.slice(1)));
 
   const SideNavBtn = ({ id, label, icon, badge, badgeClass = '' }) => (
     <button className={`nl ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}>
@@ -1307,6 +1411,7 @@ export default function AdminDashboard() {
           <SideNavBtn id="notifications" label="Notifications" icon={<Bell size={18} />} />
           <SideNavBtn id="audit-logs" label="Audit Logs" icon={<History size={18} />} />
           <SideNavBtn id="maintenance" label="Maintenance" icon={<AlertCircle size={18} />} />
+          <SideNavBtn id="guest_donations" label="Guest Donations" icon={<Users size={18} />} badge={guestDonations.filter(g => g.payment_status === 'pending_verification').length} badgeClass="am" />
           <div className="nav-sec">Admin</div>
           <SideNavBtn id="email_templates" label="Email Templates" icon={<MailIcon size={18} />} />
           <SideNavBtn id="massmail" label="Mass Mail" icon={<Send size={18} />} />
@@ -1440,6 +1545,7 @@ export default function AdminDashboard() {
                 { id: 'content', label: 'Content', icon: <FileText size={18} /> },
                 { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
                 { id: 'maintenance', label: 'Maintenance', icon: <AlertCircle size={18} /> },
+                { id: 'guest_donations', label: 'Guest Donations', icon: <Users size={18} /> },
                 { id: 'logout', label: 'Sign Out', icon: <LogOut size={18} />, danger: true },
               ].map(({ id, label, icon, danger }) => (
                 <button key={id} className={`qb ${danger ? 'qx' : ''}`} onClick={() => id === 'logout' ? handleLogout() : setActiveTab(id)}>
@@ -1753,6 +1859,180 @@ export default function AdminDashboard() {
             </div></div>
           </div>
 
+          {/* Guest Donations Section */}
+          <div className={`ps ${activeTab === 'guest_donations' ? 'active' : ''}`}>
+            <div className="sh">
+              <div className="sht"><Users size={18} /> Guest Donations</div>
+              <button className="btn btn-gh" onClick={fetchGuestDonations} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <RefreshCw size={14} /> Refresh
+              </button>
+            </div>
+            
+            <div className="card">
+              <div className="card-b">
+                {/* Status filters */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
+                  {[
+                    { key: 'all', label: 'All' },
+                    { key: 'pending_instructions', label: 'Pending Instructions' },
+                    { key: 'instructions_sent', label: 'Instructions Sent' },
+                    { key: 'pending_verification', label: 'Pending Verification' },
+                    { key: 'approved', label: 'Approved' },
+                    { key: 'rejected', label: 'Rejected' }
+                  ].map(filter => (
+                    <button
+                      key={filter.key}
+                      className={`db ${guestDonationFilter === filter.key ? 'dba' : 'dbv'}`}
+                      onClick={() => setGuestDonationFilter(filter.key)}
+                      style={{ fontSize: 12 }}
+                    >
+                      {filter.label}
+                      {filter.key !== 'all' && (
+                        <span style={{ marginLeft: 6, background: 'rgba(0,0,0,0.1)', padding: '0 6px', borderRadius: 10 }}>
+                          {guestDonations.filter(g => g.payment_status === filter.key).length}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Guest Donations List */}
+                {guestDonations.filter(g => guestDonationFilter === 'all' || g.payment_status === guestDonationFilter).length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: 60, color: 'var(--txt-3)' }}>
+                    <Users size={48} style={{ marginBottom: 16, opacity: 0.4 }} />
+                    <div style={{ fontSize: 16, marginBottom: 8 }}>No Guest Donations Yet</div>
+                    <div style={{ fontSize: 13 }}>When guests donate, they will appear here for you to manage.</div>
+                  </div>
+                ) : (
+                  guestDonations.filter(g => guestDonationFilter === 'all' || g.payment_status === guestDonationFilter).map(g => (
+                    <div key={g.id} style={{ borderBottom: '1px solid var(--border)', padding: '20px 0' }}>
+                      {/* Header */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 15 }}>
+                            #{g.id} - {g.guest_name || 'Anonymous'}
+                            {g.guest_name && <span style={{ fontWeight: 'normal', color: 'var(--txt-2)' }}> ({g.guest_email})</span>}
+                          </div>
+                          <div style={{ fontSize: 13, color: 'var(--txt-2)', marginTop: 4 }}>
+                            Campaign: <strong>{g.campaign_title}</strong>
+                          </div>
+                          <div style={{ fontSize: 13, color: 'var(--txt-2)' }}>
+                            Amount: <strong style={{ color: 'var(--green)' }}>${parseFloat(g.amount).toFixed(2)}</strong>
+                          </div>
+                          {g.message && (
+                            <div style={{ fontSize: 12, color: 'var(--txt-3)', fontStyle: 'italic', marginTop: 6, background: 'var(--surface-2)', padding: 8, borderRadius: 8 }}>
+                              "{g.message}"
+                            </div>
+                          )}
+                          <div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 6 }}>
+                            Requested: {new Date(g.created_at).toLocaleString()}
+                          </div>
+                        </div>
+                        <div>
+                          <span className={`badge ${g.payment_status === 'approved' ? 'ba' : g.payment_status === 'rejected' ? 'bx' : g.payment_status === 'pending_verification' ? 'bp' : 'br'}`}>
+                            {g.payment_status?.replace(/_/g, ' ').toUpperCase()}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Pending Instructions - Show form to send instructions */}
+                      {g.payment_status === 'pending_instructions' && (
+                        <div style={{ marginTop: 16, background: 'var(--surface-2)', padding: 16, borderRadius: 12 }}>
+                          <label className="fl" style={{ marginBottom: 8 }}>Payment Instructions</label>
+                          <textarea
+                            id={`instructions-${g.id}`}
+                            className="fi"
+                            rows="4"
+                            placeholder="Enter payment instructions (bank details, mobile money number, account details, etc.)"
+                            style={{ marginBottom: 12 }}
+                          />
+                          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <select id={`method-${g.id}`} className="fi" style={{ width: 'auto', minWidth: 150 }}>
+                              <option value="bank_transfer">🏦 Bank Transfer</option>
+                              <option value="mobile_money">📱 Mobile Money</option>
+                              <option value="cash">💵 Cash</option>
+                              <option value="paypal">💳 PayPal</option>
+                              <option value="crypto">₿ Crypto</option>
+                              <option value="other">📝 Other</option>
+                            </select>
+                            <button 
+                              className="btn btn-g" 
+                              onClick={() => {
+                                const instructions = document.getElementById(`instructions-${g.id}`).value;
+                                const method = document.getElementById(`method-${g.id}`).value;
+                                if (!instructions.trim()) {
+                                  showToast('Please enter payment instructions', true);
+                                  return;
+                                }
+                                handleSendInstructions(g.id, instructions, method);
+                              }}
+                              disabled={sendingInstructions[g.id]}
+                              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                            >
+                              {sendingInstructions[g.id] ? (
+                                <>Sending...</>
+                              ) : (
+                                <><Send size={14} /> Send Instructions</>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Instructions Sent - Show what was sent */}
+                      {g.payment_status === 'instructions_sent' && g.admin_instructions && (
+                        <div style={{ marginTop: 12, padding: 12, background: 'var(--blue-l)', borderRadius: 10, fontSize: 13 }}>
+                          <strong style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                            <MailIcon size={14} /> Instructions Sent:
+                          </strong>
+                          <div style={{ whiteSpace: 'pre-line', color: 'var(--txt-2)' }}>
+                            {g.admin_instructions}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: 8 }}>
+                            Payment Method: {g.payment_method?.replace(/_/g, ' ').toUpperCase()}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Pending Verification - Show proof and approve/reject buttons */}
+                      {g.payment_status === 'pending_verification' && g.proof_image_url && (
+                        <div style={{ marginTop: 16 }}>
+                          <div style={{ fontWeight: 600, marginBottom: 8 }}>Payment Proof:</div>
+                          <ProofImageViewer url={g.proof_image_url} />
+                          <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+                            <button className="btn btn-g" onClick={() => handleApproveGuestDonation(g.id)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <CheckCircle size={14} /> Approve & Credit Campaign
+                            </button>
+                            <button className="btn btn-r" onClick={() => handleRejectGuestDonation(g.id)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <X size={14} /> Reject
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Approved - Show confirmation */}
+                      {g.payment_status === 'approved' && (
+                        <div style={{ marginTop: 12, padding: 12, background: 'var(--green-l)', borderRadius: 10, fontSize: 13, color: 'var(--green-d)' }}>
+                          <CheckCircle size={14} style={{ display: 'inline', marginRight: 6 }} />
+                          Donation approved and credited to campaign
+                          {g.donation_id && <span style={{ marginLeft: 8 }}>(Donation ID: #{g.donation_id})</span>}
+                        </div>
+                      )}
+                      
+                      {/* Rejected - Show reason */}
+                      {g.payment_status === 'rejected' && g.admin_notes && (
+                        <div style={{ marginTop: 12, padding: 12, background: 'var(--red-l)', borderRadius: 10, fontSize: 13, color: 'var(--red)' }}>
+                          <X size={14} style={{ display: 'inline', marginRight: 6 }} />
+                          Rejected: {g.admin_notes}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Settings Section */}
           <div className={`ps ${activeTab === 'settings' ? 'active' : ''}`}>
             <div className="card"><div className="card-h"><div className="card-t"><Settings size={18} /> System Settings</div></div><div className="card-b">
@@ -1847,6 +2127,7 @@ export default function AdminDashboard() {
             { id: 'campaigns', icon: <Target size={20} />, label: 'Campaigns' },
             { id: 'deposits', icon: <CreditCard size={20} />, label: 'Deposits' },
             { id: 'withdrawals', icon: <Banknote size={20} />, label: 'Withdrawals' },
+            { id: 'guest_donations', icon: <Users size={20} />, label: 'Guest' },
             { id: 'notifications', icon: <Bell size={20} />, label: 'Alerts' },
             { id: 'settings', icon: <Settings size={20} />, label: 'Settings' },
           ].map(({ id, icon, label }) => (
