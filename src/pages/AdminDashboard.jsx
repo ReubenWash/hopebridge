@@ -903,6 +903,7 @@ function CompletionRequestsManager({ requests, onRelease, onRefund }) {
 }
 
 // ── PayoutsManager ────────────────────────────────
+// ── PayoutsManager ────────────────────────────────
 function PayoutsManager({ payouts, onMarkPaid }) {
   const [filter, setFilter] = useState('all');
   const filtered = filter === 'all' ? payouts : payouts.filter(p => p.status === filter);
