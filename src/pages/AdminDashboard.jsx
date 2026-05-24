@@ -365,39 +365,179 @@ function DeleteUserModal({ isOpen, onClose, onConfirm, userName, showToast }) {
   );
 }
 // ── Add User Modal ────────────────────────────────
+// Update the AddUserModal component (find it in your AdminDashboard.jsx)
 function AddUserModal({ isOpen, onClose, onSubmit, userData, setUserData, loading }) {
   if (!isOpen) return null;
+  
   return (
-    <div className="modal-bd open" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-t">Add New User</div>
-        <div className="modal-s">Create a new user account</div>
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        backdropFilter: 'blur(4px)'
+      }}
+      onClick={onClose}
+    >
+      <div 
+        style={{
+          backgroundColor: '#fff',
+          borderRadius: '16px',
+          padding: '28px',
+          width: '90%',
+          maxWidth: '450px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <h3 style={{ fontSize: '22px', marginBottom: '8px', color: '#1a1a2e' }}>Add New User</h3>
+        <p style={{ marginBottom: '20px', color: '#6b7280', fontSize: '13px' }}>
+          Create a new user account
+        </p>
+        
         <form onSubmit={onSubmit}>
-          <label className="fl">Full Name *</label>
-          <input type="text" className="fi" value={userData.name} onChange={e => setUserData(p => ({ ...p, name: e.target.value }))} placeholder="John Doe" required />
-          <label className="fl">Email *</label>
-          <input type="email" className="fi" value={userData.email} onChange={e => setUserData(p => ({ ...p, email: e.target.value }))} placeholder="user@example.com" required />
-          <label className="fl">Password *</label>
-          <input type="password" className="fi" value={userData.password} onChange={e => setUserData(p => ({ ...p, password: e.target.value }))} placeholder="Min 6 characters" required minLength={6} />
-          <label className="fl">Role</label>
-          <select className="fi" value={userData.role} onChange={e => setUserData(p => ({ ...p, role: e.target.value }))}>
+          <label style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px', display: 'block', color: '#374151' }}>
+            Full Name *
+          </label>
+          <input
+            type="text"
+            value={userData.name}
+            onChange={e => setUserData(p => ({ ...p, name: e.target.value }))}
+            placeholder="John Doe"
+            required
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              border: '2px solid #e5e7eb',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              fontSize: '14px',
+              outline: 'none'
+            }}
+            onFocus={e => e.target.style.borderColor = '#e8531e'}
+            onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+          />
+          
+          <label style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px', display: 'block', color: '#374151' }}>
+            Email *
+          </label>
+          <input
+            type="email"
+            value={userData.email}
+            onChange={e => setUserData(p => ({ ...p, email: e.target.value }))}
+            placeholder="user@example.com"
+            required
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              border: '2px solid #e5e7eb',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              fontSize: '14px',
+              outline: 'none'
+            }}
+            onFocus={e => e.target.style.borderColor = '#e8531e'}
+            onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+          />
+          
+          <label style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px', display: 'block', color: '#374151' }}>
+            Password *
+          </label>
+          <input
+            type="password"
+            value={userData.password}
+            onChange={e => setUserData(p => ({ ...p, password: e.target.value }))}
+            placeholder="Min 6 characters"
+            required
+            minLength={6}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              border: '2px solid #e5e7eb',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              fontSize: '14px',
+              outline: 'none'
+            }}
+            onFocus={e => e.target.style.borderColor = '#e8531e'}
+            onBlur={e => e.target.style.borderColor = '#e5e7eb'}
+          />
+          
+          <label style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px', display: 'block', color: '#374151' }}>
+            Role
+          </label>
+          <select
+            value={userData.role}
+            onChange={e => setUserData(p => ({ ...p, role: e.target.value }))}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              border: '2px solid #e5e7eb',
+              borderRadius: '8px',
+              marginBottom: '16px',
+              fontSize: '14px',
+              outline: 'none',
+              backgroundColor: '#fff'
+            }}
+          >
             <option value="donor">Donor</option>
             <option value="creator">Creator</option>
           </select>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', marginBottom: 20 }}>
-            <input type="checkbox" checked={userData.is_verified} onChange={e => setUserData(p => ({ ...p, is_verified: e.target.checked }))} />
-            Mark as verified (skip email verification)
+          
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={userData.is_verified}
+              onChange={e => setUserData(p => ({ ...p, is_verified: e.target.checked }))}
+            />
+            <span style={{ fontSize: '13px' }}>Mark as verified (skip email verification)</span>
           </label>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button type="submit" className="btn btn-g" disabled={loading}>{loading ? 'Adding…' : 'Add User'}</button>
-            <button type="button" className="btn btn-gh" onClick={onClose}>Cancel</button>
+          
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#1D9E75',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontWeight: 600,
+                opacity: loading ? 0.7 : 1
+              }}
+            >
+              {loading ? 'Adding...' : 'Add User'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#f3f4f6',
+                color: '#374151',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 600
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </form>
       </div>
     </div>
   );
 }
-
 // ── Email Templates ───────────────────────────────
 const EMAIL_TEMPLATES = [
   { id: 'verification',      name: 'Email Verification',   desc: 'Sent when users register',                subjectKey: 'verification_subject',      bodyKey: 'verification_body',      defaultSubject: 'Your HopeBridge Verification Code',           defaultBody: 'Hi {{name}},\n\nYour verification code is:\n\n{{code}}\n\nExpires in 15 minutes.' },
@@ -993,13 +1133,44 @@ export default function AdminDashboard() {
   const handleSaveNotifSettings   = async data => { try { await adminApi.updateNotificationSettings?.(data); setPushNotifEnabled(data.enabled); showToast('Saved'); } catch (err) { showToast(err.message, true); } };
   const handleSendPushNotif       = async data => { try { await adminApi.sendPushNotification?.(data); showToast('Notification sent'); fetchExtras(); } catch (err) { showToast(err.message, true); } };
   const handleChangePassword      = async data => { await adminApi.changePassword?.(data); };
-  const handleAddUserSubmit       = async e => {
-    e.preventDefault();
-    if (!newUser.name || !newUser.email || !newUser.password) { showToast('Fill all required fields', true); return; }
-    setAddingUser(true);
-    try { await adminApi.addUser?.(newUser); showToast(`${newUser.name} added`); setShowAddUserModal(false); setNewUser({ name: '', email: '', password: '', role: 'donor', is_verified: true }); fetchAll(); }
-    catch (err) { showToast(err.message, true); } finally { setAddingUser(false); }
-  };
+ const handleAddUserSubmit = async (e) => {
+  e.preventDefault();
+  if (!newUser.name || !newUser.email || !newUser.password) {
+    showToast('Fill all required fields', true);
+    return;
+  }
+  if (newUser.password.length < 6) {
+    showToast('Password must be at least 6 characters', true);
+    return;
+  }
+  
+  setAddingUser(true);
+  try {
+    const response = await adminApi.addUser({
+      name: newUser.name,
+      email: newUser.email,
+      password: newUser.password,
+      role: newUser.role,
+      is_verified: newUser.is_verified
+    });
+    
+    showToast(`${newUser.name} added successfully`);
+    setShowAddUserModal(false);
+    setNewUser({ 
+      name: '', 
+      email: '', 
+      password: '', 
+      role: 'donor', 
+      is_verified: true 
+    });
+    fetchAll(); // Refresh user list
+  } catch (err) {
+    console.error('Add user error:', err);
+    showToast(err.message || 'Failed to add user', true);
+  } finally {
+    setAddingUser(false);
+  }
+};
   const handleLogout = () => { logout(); navigate('/'); };
 
   if (sessionLoading || !authChecked) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading admin panel…</div>;
