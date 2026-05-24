@@ -381,60 +381,47 @@ function UserModal({ isOpen, onClose, onSubmit, userData, setUserData, loading, 
   );
 }
 
-// EDIT CAMPAIGN MODAL - Simplified working version
-{editCampaignModal.open && editCampaignModal.campaign && (
-  <div className="modal-bd" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-    <div style={{ background: 'white', borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '500px', maxHeight: '90vh', overflow: 'auto' }}>
-      <h3 style={{ marginBottom: '16px' }}>Edit Campaign</h3>
-      <form onSubmit={async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const data = {
-          title: formData.get('title'),
-          description: formData.get('description'),
-          goal: parseFloat(formData.get('goal')),
-          category: formData.get('category'),
-          status: formData.get('status')
-        };
-        try {
-          await adminApi.updateCampaign(editCampaignModal.campaign.id, data);
-          showToast('Campaign updated');
-          setEditCampaignModal({ open: false, campaign: null });
-          fetchAll();
-        } catch (err) {
-          showToast(err.message, true);
-        }
-      }}>
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Title</label>
-        <input name="title" defaultValue={editCampaignModal.campaign.title} required style={{ width: '100%', padding: '8px', marginBottom: '16px', border: '1px solid #ddd', borderRadius: '4px' }} />
-        
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Description</label>
-        <textarea name="description" defaultValue={editCampaignModal.campaign.description || ''} rows="3" style={{ width: '100%', padding: '8px', marginBottom: '16px', border: '1px solid #ddd', borderRadius: '4px' }} />
-        
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Goal ($)</label>
-        <input name="goal" type="number" defaultValue={editCampaignModal.campaign.goal} required style={{ width: '100%', padding: '8px', marginBottom: '16px', border: '1px solid #ddd', borderRadius: '4px' }} />
-        
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Category</label>
-        <select name="category" defaultValue={editCampaignModal.campaign.category || 'General'} style={{ width: '100%', padding: '8px', marginBottom: '16px', border: '1px solid #ddd', borderRadius: '4px' }}>
-          {['General','Education','Health','Environment','Community','Emergency','Animals','Arts'].map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        
-        <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Status</label>
-        <select name="status" defaultValue={editCampaignModal.campaign.status} style={{ width: '100%', padding: '8px', marginBottom: '16px', border: '1px solid #ddd', borderRadius: '4px' }}>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-          <option value="completed">Completed</option>
-        </select>
-        
-        <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-          <button type="submit" style={{ padding: '10px 20px', background: '#1D9E75', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Save Changes</button>
-          <button type="button" onClick={() => setEditCampaignModal({ open: false, campaign: null })} style={{ padding: '10px 20px', background: '#ccc', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-        </div>
-      </form>
+// ── Edit Campaign Modal ───────────────────────────
+function EditCampaignModal({ isOpen, onClose, campaign, onSave, showToast }) {
+  const [data, setData] = useState({ title: '', description: '', goal: '', category: 'General', status: 'pending' });
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { if (campaign) setData({ title: campaign.title || '', description: campaign.description || '', goal: campaign.goal || '', category: campaign.category || 'General', status: campaign.status || 'pending' }); }, [campaign]);
+  if (!isOpen || !campaign) return null;
+  const handleSave = async e => {
+    e.preventDefault();
+    setSaving(true);
+    try { await onSave(campaign.id, data); showToast('Campaign updated'); onClose(); }
+    catch (err) { showToast(err.message, true); }
+    finally { setSaving(false); }
+  };
+  return (
+    <div className="modal-bd" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-t">Edit Campaign</div>
+        <form onSubmit={handleSave}>
+          <label className="fl">Title</label>
+          <input type="text" className="fi" value={data.title} onChange={e => setData(p => ({ ...p, title: e.target.value }))} required />
+          <label className="fl">Description</label>
+          <textarea className="fi" rows="3" value={data.description} onChange={e => setData(p => ({ ...p, description: e.target.value }))} />
+          <label className="fl">Goal ($)</label>
+          <input type="number" className="fi" value={data.goal} onChange={e => setData(p => ({ ...p, goal: e.target.value }))} min="10" required />
+          <label className="fl">Category</label>
+          <select className="fi" value={data.category} onChange={e => setData(p => ({ ...p, category: e.target.value }))}>
+            {['General','Education','Health','Environment','Community','Emergency','Animals','Arts'].map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <label className="fl">Status</label>
+          <select className="fi" value={data.status} onChange={e => setData(p => ({ ...p, status: e.target.value }))}>
+            {['pending','approved','rejected','completed'].map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button type="submit" className="btn btn-g" disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
+            <button type="button" className="btn btn-gh" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
-)}
+  );
+}
 
 // ── Create Campaign Modal ─────────────────────────
 function CreateCampaignModal({ isOpen, onClose, onSave, showToast }) {
