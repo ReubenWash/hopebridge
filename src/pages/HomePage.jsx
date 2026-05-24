@@ -4,21 +4,20 @@ import { useApp } from '../context/AppContext'
 import { publicApi } from '../services/api'
 import CauseCard from '../components/CauseCard'
 import DonationForm from '../components/DonationForm'
-import { Download, Heart, Star, Shield, CheckCircle, Eye, Receipt, ArrowRight, Plus, Search, HandHeart, ChartLine, Gift, InfoCircle, QuoteRight } from 'lucide-react'
 
 // Static content that doesn't need to be dynamic
 const HOW_STEPS = [
-  { n: 1, title: 'Browse Causes', desc: 'Explore verified campaigns across education, health, and environment.' },
-  { n: 2, title: 'Choose Amount', desc: 'Pick any amount — every dollar directly helps those in need.' },
-  { n: 3, title: 'Donate Securely', desc: 'Your donation is processed with full security and transparency.' },
-  { n: 4, title: 'See the Change', desc: 'Track your impact and get updates from the campaigns you support.' },
+  { n: 1, title: 'Browse Causes', desc: 'Explore verified campaigns across education, health, and environment.', icon: 'fa-search' },
+  { n: 2, title: 'Choose Amount', desc: 'Pick any amount — every dollar directly helps those in need.', icon: 'fa-dollar-sign' },
+  { n: 3, title: 'Donate Securely', desc: 'Your donation is processed with full security and transparency.', icon: 'fa-shield-alt' },
+  { n: 4, title: 'See the Change', desc: 'Track your impact and get updates from the campaigns you support.', icon: 'fa-chart-line' },
 ]
 
 const TRUST_ITEMS = [
-  { icon: Shield, title: '100% Secure', desc: 'Your payment info is encrypted and protected.' },
-  { icon: CheckCircle, title: 'Verified Campaigns', desc: 'All campaigns are reviewed by our admin team.' },
-  { icon: Eye, title: 'Full Transparency', desc: 'See exactly where your money goes.' },
-  { icon: Receipt, title: 'Tax Receipt', desc: 'Get a receipt for your donation instantly.' },
+  { icon: 'fa-shield-alt', title: '100% Secure', desc: 'Your payment info is encrypted and protected.' },
+  { icon: 'fa-check-circle', title: 'Verified Campaigns', desc: 'All campaigns are reviewed by our admin team.' },
+  { icon: 'fa-eye', title: 'Full Transparency', desc: 'See exactly where your money goes.' },
+  { icon: 'fa-receipt', title: 'Tax Receipt', desc: 'Get a receipt for your donation instantly.' },
 ]
 
 const TESTIMONIALS = [
@@ -54,7 +53,7 @@ const PWAInstallButton = () => {
 
   return (
     <button onClick={handleInstall} className="pwa-install-footer-btn">
-      <Download size={16} /> Install App
+      <i className="fas fa-download"></i> Install App
     </button>
   );
 };
@@ -348,9 +347,7 @@ const injectStyles = () => {
       width: 44px; height: 44px;
       border-radius: 50%;
       background: rgba(232,83,30,.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       color: var(--primary);
       flex-shrink: 0;
     }
@@ -553,7 +550,6 @@ export default function HomePage() {
     loadCampaigns()
     loadContent()
 
-    // Scroll to top button visibility
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 300)
     }
@@ -600,7 +596,7 @@ export default function HomePage() {
         <div className="hero-inner">
           <div className="hero-content">
             <div className="hero-badge">
-              <Star size={14} /> {content.hero_badge}
+              <i className="fas fa-star"></i> {content.hero_badge}
             </div>
             <h1>
               {content.hero_title.split(' ').map((word, i) => 
@@ -628,10 +624,10 @@ export default function HomePage() {
             </div>
             <div className="hero-cta">
               <button className="btn-hero-primary" onClick={() => scrollTo('donate')}>
-                <HandHeart size={18} /> Donate Now
+                <i className="fas fa-hand-holding-heart"></i> Donate Now
               </button>
               <button className="btn-hero-outline" onClick={() => scrollTo('causes')}>
-                <Search size={18} /> Browse Causes
+                <i className="fas fa-search"></i> Browse Causes
               </button>
             </div>
           </div>
@@ -655,7 +651,7 @@ export default function HomePage() {
       <section id="how-it-works" className="section-wrap">
         <div className="container-inner">
           <div className="text-center">
-            <div className="section-tag"><InfoCircle size={14} /> How It Works</div>
+            <div className="section-tag"><i className="fas fa-info-circle"></i> How It Works</div>
             <h2 className="section-title">Simple Steps to <span className="accent">Make an Impact</span></h2>
             <div className="section-divider mx-auto"></div>
           </div>
@@ -676,7 +672,7 @@ export default function HomePage() {
       {/* CAUSES */}
       <section id="causes" className="section-wrap bg-light">
         <div className="container-inner">
-          <div className="section-tag"><Heart size={14} /> Active Causes</div>
+          <div className="section-tag"><i className="fas fa-heart"></i> Active Causes</div>
           <h2 className="section-title">Urgent Causes <span className="accent">You Can Change</span></h2>
           <div className="section-divider"></div>
           <p className="section-sub">Every donation goes directly to verified campaigns.</p>
@@ -695,11 +691,11 @@ export default function HomePage() {
       {/* IMPACT PARALLAX */}
       <section id="impact" className="parallax-banner">
         <div className="parallax-content container-inner">
-          <div className="parallax-tag"><ChartLine size={14} /> {content.impact_title}</div>
+          <div className="parallax-tag"><i className="fas fa-chart-line"></i> {content.impact_title}</div>
           <h2>{content.impact_subtitle} <span style={{ color: 'var(--primary-light)' }}>Goes</span></h2>
           <p>We operate with 100% transparency. Every cent is tracked and reported.</p>
           <button className="btn-hero-primary" onClick={() => scrollTo('donate')}>
-            <Heart size={18} /> Donate Now
+            <i className="fas fa-heart"></i> Donate Now
           </button>
           <div className="parallax-stats">
             <div className="pstat">
@@ -725,7 +721,7 @@ export default function HomePage() {
       {/* DONATION FORM */}
       <section id="donate" className="donation-section">
         <div className="container-inner">
-          <div className="section-tag"><Gift size={14} /> Make A Donation</div>
+          <div className="section-tag"><i className="fas fa-gift"></i> Make A Donation</div>
           <h2 className="section-title mb-0">Give <span className="accent">Today</span></h2>
           <div className="section-divider"></div>
           <div className="donation-wrapper">
@@ -735,7 +731,7 @@ export default function HomePage() {
               <div className="trust-items">
                 {TRUST_ITEMS.map(t => (
                   <div key={t.title} className="trust-item">
-                    <div className="trust-icon"><t.icon size={20} /></div>
+                    <div className="trust-icon"><i className={`fas ${t.icon}`}></i></div>
                     <div className="trust-text"><strong>{t.title}</strong><span>{t.desc}</span></div>
                   </div>
                 ))}
@@ -750,7 +746,7 @@ export default function HomePage() {
       <section className="testimonial-section">
         <div className="container-inner">
           <div className="text-center mb-5">
-            <div className="section-tag"><QuoteRight size={14} /> Testimonials</div>
+            <div className="section-tag"><i className="fas fa-quote-right"></i> Testimonials</div>
             <h2 className="section-title">What Our <span className="accent">Donors Say</span></h2>
             <div className="section-divider mx-auto"></div>
           </div>
@@ -780,10 +776,10 @@ export default function HomePage() {
               style={{ borderColor: 'rgba(255,255,255,.8)' }} 
               onClick={() => openAuth('register', 'creator')}
             >
-              <Plus size={16} /> Start a Campaign
+              <i className="fas fa-plus"></i> Start a Campaign
             </button>
             <button className="cta-strip-btn-white" onClick={() => scrollTo('donate')}>
-              Donate Now <ArrowRight size={16} />
+              Donate Now <i className="fas fa-arrow-right"></i>
             </button>
           </div>
         </div>
@@ -793,7 +789,7 @@ export default function HomePage() {
       <footer className="site-footer">
         <div className="footer-inner">
           <div>
-            <div className="footer-logo"><Heart size={20} /> HopeBridge</div>
+            <div className="footer-logo"><i className="fas fa-heart"></i> HopeBridge</div>
             <p style={{ fontSize: '.88rem', lineHeight: 1.8, maxWidth: 240 }}>Empowering communities through transparent giving.</p>
             <div className="social-icons">
               <a href={content.social_links?.facebook || '#'} target="_blank" rel="noopener noreferrer"><i className="fab fa-facebook-f"></i></a>
@@ -834,7 +830,7 @@ export default function HomePage() {
 
       {/* Scroll to Top Button */}
       <button className={`scroll-top-btn ${showScrollTop ? 'visible' : ''}`} onClick={scrollToTop}>
-        <ArrowRight size={20} style={{ transform: 'rotate(-90deg)' }} />
+        <i className="fas fa-arrow-up"></i>
       </button>
     </>
   )
