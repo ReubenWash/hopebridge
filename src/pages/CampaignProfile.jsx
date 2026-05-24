@@ -1,5 +1,3 @@
-javascript
-
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
@@ -294,6 +292,7 @@ const Icon = ({ d, size = 16, stroke = 'currentColor', fill = 'none' }) => (
     <path d={d} />
   </svg>
 );
+
 const ICO = {
   back:     'M19 12H5M12 5l-7 7 7 7',
   home:     'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
@@ -317,23 +316,23 @@ const ICO = {
 export default function CampaignProfile() {
   injectStyles();
 
-  const { id }       = useParams();
-  const navigate     = useNavigate();
+  const { id } = useParams();
+  const navigate = useNavigate();
   const { currentUser, showToast, refreshWallet } = useApp();
 
-  const [campaign,   setCampaign]   = useState(null);
-  const [creator,    setCreator]    = useState(null);
-  const [donations,  setDonations]  = useState([]);
-  const [total,      setTotal]      = useState(0);
-  const [updates,    setUpdates]    = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState(null);
-  const [tab,        setTab]        = useState('story');
-  const [showStory,  setShowStory]  = useState(false);
-  const [lightbox,   setLightbox]   = useState(null);
+  const [campaign, setCampaign] = useState(null);
+  const [creator, setCreator] = useState(null);
+  const [donations, setDonations] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [updates, setUpdates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [tab, setTab] = useState('story');
+  const [showStory, setShowStory] = useState(false);
+  const [lightbox, setLightbox] = useState(null);
   const [showDonate, setShowDonate] = useState(false);
-  const [showShare,  setShowShare]  = useState(false);
-  const [copied,     setCopied]     = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -358,56 +357,65 @@ export default function CampaignProfile() {
       campaignApi.getUpdates?.(id)
         .then(r => setUpdates(r?.updates || []))
         .catch(() => {});
-    } catch {
+    } catch (err) {
+      console.error('Load error:', err);
       setError('Campaign not found');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleShare = async platform => {
+  const handleShare = async (platform) => {
     const url = window.location.href;
     const text = `Support "${campaign?.title}" on HopeBridge`;
-    if (platform === 'wa')  window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`);
-    if (platform === 'fb')  window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`);
-    if (platform === 'tw')  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`);
+    if (platform === 'wa') window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
+    if (platform === 'fb') window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+    if (platform === 'tw') window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
     if (platform === 'copy') {
       await navigator.clipboard.writeText(url).catch(() => {});
-      setCopied(true); showToast('Link copied!');
+      setCopied(true);
+      showToast('Link copied!');
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
   const handleDonate = () => {
-    if (!currentUser) { showToast('Please log in to donate', true); return; }
+    if (!currentUser) {
+      showToast('Please log in to donate', true);
+      return;
+    }
     setShowDonate(true);
   };
 
-  if (loading) return (
-    <div className="cp-loading">
-      <div className="cp-spinner" />
-      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14 }}>Loading campaign…</span>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="cp-loading">
+        <div className="cp-spinner" />
+        <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14 }}>Loading campaign…</span>
+      </div>
+    );
+  }
 
-  if (error || !campaign) return (
-    <div className="cp-loading" style={{ gap: 12 }}>
-      <div style={{ fontSize: 40 }}>🔍</div>
-      <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700 }}>Campaign Not Found</div>
-      <div style={{ fontSize: 14, color: '#999' }}>This campaign may have been removed or never existed.</div>
-      <button className="cp-btn cp-btn-sage" onClick={() => navigate('/')} style={{ marginTop: 8 }}>
-        ← Back to Home
-      </button>
-    </div>
-  );
+  if (error || !campaign) {
+    return (
+      <div className="cp-loading" style={{ gap: 12 }}>
+        <div style={{ fontSize: 40 }}>🔍</div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700 }}>Campaign Not Found</div>
+        <div style={{ fontSize: 14, color: '#999' }}>This campaign may have been removed or never existed.</div>
+        <button className="cp-btn cp-btn-sage" onClick={() => navigate('/')} style={{ marginTop: 8 }}>
+          ← Back to Home
+        </button>
+      </div>
+    );
+  }
 
-  const progress    = Math.min((campaign.raised / campaign.goal) * 100, 100);
-  const isFunded    = campaign.raised >= campaign.goal;
-  const isVerified  = creator?.is_verified;
-  const gallery     = campaign.gallery_images || [];
-  const daysLeft    = Math.max(0, 30 - Math.floor((Date.now() - new Date(campaign.created_at)) / 86400000));
-  const desc        = campaign.description || '';
-  const longDesc    = desc.length > 480;
+  const progress = Math.min((campaign.raised / campaign.goal) * 100, 100);
+  const isFunded = campaign.raised >= campaign.goal;
+  const isVerified = creator?.is_verified;
+  const gallery = campaign.gallery_images || [];
+  const daysLeft = Math.max(0, 30 - Math.floor((Date.now() - new Date(campaign.created_at)) / 86400000));
+  const desc = campaign.description || '';
+  const longDesc = desc.length > 480;
 
   return (
     <div className="cp-wrap">
@@ -465,9 +473,9 @@ export default function CampaignProfile() {
           {/* Tabs */}
           <div className="cp-tabs">
             {[
-              { key: 'story',     label: 'Story',     icon: ICO.info },
+              { key: 'story', label: 'Story', icon: ICO.info },
               { key: 'donations', label: `Donations (${donations.length})`, icon: ICO.heart },
-              { key: 'updates',   label: `Updates (${updates.length})`,  icon: ICO.news },
+              { key: 'updates', label: `Updates (${updates.length})`, icon: ICO.news },
               ...(gallery.length ? [{ key: 'gallery', label: 'Gallery', icon: ICO.camera }] : []),
             ].map(({ key, label, icon }) => (
               <button key={key} className={`cp-tab ${tab === key ? 'active' : ''}`} onClick={() => setTab(key)}>

@@ -17,6 +17,7 @@ const safeGet = async (fn, fallback) => { try { return await fn(); } catch { ret
 const toNum   = (v, f = 0) => { const n = parseFloat(v); return isNaN(n) ? f : n; };
 
 // ── Styles ────────────────────────────────────────
+// ── Styles ────────────────────────────────────────
 let stylesInjected = false;
 const injectStyles = () => {
   if (stylesInjected) return;
