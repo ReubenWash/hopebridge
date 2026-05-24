@@ -183,7 +183,7 @@ export const adminApi = {
   getUsers:       () => request('/admin/users'),
   toggleUser:     (id) => request(`/admin/users/${id}/toggle`, { method: 'PATCH' }),
   addUser:        (data) => request('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
-  updateUser:     (id, data) => request(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),  // ADD THIS
+  updateUser:     (id, data) => request(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteUser:     (id) => request(`/admin/users/${id}`, { method: 'DELETE' }),
   verifyUser:     (id) => request(`/admin/users/${id}/verify`, { method: 'PATCH' }),
   unverifyUser:   (id) => request(`/admin/users/${id}/unverify`, { method: 'PATCH' }),
@@ -195,18 +195,30 @@ export const adminApi = {
     const qs = new URLSearchParams(params || {}).toString()
     return request(`/admin/campaigns${qs ? `?${qs}` : ''}`)
   },
-  updateCampaign: (id, body) => request(`/admin/campaigns/${id}`, {  // UPDATED: Changed from status to full update
+  updateCampaign: (id, body) => request(`/admin/campaigns/${id}`, {
     method: 'PUT', body: JSON.stringify(body),
   }),
-  updateCampaignStatus: (id, body) => request(`/admin/campaigns/${id}/status`, {  // Keep for status only
+  updateCampaignStatus: (id, body) => request(`/admin/campaigns/${id}/status`, {
     method: 'PATCH', body: JSON.stringify(body),
   }),
-  createCampaign: (data) => request('/admin/campaigns/create', {  // ADD THIS
-    method: 'POST', body: JSON.stringify(data),
-  }),
-  updateCampaignProgress: (id, data) => request(`/admin/campaigns/${id}/progress`, {  // ADD THIS
+  // FIXED: createCampaign now accepts FormData for image upload
+  createCampaign: (data) => {
+    // Check if FormData (has image) or JSON (no image)
+    if (data instanceof FormData) {
+      return multipart('POST', '/admin/campaigns', data)
+    }
+    return request('/admin/campaigns', { method: 'POST', body: JSON.stringify(data) })
+  },
+  updateCampaignProgress: (id, data) => request(`/admin/campaigns/${id}/progress`, {
     method: 'PATCH', body: JSON.stringify(data),
   }),
+  uploadCampaignImage: (id, formData) => {
+    if (!(formData instanceof FormData)) {
+      console.error('uploadCampaignImage called without FormData')
+      throw new Error('Invalid form data for image upload')
+    }
+    return multipart('POST', `/admin/campaigns/${id}/image`, formData)
+  },
 
   // Donations
   getDonations:   () => request('/admin/donations'),
@@ -292,10 +304,17 @@ export const adminApi = {
   resolveDispute: (id) => request(`/admin/disputes/${id}/resolve`, { method: 'PATCH' }),
 
   // Wallet Management (Admin)
-  adjustWallet: (userId, data) => request('/admin/wallet/adjust', {  // ADD THIS
-    method: 'POST', body: JSON.stringify({ userId, ...data }),
-  }),
-  getUserWalletDetails: (userId) => request(`/admin/wallet/user/${userId}`),  // ADD THIS
+  // FIXED: adjustWallet now uses proper transaction types
+  adjustWallet: (userId, data) => {
+    // Ensure type is one of: 'credit', 'debit', 'deposit', 'withdrawal', 'refund'
+    const validTypes = ['credit', 'debit', 'deposit', 'withdrawal', 'refund']
+    const transactionType = validTypes.includes(data.type) ? data.type : 'credit'
+    return request('/admin/wallet/adjust', {
+      method: 'POST', 
+      body: JSON.stringify({ userId, ...data, type: transactionType })
+    })
+  },
+  getUserWalletDetails: (userId) => request(`/admin/wallet/user/${userId}`),
 
   // ============ NEW FEATURES ============
 
@@ -306,7 +325,7 @@ export const adminApi = {
   },
   getPayoutSummary: () => request('/admin/features/payouts/summary'),
   markPayoutAsPaid: (id, data) => request(`/admin/features/payouts/${id}/mark-paid`, {
-    method: 'PUT', body: JSON.stringify(data),
+    method: 'PUT', body: JSON.stringify(data || {}),
   }),
 
   // Transaction Fee Management

@@ -426,34 +426,82 @@ function EditCampaignModal({ isOpen, onClose, campaign, onSave, showToast }) {
   );
 }
 
-// ── Create Campaign Modal ─────────────────────────
+// ── Create Campaign Modal (UPDATED with Image Upload) ──
 function CreateCampaignModal({ isOpen, onClose, onSave, showToast }) {
-  const [data, setData] = useState({ title: '', description: '', goal: '', category: 'General', creator_name: '' });
+  const [data, setData] = useState({ 
+    title: '', description: '', goal: '', category: 'General',
+    image: null, image_preview: null
+  });
   const [saving, setSaving] = useState(false);
+  
   if (!isOpen) return null;
+  
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setData(p => ({ ...p, image: file, image_preview: reader.result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
   const handleSave = async e => {
     e.preventDefault();
+    if (!data.title || !data.goal) {
+      showToast('Title and goal are required', true); 
+      return;
+    }
     setSaving(true);
-    try { await onSave(data); showToast('Campaign created'); onClose(); setData({ title: '', description: '', goal: '', category: 'General', creator_name: '' }); }
-    catch (err) { showToast(err.message, true); }
-    finally { setSaving(false); }
+    try {
+      const formData = new FormData();
+      formData.append('title', data.title);
+      formData.append('description', data.description);
+      formData.append('goal', data.goal);
+      formData.append('category', data.category);
+      if (data.image) {
+        formData.append('image', data.image);
+      }
+      await onSave(formData);
+      showToast('Campaign created');
+      onClose();
+      setData({ title: '', description: '', goal: '', category: 'General', image: null, image_preview: null });
+    } catch (err) { 
+      showToast(err.message, true); 
+    } finally { 
+      setSaving(false); 
+    }
   };
+  
   return (
     <div className="hb-modal-bd" onClick={onClose}>
       <div className="hb-modal" onClick={e => e.stopPropagation()}>
         <div className="hb-modal-t">Create Campaign</div>
-        <div className="hb-modal-s">Admin-created campaign</div>
+        <div className="hb-modal-s">Admin-created campaign with image</div>
         <form onSubmit={handleSave}>
           <label className="fl">Campaign Title *</label>
           <input type="text" className="fi" value={data.title} onChange={e => setData(p => ({ ...p, title: e.target.value }))} required />
+          
           <label className="fl">Description</label>
           <textarea className="fi" rows="3" value={data.description} onChange={e => setData(p => ({ ...p, description: e.target.value }))} />
+          
           <label className="fl">Goal ($) *</label>
           <input type="number" className="fi" value={data.goal} onChange={e => setData(p => ({ ...p, goal: e.target.value }))} min="10" required />
+          
           <label className="fl">Category</label>
           <select className="fi" value={data.category} onChange={e => setData(p => ({ ...p, category: e.target.value }))}>
             {['General','Education','Health','Environment','Community','Emergency','Animals','Arts'].map(c => <option key={c} value={c}>{c}</option>)}
           </select>
+          
+          <label className="fl">Campaign Image</label>
+          <input type="file" className="fi" accept="image/*" onChange={handleImageChange} style={{ padding: '8px' }} />
+          {data.image_preview && (
+            <div style={{ marginTop: 8, marginBottom: 16 }}>
+              <img src={data.image_preview} alt="Preview" style={{ maxWidth: '100%', maxHeight: 150, borderRadius: 8 }} />
+            </div>
+          )}
+          
           <div style={{ display: 'flex', gap: 10 }}>
             <button type="submit" className="btn btn-g" disabled={saving}>{saving ? 'Creating…' : 'Create Campaign'}</button>
             <button type="button" className="btn btn-gh" onClick={onClose}>Cancel</button>
@@ -476,7 +524,15 @@ function WalletAdjustModal({ isOpen, onClose, user, onSave, showToast }) {
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) { showToast('Enter a valid amount', true); return; }
     setLoading(true);
-    try { await onSave(user.id, { amount: amt, type, reason }); showToast(`Wallet ${type === 'add' ? 'credited' : 'debited'} $${amt}`); setAmount(''); setReason(''); onClose(); }
+    try { 
+      // Convert type to what backend expects: 'credit' or 'debit'
+      const backendType = type === 'add' ? 'credit' : 'debit';
+      await onSave(user.id, { amount: amt, type: backendType, reason }); 
+      showToast(`Wallet ${type === 'add' ? 'credited' : 'debited'} $${amt}`); 
+      setAmount(''); 
+      setReason(''); 
+      onClose(); 
+    }
     catch (err) { showToast(err.message, true); }
     finally { setLoading(false); }
   };
@@ -865,7 +921,7 @@ function PayoutsManager({ payouts, onMarkPaid }) {
             <tr key={p.id}>
               <td><strong>{p.user_name}</strong><br /><small style={{ color: 'var(--txt-3)' }}>{p.user_email}</small></td>
               <td><strong>${toNum(p.amount).toFixed(2)}</strong></td>
-              <td>{p.payment_method}<br /><small>{p.payment_details?.substring(0, 30)}</small></td>
+                            <td>{p.payment_method}<br /><small>{p.payment_details?.substring(0, 30)}</small></td>
               <td><span className={`badge ${p.status === 'paid' ? 'ba' : p.status === 'approved' ? 'bp' : 'bx'}`}>{p.status}</span></td>
               <td>{new Date(p.created_at).toLocaleDateString()}</td>
               <td>{p.status === 'approved' && <button className="db dba" onClick={() => onMarkPaid(p.id)}><CheckCircle size={12} /> Mark Paid</button>}</td>
@@ -1167,7 +1223,7 @@ export default function AdminDashboard() {
 
   const handleWalletAdjust = async (userId, { amount, type, reason }) => {
     await adminApi.adjustWallet?.(userId, { amount, type, reason });
-    addNotif(`Wallet ${type === 'add' ? 'credited' : 'debited'} $${amount} for user`);
+    addNotif(`Wallet ${type === 'credit' ? 'credited' : 'debited'} $${amount} for user`);
     fetchAll();
   };
 
@@ -1182,7 +1238,7 @@ export default function AdminDashboard() {
   const handleSaveSettings        = async () => { try { await adminApi.saveSettings({ theme: themeSettings, keys: integrationKeys }); showToast('Settings saved'); } catch (err) { showToast(err.message, true); } };
   const handleSaveFees            = async data => { try { await adminApi.updateFeeSettings?.(data); setFeeSettings(data); showToast('Fee settings saved'); } catch (err) { showToast(err.message, true); } };
   const handleMarkPayoutPaid      = async id => { try { await adminApi.markPayoutAsPaid?.(id); showToast('Marked as paid'); fetchExtras(); } catch (err) { showToast(err.message, true); } };
-  const handleSaveNotifSettings   = async data => { try { await adminApi.updateNotificationSettings?.(data); setPushNotifEnabled(data.enabled); showToast('Saved'); } catch (err) { showToast(err.message, true); } };
+  const handleSaveNotifSettings   = async data => { try { await adminApi.updateNotificationSettings?.(data); showToast('Saved'); } catch (err) { showToast(err.message, true); } };
   const handleSendPushNotif       = async data => { try { await adminApi.sendPushNotification?.(data); showToast('Notification sent'); addNotif(`Push sent: "${data.title}"`); fetchExtras(); } catch (err) { showToast(err.message, true); } };
   const handleChangePassword      = async data => { await adminApi.changePassword?.(data); };
   const handleLogout              = () => { logout(); navigate('/'); };
@@ -1209,7 +1265,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="shell">
-      {/* ── Sidebar ── */}
+      {/* Sidebar */}
       <aside className="sidebar">
         <div className="sb-logo">
           <div className="logo-mark">
@@ -1253,7 +1309,7 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* ── Main ── */}
+      {/* Main Content */}
       <div className="main">
         <div className="topbar">
           <div className="tb-title">{tabLabel(activeTab)}</div>
@@ -1278,7 +1334,7 @@ export default function AdminDashboard() {
           </div>
         </div>
         
-        {/* Mobile header with notification icon */}
+        {/* Mobile header */}
         <div className="mob-top">
           <div className="mob-logo">HopeBridge</div>
           <div ref={mobileNotifRef} style={{ position: 'relative' }}>
@@ -1333,6 +1389,7 @@ export default function AdminDashboard() {
               <div className="sc"><div className="si si-r"><Clock size={18} /></div><div className="sv">{pendingCompletions}</div><div className="sl">Pending Completions</div></div>
             </div>
 
+            {/* Quick Toggles */}
             <div className="sh" style={{ marginBottom: 12 }}><div className="sht"><Settings size={18} /> Quick Toggles</div></div>
             <div className="qt-grid">
               {[
@@ -1351,6 +1408,7 @@ export default function AdminDashboard() {
               ))}
             </div>
 
+            {/* Quick Actions */}
             <div className="sh" style={{ marginBottom: 12 }}><div className="sht"><Zap size={18} /> Quick Actions</div></div>
             <div className="qg">
               {[
@@ -1439,14 +1497,14 @@ export default function AdminDashboard() {
                     <td style={{ paddingLeft: 20 }}><div style={{ fontWeight: 600 }}>{c.title}</div><small style={{ color: 'var(--txt-3)' }}>{c.creator_name}</small></td>
                     <td>${c.goal.toLocaleString()}</td>
                     <td>${c.raised.toLocaleString()}</td>
-                    <td><div className="pb" style={{ width: 80 }}><div className="pf" style={{ width: `${Math.min((c.raised / c.goal) * 100, 100)}%` }} /></div>{Math.round((c.raised / c.goal) * 100)}%</td>
+                    <td><div className="pb" style={{ width: 80 }}><div className="pf" style={{ width: `${Math.min((c.raised / c.goal) * 100, 100)}%` }} /></div>{Math.round((c.raised / c.goal) * 100)}%</div></td>
                     <td><span className={`badge ${c.status === 'approved' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td>
                     <td style={{ paddingRight: 20 }}>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                         {c.status === 'pending' && <button className="db dba" onClick={() => handleApproveCampaign(c.id)}><CheckCircle size={12} /> Approve</button>}
                         <button className="db dbv" onClick={() => setEditCampaignModal({ open: true, campaign: c })}><Edit size={12} /> Edit</button>
                         <button className="db dbp" onClick={() => setProgressModal({ open: true, campaign: c })}><TrendingUp size={12} /> Progress</button>
-                        <button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}><Trash2 size={12} /></button>
+                        <button className="db dbr" onClick={() => { if (window.confirm(`Delete "${c.title}" permanently?`)) handleDeleteCampaign(c.id); }}><Trash2 size={12} /> Delete</button>
                       </div>
                     </td>
                   </tr>
