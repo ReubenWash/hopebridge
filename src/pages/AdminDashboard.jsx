@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { adminApi, campaignApi } from '../services/api';
@@ -6,8 +6,10 @@ import {
   Heart, LayoutDashboard, Users, DollarSign, Settings, LogOut,
   Bell, Target, CreditCard, Plus, CheckCircle, Clock, FileText,
   ArrowRight, Zap, Shield, Calendar, Send, Eye, EyeOff,
-  Banknote, History, X, Gift, Receipt, Lock, Unlock,
-  Mail as MailIcon, Pause, Play, Trash2, RefreshCw, Image,
+  Banknote, History, X, Receipt, Lock, Unlock,
+  Mail as MailIcon, Trash2, RefreshCw, Image,
+  Edit, Wallet, TrendingUp, TrendingDown, UserCheck,
+  AlertCircle, ChevronDown,
 } from 'lucide-react';
 
 // ── Helpers ───────────────────────────────────────
@@ -51,8 +53,8 @@ const injectStyles = () => {
     .nl:hover{background:var(--bg);color:var(--txt)}
     .nl.active{background:var(--green-l);color:var(--green-d);font-weight:600}
     .nl svg{flex-shrink:0}
-    .nb{margin-left:auto;font-size:10px;font-weight:700;background:var(--red);color:#fff;padding:2px 7px;border-radius:20px}
-    .nb.am{background:var(--amber)}
+    .nb{margin-left:auto;font-size:10px;font-weight:700;background:var(--red);color:#fff;padding:2px 7px;border-radius:20px;min-width:18px;text-align:center}
+    .nb.am{background:var(--amber)}.nb.gr{background:var(--green)}
     .sb-footer{padding:12px 10px;border-top:1px solid var(--border)}
     .main{flex:1;margin-left:var(--sidebar-w);display:flex;flex-direction:column;min-height:100vh}
     .topbar{height:var(--topbar-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:16px;position:sticky;top:0;z-index:100}
@@ -61,6 +63,17 @@ const injectStyles = () => {
     .tb-btn{width:38px;height:38px;border-radius:var(--r-sm);background:var(--surface-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background var(--tr)}
     .tb-btn:hover{background:var(--bg)}
     .ndot{position:absolute;top:7px;right:7px;width:7px;height:7px;background:var(--red);border-radius:50%;border:1.5px solid var(--surface)}
+    /* Notification panel */
+    .notif-panel{position:absolute;top:calc(100% + 8px);right:0;width:340px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--sh-lg);z-index:999;max-height:480px;overflow-y:auto}
+    .notif-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .notif-title{font-weight:700;font-size:14px;color:var(--txt)}
+    .notif-item{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);transition:background var(--tr)}
+    .notif-item:hover{background:var(--surface-2)}
+    .notif-item.unread{background:var(--green-l)}
+    .notif-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:5px}
+    .notif-text{font-size:13px;color:var(--txt);line-height:1.4}
+    .notif-time{font-size:11px;color:var(--txt-3);margin-top:3px}
+    .notif-badge{position:absolute;top:6px;right:6px;width:16px;height:16px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;border:1.5px solid var(--surface)}
     .page{padding:28px}
     .ps{display:none}.ps.active{display:block}
     .ov-hero{background:linear-gradient(130deg,var(--green-dd) 0%,var(--green) 55%,var(--accent) 100%);border-radius:var(--r-xl);padding:28px 32px;margin-bottom:24px;position:relative;overflow:hidden;color:#fff}
@@ -95,14 +108,12 @@ const injectStyles = () => {
     .pf{height:100%;background:var(--green);border-radius:2px;transition:width .9s ease}
     .badge{font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
     .bp{background:var(--amber-l);color:#854F0B}.ba{background:var(--green-l);color:var(--green-d)}.br{background:var(--blue-l);color:#185FA5}.bx{background:var(--red-l);color:var(--red)}
-    /* Quick actions */
     .qg{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px}
     .qb{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-md);padding:16px 8px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform var(--tr),box-shadow var(--tr);font-family:var(--fb)}
     .qb:hover{transform:translateY(-2px);box-shadow:var(--sh-md)}.qb:active{transform:scale(0.96)}
     .qi{width:40px;height:40px;border-radius:var(--r-sm);background:var(--green-l);display:flex;align-items:center;justify-content:center;color:var(--green-d)}
     .qb.qx .qi{background:var(--red-l);color:var(--red)}.qb.qx .ql{color:var(--red)}
     .ql{font-size:11px;font-weight:600;color:var(--txt-2);text-align:center;line-height:1.3}
-    /* Toggles */
     .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--border)}
     .toggle-row:last-child{border-bottom:none}
     .toggle-info strong{font-size:14px;font-weight:600;color:var(--txt);display:block}
@@ -114,7 +125,6 @@ const injectStyles = () => {
     .toggle input:checked+.toggle-slider{background:var(--green)}
     .toggle input:checked+.toggle-slider:before{transform:translateX(22px)}
     .toggle.danger input:checked+.toggle-slider{background:var(--red)}
-    /* Quick toggle cards */
     .qt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
     .qt-card{background:var(--surface);border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--sh-sm);display:flex;align-items:center;justify-content:space-between;gap:12px}
     .qt-label{font-size:13px;font-weight:600;color:var(--txt)}
@@ -123,7 +133,6 @@ const injectStyles = () => {
     .status-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
     .status-pill.on{background:var(--green-l);color:var(--green-d)}.status-pill.off{background:var(--red-l);color:var(--red)}
     .status-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
-    /* Email templates */
     .tpl-list{display:flex;flex-direction:column;gap:8px}
     .tpl-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer;transition:all var(--tr);background:var(--surface)}
     .tpl-item:hover,.tpl-item.active{border-color:var(--green);background:var(--green-l)}
@@ -132,7 +141,6 @@ const injectStyles = () => {
     .tpl-desc{font-size:11px;color:var(--txt-3);margin-top:2px}
     .tpl-editor{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px}
     .tpl-preview{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:20px;margin-top:16px;font-size:13px;line-height:1.7;max-height:300px;overflow-y:auto}
-    /* Table */
     .ut{width:100%;border-collapse:collapse}
     .ut th{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--txt-3);text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface-2)}
     .ut td{font-size:13px;padding:13px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
@@ -148,14 +156,11 @@ const injectStyles = () => {
     .di-user{font-size:13px;font-weight:600;color:var(--txt)}
     .di-amt{font-size:12px;color:var(--txt-2);margin-top:2px;display:flex;align-items:center;gap:4px}
     .di-acts{display:flex;gap:6px}
-    /* Buttons */
     .db{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:var(--fb);transition:opacity var(--tr);display:inline-flex;align-items:center;gap:4px}
     .dba{background:var(--green-l);color:var(--green-d)}.dba:hover{background:var(--green-m)}
     .dbr{background:var(--red-l);color:var(--red)}.dbv{background:var(--blue-l);color:#185FA5}.dbp{background:var(--amber-l);color:#854F0B}
-    .modal-bd{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
-    .modal-bd.open{opacity:1;pointer-events:all}
-    .modal{background:var(--surface);border-radius:var(--r-xl);padding:28px;width:90%;max-width:550px;box-shadow:var(--sh-lg);transform:translateY(20px);transition:transform .25s}
-    .modal-bd.open .modal{transform:translateY(0)}
+    .modal-bd{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+    .modal{background:var(--surface);border-radius:var(--r-xl);padding:28px;width:90%;max-width:560px;box-shadow:var(--sh-lg);max-height:90vh;overflow-y:auto}
     .modal-t{font-family:var(--fd);font-size:22px;color:var(--txt);margin-bottom:6px}
     .modal-s{font-size:13px;color:var(--txt-2);margin-bottom:20px}
     .fl{font-size:12px;font-weight:700;color:var(--txt-2);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;display:block}
@@ -167,9 +172,14 @@ const injectStyles = () => {
     .btn-g{background:var(--green);color:#fff}.btn-g:hover{background:var(--green-d)}
     .btn-gh{background:var(--surface-2);color:var(--txt-2);border:1px solid var(--border-2)}.btn-gh:hover{background:var(--bg)}
     .btn-r{background:var(--red);color:#fff}
+    .btn-a{background:var(--amber);color:#fff}
     .settings-tabs{display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:10px;flex-wrap:wrap}
     .role-tab{background:none;border:none;padding:6px 14px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;color:var(--txt-2);font-family:var(--fb)}
     .role-tab.active{background:var(--green-l);color:var(--green-d)}
+    /* Proof image viewer */
+    .proof-img{max-width:100%;border-radius:var(--r-md);border:1px solid var(--border);cursor:zoom-in}
+    .proof-img-full{position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+    .proof-img-full img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:var(--r-md)}
     .mob-top{display:none;height:58px;background:var(--surface);border-bottom:1px solid var(--border);align-items:center;padding:0 16px;gap:12px;position:sticky;top:0;z-index:100}
     .mob-logo{font-family:var(--fd);font-size:20px;color:var(--txt);flex:1}
     .bnav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--bottom-nav);background:var(--surface);border-top:1px solid var(--border);z-index:200}
@@ -183,7 +193,8 @@ const injectStyles = () => {
       .mob-top{display:flex}.bnav{display:flex}
       .page{padding:16px;padding-bottom:calc(var(--bottom-nav) + 70px)}
       .stats-grid{grid-template-columns:1fr 1fr;gap:10px}.qg{grid-template-columns:repeat(3,1fr);gap:8px}
-      .ov-hero{padding:20px}.hero-t{font-size:22px}.qt-grid{grid-template-columns:1fr 1fr}}
+      .ov-hero{padding:20px}.hero-t{font-size:22px}.qt-grid{grid-template-columns:1fr 1fr}
+      .notif-panel{width:calc(100vw - 32px);right:-60px}}
     @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
     .ps.active>*{animation:fadeUp .35s ease both}
   `;
@@ -200,55 +211,103 @@ function Toggle({ checked, onChange, danger = false, disabled = false }) {
   );
 }
 
+// ── Proof Image Viewer ────────────────────────────
+function ProofImageViewer({ url }) {
+  const [fullscreen, setFullscreen] = useState(false);
+  if (!url || url === 'undefined' || url.includes('/undefined')) {
+    return <div style={{ color: 'var(--txt-3)', fontSize: 13 }}>No proof image uploaded yet.</div>;
+  }
+  return (
+    <>
+      <div style={{ marginTop: 8 }}>
+        <img src={url} alt="Payment proof" className="proof-img" style={{ maxWidth: '100%', maxHeight: 200 }} onClick={() => setFullscreen(true)} />
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <a href={url} target="_blank" rel="noopener noreferrer" className="db dbv"><Image size={12} /> Open in new tab</a>
+          <button className="db dba" onClick={() => setFullscreen(true)}><Eye size={12} /> View full size</button>
+        </div>
+      </div>
+      {fullscreen && (
+        <div className="proof-img-full" onClick={() => setFullscreen(false)}>
+          <img src={url} alt="Payment proof full" />
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Notification Panel ────────────────────────────
+function NotificationPanel({ notifications, onMarkRead, onClearAll, onClose }) {
+  const unreadCount = notifications.filter(n => !n.read).length;
+  return (
+    <div className="notif-panel">
+      <div className="notif-header">
+        <span className="notif-title">Notifications {unreadCount > 0 && <span className="nb" style={{ marginLeft: 6 }}>{unreadCount}</span>}</span>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {unreadCount > 0 && <button className="db dba" style={{ fontSize: 10 }} onClick={onMarkRead}>Mark all read</button>}
+          {notifications.length > 0 && <button className="db dbr" style={{ fontSize: 10 }} onClick={onClearAll}>Clear all</button>}
+        </div>
+      </div>
+      {notifications.length === 0 && (
+        <div style={{ padding: 24, textAlign: 'center', color: 'var(--txt-3)', fontSize: 13 }}>No notifications</div>
+      )}
+      {notifications.map(n => (
+        <div key={n.id} className={`notif-item ${!n.read ? 'unread' : ''}`}>
+          <div className="notif-dot" style={{ background: n.type === 'error' ? 'var(--red)' : n.type === 'warning' ? 'var(--amber)' : 'var(--green)' }} />
+          <div>
+            <div className="notif-text">{n.message}</div>
+            <div className="notif-time">{n.time}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Change Password Modal ─────────────────────────
 function ChangePasswordModal({ isOpen, onClose, onSave, showToast }) {
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirm, setConfirm]         = useState('');
-  const [loading, setLoading]         = useState(false);
-  const [showOld, setShowOld]         = useState(false);
-  const [showNew, setShowNew]         = useState(false);
+  const [oldPw, setOldPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [conf,  setConf]  = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
 
   if (!isOpen) return null;
 
   const handleSubmit = async e => {
     e.preventDefault();
-    if (newPassword !== confirm) { showToast('Passwords do not match', true); return; }
-    if (newPassword.length < 6)  { showToast('Min 6 characters', true); return; }
+    if (newPw !== conf) { showToast('Passwords do not match', true); return; }
+    if (newPw.length < 6) { showToast('Min 6 characters', true); return; }
     setLoading(true);
-    try {
-      await onSave({ oldPassword, newPassword });
-      showToast('Password changed');
-      setOldPassword(''); setNewPassword(''); setConfirm('');
-      onClose();
-    } catch (err) { showToast(err.message, true); }
+    try { await onSave({ oldPassword: oldPw, newPassword: newPw }); showToast('Password changed'); setOldPw(''); setNewPw(''); setConf(''); onClose(); }
+    catch (err) { showToast(err.message, true); }
     finally { setLoading(false); }
   };
 
   return (
-    <div className="modal-bd open" onClick={onClose}>
+    <div className="modal-bd" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-t">Change Password</div>
-        <div className="modal-s">Enter your current password and a new one</div>
+        <div className="modal-s">Update your admin account password</div>
         <form onSubmit={handleSubmit}>
           <label className="fl">Current Password</label>
           <div style={{ position: 'relative' }}>
-            <input type={showOld ? 'text' : 'password'} className="fi" value={oldPassword} onChange={e => setOldPassword(e.target.value)} required style={{ paddingRight: 40 }} />
-            <button type="button" onClick={() => setShowOld(p => !p)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-60%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--txt-3)' }}>
+            <input type={showOld ? 'text' : 'password'} className="fi" value={oldPw} onChange={e => setOldPw(e.target.value)} required style={{ paddingRight: 40 }} />
+            <button type="button" onClick={() => setShowOld(p => !p)} style={{ position: 'absolute', right: 12, top: '45%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--txt-3)' }}>
               {showOld ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
           <label className="fl">New Password</label>
           <div style={{ position: 'relative' }}>
-            <input type={showNew ? 'text' : 'password'} className="fi" value={newPassword} onChange={e => setNewPassword(e.target.value)} required style={{ paddingRight: 40 }} />
-            <button type="button" onClick={() => setShowNew(p => !p)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-60%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--txt-3)' }}>
+            <input type={showNew ? 'text' : 'password'} className="fi" value={newPw} onChange={e => setNewPw(e.target.value)} required style={{ paddingRight: 40 }} />
+            <button type="button" onClick={() => setShowNew(p => !p)} style={{ position: 'absolute', right: 12, top: '45%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--txt-3)' }}>
               {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
           <label className="fl">Confirm New Password</label>
-          <input type="password" className="fi" value={confirm} onChange={e => setConfirm(e.target.value)} required />
+          <input type="password" className="fi" value={conf} onChange={e => setConf(e.target.value)} required />
           <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-            <button type="submit" className="btn btn-g" disabled={loading}>{loading ? 'Changing…' : 'Change Password'}</button>
+            <button type="submit" className="btn btn-g" disabled={loading}>{loading ? 'Changing…' : <><Lock size={14} /> Change Password</>}</button>
             <button type="button" className="btn btn-gh" onClick={onClose}>Cancel</button>
           </div>
         </form>
@@ -257,301 +316,248 @@ function ChangePasswordModal({ isOpen, onClose, onSave, showToast }) {
   );
 }
 
+// ── Delete User Modal ─────────────────────────────
 function DeleteUserModal({ isOpen, onClose, onConfirm, userName, showToast }) {
-  const [confirmText, setConfirmText] = useState('');
+  const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const handleConfirm = async () => {
-    if (confirmText !== 'DELETE') { 
-      showToast('Type "DELETE" to confirm', true); 
-      return; 
-    }
-    setLoading(true);
-    try { 
-      await onConfirm(); 
-      onClose(); 
-    } catch (err) { 
-      showToast(err.message, true); 
-    } finally { 
-      setLoading(false); 
-    }
-  };
-
   if (!isOpen) return null;
-
+  const handleConfirm = async () => {
+    if (text !== 'DELETE') { showToast('Type "DELETE" to confirm', true); return; }
+    setLoading(true);
+    try { await onConfirm(); onClose(); } catch (err) { showToast(err.message, true); } finally { setLoading(false); }
+  };
   return (
-    <div 
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        backdropFilter: 'blur(4px)'
-      }}
-      onClick={onClose}
-    >
-      <div 
-        style={{
-          backgroundColor: '#fff',
-          borderRadius: '16px',
-          padding: '28px',
-          width: '90%',
-          maxWidth: '450px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        <h3 style={{ fontSize: '22px', marginBottom: '8px', color: '#dc2626' }}>Delete User</h3>
-        <p style={{ marginBottom: '20px', color: '#6b7280', lineHeight: '1.5' }}>
-          Permanently delete <strong>{userName}</strong>? All their data will be removed and cannot be undone.
-        </p>
-        <label style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px', display: 'block', color: '#6b7280' }}>
-          Type "DELETE" to confirm
-        </label>
-        <input
-          type="text"
-          value={confirmText}
-          onChange={e => setConfirmText(e.target.value)}
-          placeholder="DELETE"
-          style={{
-            width: '100%',
-            padding: '10px 12px',
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            fontSize: '14px'
-          }}
-        />
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button
-            onClick={handleConfirm}
-            disabled={loading}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#dc2626',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 600,
-              opacity: loading ? 0.7 : 1
-            }}
-          >
-            {loading ? 'Deleting...' : 'Permanently Delete'}
-          </button>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#f3f4f6',
-              color: '#374151',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 600
-            }}
-          >
-            Cancel
-          </button>
+    <div className="modal-bd" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-t" style={{ color: 'var(--red)' }}>Delete User</div>
+        <div className="modal-s">Permanently delete <strong>{userName}</strong>? All their data, campaigns, and wallet balance will be removed.</div>
+        <label className="fl">Type "DELETE" to confirm</label>
+        <input type="text" className="fi" value={text} onChange={e => setText(e.target.value)} placeholder="DELETE" />
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-r" onClick={handleConfirm} disabled={loading}>{loading ? 'Deleting…' : 'Permanently Delete'}</button>
+          <button className="btn btn-gh" onClick={onClose}>Cancel</button>
         </div>
       </div>
     </div>
   );
 }
-// ── Add User Modal ────────────────────────────────
-// Update the AddUserModal component (find it in your AdminDashboard.jsx)
-function AddUserModal({ isOpen, onClose, onSubmit, userData, setUserData, loading }) {
+
+// ── Add / Edit User Modal ─────────────────────────
+function UserModal({ isOpen, onClose, onSubmit, userData, setUserData, loading, editMode = false }) {
   if (!isOpen) return null;
-  
   return (
-    <div 
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        backdropFilter: 'blur(4px)'
-      }}
-      onClick={onClose}
-    >
-      <div 
-        style={{
-          backgroundColor: '#fff',
-          borderRadius: '16px',
-          padding: '28px',
-          width: '90%',
-          maxWidth: '450px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        <h3 style={{ fontSize: '22px', marginBottom: '8px', color: '#1a1a2e' }}>Add New User</h3>
-        <p style={{ marginBottom: '20px', color: '#6b7280', fontSize: '13px' }}>
-          Create a new user account
-        </p>
-        
+    <div className="modal-bd" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-t">{editMode ? 'Edit User' : 'Add New User'}</div>
+        <div className="modal-s">{editMode ? 'Update user information' : 'Create a new user account'}</div>
         <form onSubmit={onSubmit}>
-          <label style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px', display: 'block', color: '#374151' }}>
-            Full Name *
-          </label>
-          <input
-            type="text"
-            value={userData.name}
-            onChange={e => setUserData(p => ({ ...p, name: e.target.value }))}
-            placeholder="John Doe"
-            required
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '2px solid #e5e7eb',
-              borderRadius: '8px',
-              marginBottom: '16px',
-              fontSize: '14px',
-              outline: 'none'
-            }}
-            onFocus={e => e.target.style.borderColor = '#e8531e'}
-            onBlur={e => e.target.style.borderColor = '#e5e7eb'}
-          />
-          
-          <label style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px', display: 'block', color: '#374151' }}>
-            Email *
-          </label>
-          <input
-            type="email"
-            value={userData.email}
-            onChange={e => setUserData(p => ({ ...p, email: e.target.value }))}
-            placeholder="user@example.com"
-            required
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '2px solid #e5e7eb',
-              borderRadius: '8px',
-              marginBottom: '16px',
-              fontSize: '14px',
-              outline: 'none'
-            }}
-            onFocus={e => e.target.style.borderColor = '#e8531e'}
-            onBlur={e => e.target.style.borderColor = '#e5e7eb'}
-          />
-          
-          <label style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px', display: 'block', color: '#374151' }}>
-            Password *
-          </label>
-          <input
-            type="password"
-            value={userData.password}
-            onChange={e => setUserData(p => ({ ...p, password: e.target.value }))}
-            placeholder="Min 6 characters"
-            required
-            minLength={6}
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '2px solid #e5e7eb',
-              borderRadius: '8px',
-              marginBottom: '16px',
-              fontSize: '14px',
-              outline: 'none'
-            }}
-            onFocus={e => e.target.style.borderColor = '#e8531e'}
-            onBlur={e => e.target.style.borderColor = '#e5e7eb'}
-          />
-          
-          <label style={{ fontSize: '12px', fontWeight: 700, marginBottom: '6px', display: 'block', color: '#374151' }}>
-            Role
-          </label>
-          <select
-            value={userData.role}
-            onChange={e => setUserData(p => ({ ...p, role: e.target.value }))}
-            style={{
-              width: '100%',
-              padding: '10px 12px',
-              border: '2px solid #e5e7eb',
-              borderRadius: '8px',
-              marginBottom: '16px',
-              fontSize: '14px',
-              outline: 'none',
-              backgroundColor: '#fff'
-            }}
-          >
+          <label className="fl">Full Name *</label>
+          <input type="text" className="fi" value={userData.name} onChange={e => setUserData(p => ({ ...p, name: e.target.value }))} placeholder="John Doe" required />
+          <label className="fl">Email *</label>
+          <input type="email" className="fi" value={userData.email} onChange={e => setUserData(p => ({ ...p, email: e.target.value }))} placeholder="user@example.com" required />
+          {!editMode && (
+            <>
+              <label className="fl">Password *</label>
+              <input type="password" className="fi" value={userData.password || ''} onChange={e => setUserData(p => ({ ...p, password: e.target.value }))} placeholder="Min 6 characters" required minLength={6} />
+            </>
+          )}
+          <label className="fl">Role</label>
+          <select className="fi" value={userData.role} onChange={e => setUserData(p => ({ ...p, role: e.target.value }))}>
             <option value="donor">Donor</option>
             <option value="creator">Creator</option>
+            <option value="admin">Admin</option>
           </select>
-          
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={userData.is_verified}
-              onChange={e => setUserData(p => ({ ...p, is_verified: e.target.checked }))}
-            />
-            <span style={{ fontSize: '13px' }}>Mark as verified (skip email verification)</span>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, cursor: 'pointer', fontSize: 13 }}>
+            <input type="checkbox" checked={userData.is_verified || false} onChange={e => setUserData(p => ({ ...p, is_verified: e.target.checked }))} />
+            Mark as verified (skip email verification)
           </label>
-          
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#1D9E75',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: 600,
-                opacity: loading ? 0.7 : 1
-              }}
-            >
-              {loading ? 'Adding...' : 'Add User'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#f3f4f6',
-                color: '#374151',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: 600
-              }}
-            >
-              Cancel
-            </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button type="submit" className="btn btn-g" disabled={loading}>{loading ? (editMode ? 'Saving…' : 'Adding…') : (editMode ? 'Save Changes' : 'Add User')}</button>
+            <button type="button" className="btn btn-gh" onClick={onClose}>Cancel</button>
           </div>
         </form>
       </div>
     </div>
   );
 }
+
+// ── Edit Campaign Modal ───────────────────────────
+function EditCampaignModal({ isOpen, onClose, campaign, onSave, showToast }) {
+  const [data, setData] = useState({ title: '', description: '', goal: '', category: 'General', status: 'pending' });
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { if (campaign) setData({ title: campaign.title || '', description: campaign.description || '', goal: campaign.goal || '', category: campaign.category || 'General', status: campaign.status || 'pending' }); }, [campaign]);
+  if (!isOpen || !campaign) return null;
+  const handleSave = async e => {
+    e.preventDefault();
+    setSaving(true);
+    try { await onSave(campaign.id, data); showToast('Campaign updated'); onClose(); }
+    catch (err) { showToast(err.message, true); }
+    finally { setSaving(false); }
+  };
+  return (
+    <div className="modal-bd" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-t">Edit Campaign</div>
+        <form onSubmit={handleSave}>
+          <label className="fl">Title</label>
+          <input type="text" className="fi" value={data.title} onChange={e => setData(p => ({ ...p, title: e.target.value }))} required />
+          <label className="fl">Description</label>
+          <textarea className="fi" rows="3" value={data.description} onChange={e => setData(p => ({ ...p, description: e.target.value }))} />
+          <label className="fl">Goal ($)</label>
+          <input type="number" className="fi" value={data.goal} onChange={e => setData(p => ({ ...p, goal: e.target.value }))} min="10" required />
+          <label className="fl">Category</label>
+          <select className="fi" value={data.category} onChange={e => setData(p => ({ ...p, category: e.target.value }))}>
+            {['General','Education','Health','Environment','Community','Emergency','Animals','Arts'].map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <label className="fl">Status</label>
+          <select className="fi" value={data.status} onChange={e => setData(p => ({ ...p, status: e.target.value }))}>
+            {['pending','approved','rejected','completed'].map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button type="submit" className="btn btn-g" disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
+            <button type="button" className="btn btn-gh" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Create Campaign Modal ─────────────────────────
+function CreateCampaignModal({ isOpen, onClose, onSave, showToast }) {
+  const [data, setData] = useState({ title: '', description: '', goal: '', category: 'General', creator_name: '' });
+  const [saving, setSaving] = useState(false);
+  if (!isOpen) return null;
+  const handleSave = async e => {
+    e.preventDefault();
+    setSaving(true);
+    try { await onSave(data); showToast('Campaign created'); onClose(); setData({ title: '', description: '', goal: '', category: 'General', creator_name: '' }); }
+    catch (err) { showToast(err.message, true); }
+    finally { setSaving(false); }
+  };
+  return (
+    <div className="modal-bd" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-t">Create Campaign</div>
+        <div className="modal-s">Admin-created campaign</div>
+        <form onSubmit={handleSave}>
+          <label className="fl">Campaign Title *</label>
+          <input type="text" className="fi" value={data.title} onChange={e => setData(p => ({ ...p, title: e.target.value }))} required />
+          <label className="fl">Description</label>
+          <textarea className="fi" rows="3" value={data.description} onChange={e => setData(p => ({ ...p, description: e.target.value }))} />
+          <label className="fl">Goal ($) *</label>
+          <input type="number" className="fi" value={data.goal} onChange={e => setData(p => ({ ...p, goal: e.target.value }))} min="10" required />
+          <label className="fl">Category</label>
+          <select className="fi" value={data.category} onChange={e => setData(p => ({ ...p, category: e.target.value }))}>
+            {['General','Education','Health','Environment','Community','Emergency','Animals','Arts'].map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button type="submit" className="btn btn-g" disabled={saving}>{saving ? 'Creating…' : 'Create Campaign'}</button>
+            <button type="button" className="btn btn-gh" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Wallet Adjustment Modal ───────────────────────
+function WalletAdjustModal({ isOpen, onClose, user, onSave, showToast }) {
+  const [amount, setAmount] = useState('');
+  const [type,   setType]   = useState('add');
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
+  if (!isOpen || !user) return null;
+  const handleSave = async e => {
+    e.preventDefault();
+    const amt = parseFloat(amount);
+    if (!amt || amt <= 0) { showToast('Enter a valid amount', true); return; }
+    setLoading(true);
+    try { await onSave(user.id, { amount: amt, type, reason }); showToast(`Wallet ${type === 'add' ? 'credited' : 'debited'} $${amt}`); setAmount(''); setReason(''); onClose(); }
+    catch (err) { showToast(err.message, true); }
+    finally { setLoading(false); }
+  };
+  return (
+    <div className="modal-bd" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-t">Adjust Wallet Balance</div>
+        <div className="modal-s">User: <strong>{user.name}</strong> · Current balance: <strong>${(user.wallet_balance || 0).toFixed(2)}</strong></div>
+        <form onSubmit={handleSave}>
+          <label className="fl">Action</label>
+          <select className="fi" value={type} onChange={e => setType(e.target.value)}>
+            <option value="add">Add / Credit Balance</option>
+            <option value="remove">Remove / Debit Balance</option>
+          </select>
+          <label className="fl">Amount ($) *</label>
+          <input type="number" className="fi" value={amount} onChange={e => setAmount(e.target.value)} min="0.01" step="0.01" placeholder="0.00" required />
+          <label className="fl">Reason (optional)</label>
+          <input type="text" className="fi" value={reason} onChange={e => setReason(e.target.value)} placeholder="e.g. Manual adjustment, refund, bonus" />
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button type="submit" className={`btn ${type === 'add' ? 'btn-g' : 'btn-r'}`} disabled={loading}>
+              {loading ? 'Processing…' : type === 'add' ? <><TrendingUp size={14} /> Credit Wallet</> : <><TrendingDown size={14} /> Debit Wallet</>}
+            </button>
+            <button type="button" className="btn btn-gh" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Campaign Progress Modal ───────────────────────
+function CampaignProgressModal({ isOpen, onClose, campaign, onSave, showToast }) {
+  const [raised, setRaised] = useState('');
+  const [loading, setLoading] = useState(false);
+  useEffect(() => { if (campaign) setRaised(campaign.raised?.toString() || '0'); }, [campaign]);
+  if (!isOpen || !campaign) return null;
+  const handleSave = async e => {
+    e.preventDefault();
+    const amt = parseFloat(raised);
+    if (isNaN(amt) || amt < 0) { showToast('Enter a valid amount', true); return; }
+    setLoading(true);
+    try { await onSave(campaign.id, amt); showToast('Progress updated'); onClose(); }
+    catch (err) { showToast(err.message, true); }
+    finally { setLoading(false); }
+  };
+  const pct = Math.min(((parseFloat(raised) || 0) / (campaign.goal || 1)) * 100, 100);
+  return (
+    <div className="modal-bd" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-t">Update Campaign Progress</div>
+        <div className="modal-s"><strong>{campaign.title}</strong> · Goal: ${toNum(campaign.goal).toLocaleString()}</div>
+        <form onSubmit={handleSave}>
+          <label className="fl">New Raised Amount ($)</label>
+          <input type="number" className="fi" value={raised} onChange={e => setRaised(e.target.value)} min="0" step="0.01" required />
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--txt-2)', marginBottom: 6 }}>
+              <span>Progress</span><span>{pct.toFixed(1)}%</span>
+            </div>
+            <div className="pb"><div className="pf" style={{ width: `${pct}%` }} /></div>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button type="submit" className="btn btn-g" disabled={loading}>{loading ? 'Saving…' : <><TrendingUp size={14} /> Update Progress</>}</button>
+            <button type="button" className="btn btn-gh" onClick={onClose}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── Email Templates ───────────────────────────────
 const EMAIL_TEMPLATES = [
-  { id: 'verification',      name: 'Email Verification',   desc: 'Sent when users register',                subjectKey: 'verification_subject',      bodyKey: 'verification_body',      defaultSubject: 'Your HopeBridge Verification Code',           defaultBody: 'Hi {{name}},\n\nYour verification code is:\n\n{{code}}\n\nExpires in 15 minutes.' },
-  { id: 'welcome',           name: 'Welcome Email',         desc: 'Sent after registration',                 subjectKey: 'welcome_subject',           bodyKey: 'welcome_body',           defaultSubject: 'Welcome to HopeBridge, {{name}}!',            defaultBody: 'Hi {{name}},\n\nWelcome to HopeBridge as a {{role}}.\n\nStart making an impact today.' },
-  { id: 'donation',          name: 'Donation Confirmation', desc: 'Sent to donors after donating',           subjectKey: 'donation_subject',          bodyKey: 'donation_body',          defaultSubject: 'Thank you for your donation of ${{amount}}!', defaultBody: 'Dear {{donor_name}},\n\nThank you for donating ${{amount}} to {{campaign_title}}.' },
-  { id: 'campaign_approved', name: 'Campaign Approved',     desc: 'Sent to creators on approval',            subjectKey: 'campaign_approved_subject', bodyKey: 'campaign_approved_body', defaultSubject: 'Your campaign "{{title}}" is approved!',       defaultBody: 'Dear {{creator_name}},\n\nYour campaign "{{title}}" is now live.' },
-  { id: 'campaign_rejected', name: 'Campaign Rejected',     desc: 'Sent to creators on rejection',           subjectKey: 'campaign_rejected_subject', bodyKey: 'campaign_rejected_body', defaultSubject: 'Update on your campaign "{{title}}"',          defaultBody: 'Dear {{creator_name}},\n\nYour campaign "{{title}}" did not meet our guidelines.' },
-  { id: 'withdrawal',        name: 'Withdrawal Status',     desc: 'Sent on withdrawal approve/reject',       subjectKey: 'withdrawal_subject',        bodyKey: 'withdrawal_body',        defaultSubject: 'Your withdrawal of ${{amount}} has been {{status}}', defaultBody: 'Dear {{name}},\n\nYour withdrawal of ${{amount}} has been {{status}}.\n\n{{admin_note}}' },
+  { id: 'verification',      name: 'Email Verification',   desc: 'Sent when users register',          subjectKey: 'verification_subject',      bodyKey: 'verification_body',      defaultSubject: 'Your HopeBridge Verification Code',           defaultBody: 'Hi {{name}},\n\nYour verification code is:\n\n{{code}}\n\nExpires in 15 minutes.' },
+  { id: 'welcome',           name: 'Welcome Email',         desc: 'Sent after registration',            subjectKey: 'welcome_subject',           bodyKey: 'welcome_body',           defaultSubject: 'Welcome to HopeBridge, {{name}}!',            defaultBody: 'Hi {{name}},\n\nWelcome to HopeBridge as a {{role}}.\n\nStart making an impact today.' },
+  { id: 'donation',          name: 'Donation Confirmation', desc: 'Sent to donors after donating',      subjectKey: 'donation_subject',          bodyKey: 'donation_body',          defaultSubject: 'Thank you for your donation of ${{amount}}!', defaultBody: 'Dear {{donor_name}},\n\nThank you for donating ${{amount}} to {{campaign_title}}.' },
+  { id: 'campaign_approved', name: 'Campaign Approved',     desc: 'Sent to creators on approval',       subjectKey: 'campaign_approved_subject', bodyKey: 'campaign_approved_body', defaultSubject: 'Your campaign "{{title}}" is approved!',       defaultBody: 'Dear {{creator_name}},\n\nYour campaign "{{title}}" is now live.' },
+  { id: 'campaign_rejected', name: 'Campaign Rejected',     desc: 'Sent to creators on rejection',      subjectKey: 'campaign_rejected_subject', bodyKey: 'campaign_rejected_body', defaultSubject: 'Update on your campaign "{{title}}"',          defaultBody: 'Dear {{creator_name}},\n\nYour campaign "{{title}}" did not meet our guidelines.' },
+  { id: 'withdrawal',        name: 'Withdrawal Status',     desc: 'Sent on withdrawal approve/reject',  subjectKey: 'withdrawal_subject',        bodyKey: 'withdrawal_body',        defaultSubject: 'Your withdrawal of ${{amount}} has been {{status}}', defaultBody: 'Dear {{name}},\n\nYour withdrawal of ${{amount}} has been {{status}}.\n\n{{admin_note}}' },
 ];
 
 function EmailTemplateEditor({ showToast }) {
-  const [selected,    setSelected]    = useState(EMAIL_TEMPLATES[0]);
-  const [templates,   setTemplates]   = useState({});
-  const [saving,      setSaving]      = useState(false);
+  const [selected, setSelected] = useState(EMAIL_TEMPLATES[0]);
+  const [templates, setTemplates] = useState({});
+  const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
@@ -561,7 +567,7 @@ function EmailTemplateEditor({ showToast }) {
   }, []);
 
   const getVal = (key, def) => (templates[key] !== undefined ? templates[key] : def);
-  const update  = (key, val) => setTemplates(p => ({ ...p, [key]: val }));
+  const update = (key, val) => setTemplates(p => ({ ...p, [key]: val }));
 
   const handleSave = async () => {
     setSaving(true);
@@ -571,16 +577,10 @@ function EmailTemplateEditor({ showToast }) {
   };
 
   const preview = getVal(selected.bodyKey, selected.defaultBody)
-    .replace(/\{\{name\}\}/g,          'John Doe')
-    .replace(/\{\{code\}\}/g,          '847291')
-    .replace(/\{\{amount\}\}/g,        '50.00')
-    .replace(/\{\{donor_name\}\}/g,    'John Doe')
-    .replace(/\{\{campaign_title\}\}/g,'Help Build a School')
-    .replace(/\{\{title\}\}/g,         'Help Build a School')
-    .replace(/\{\{creator_name\}\}/g,  'Jane Creator')
-    .replace(/\{\{role\}\}/g,          'donor')
-    .replace(/\{\{status\}\}/g,        'approved')
-    .replace(/\{\{admin_note\}\}/g,    'Funds sent within 2 business days.');
+    .replace(/\{\{name\}\}/g, 'John Doe').replace(/\{\{code\}\}/g, '847291').replace(/\{\{amount\}\}/g, '50.00')
+    .replace(/\{\{donor_name\}\}/g, 'John Doe').replace(/\{\{campaign_title\}\}/g, 'Help Build a School')
+    .replace(/\{\{title\}\}/g, 'Help Build a School').replace(/\{\{creator_name\}\}/g, 'Jane Creator')
+    .replace(/\{\{role\}\}/g, 'donor').replace(/\{\{status\}\}/g, 'approved').replace(/\{\{admin_note\}\}/g, 'Funds sent within 2 business days.');
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 20 }}>
@@ -601,9 +601,7 @@ function EmailTemplateEditor({ showToast }) {
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--txt)' }}>{selected.name}</div>
             <div style={{ fontSize: 12, color: 'var(--txt-3)', marginTop: 2 }}>Variables: {'{{name}}'} {'{{code}}'} {'{{amount}}'} {'{{title}}'}</div>
           </div>
-          <button className="btn btn-gh" style={{ fontSize: 12 }} onClick={() => setShowPreview(p => !p)}>
-            {showPreview ? 'Hide Preview' : 'Show Preview'}
-          </button>
+          <button className="btn btn-gh" style={{ fontSize: 12 }} onClick={() => setShowPreview(p => !p)}>{showPreview ? 'Hide Preview' : 'Show Preview'}</button>
         </div>
         <div className="tpl-editor">
           <label className="fl">Subject Line</label>
@@ -630,16 +628,15 @@ function EmailTemplateEditor({ showToast }) {
 
 // ── MassMailForm ──────────────────────────────────
 function MassMailForm({ showToast }) {
-  const [subject,       setSubject]       = useState('');
-  const [message,       setMessage]       = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
   const [recipientType, setRecipientType] = useState('all_donors');
-  const [campaignId,    setCampaignId]    = useState('');
-  const [campaigns,     setCampaigns]     = useState([]);
-  const [sending,       setSending]       = useState(false);
+  const [campaignId, setCampaignId] = useState('');
+  const [campaigns, setCampaigns] = useState([]);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    safeGet(() => adminApi.getCampaigns({ status: 'approved' }), { campaigns: [] })
-      .then(r => setCampaigns(r.campaigns || []));
+    safeGet(() => adminApi.getCampaigns({ status: 'approved' }), { campaigns: [] }).then(r => setCampaigns(r.campaigns || []));
   }, []);
 
   const handleSend = async e => {
@@ -648,8 +645,7 @@ function MassMailForm({ showToast }) {
     setSending(true);
     try {
       await adminApi.sendMassMail({ subject, message, recipient_type: recipientType, campaign_id: recipientType === 'campaign_donors' ? campaignId : null });
-      showToast('Emails sent!');
-      setSubject(''); setMessage('');
+      showToast('Emails sent!'); setSubject(''); setMessage('');
     } catch (err) { showToast(err.message, true); }
     finally { setSending(false); }
   };
@@ -683,17 +679,15 @@ function MassMailForm({ showToast }) {
 
 // ── ContentEditor ─────────────────────────────────
 function ContentEditor({ content, onSave, showToast }) {
-  const [local,  setLocal]  = useState(content);
+  const [local, setLocal] = useState(content);
   const [saving, setSaving] = useState(false);
   useEffect(() => setLocal(content), [content]);
-  const upd       = (f, v) => setLocal(p => ({ ...p, [f]: v }));
-  const updStat   = (s, v) => setLocal(p => ({ ...p, impact_stats: { ...p.impact_stats, [s]: v } }));
+  const upd = (f, v) => setLocal(p => ({ ...p, [f]: v }));
+  const updStat = (s, v) => setLocal(p => ({ ...p, impact_stats: { ...p.impact_stats, [s]: v } }));
   const updSocial = (pl, v) => setLocal(p => ({ ...p, social_links: { ...p.social_links, [pl]: v } }));
   const handleSave = async () => {
     setSaving(true);
-    try { await onSave(local); showToast('Content updated'); }
-    catch (err) { showToast(err.message, true); }
-    finally { setSaving(false); }
+    try { await onSave(local); showToast('Content updated'); } catch (err) { showToast(err.message, true); } finally { setSaving(false); }
   };
   return (
     <div>
@@ -719,29 +713,34 @@ function ContentEditor({ content, onSave, showToast }) {
 
 // ── FeeSettings ───────────────────────────────────
 function FeeSettings({ fees, onSave, showToast }) {
-  const [local,  setLocal]  = useState(fees);
+  const [local, setLocal] = useState(fees);
   const [saving, setSaving] = useState(false);
   useEffect(() => setLocal(fees), [fees]);
   const upd = (k, v) => setLocal(p => ({ ...p, [k]: v }));
   const handleSave = async () => {
     setSaving(true);
-    try { await onSave(local); showToast('Fee settings saved'); }
-    catch (err) { showToast(err.message, true); }
-    finally { setSaving(false); }
+    try { await onSave(local); showToast('Fee settings saved'); } catch (err) { showToast(err.message, true); } finally { setSaving(false); }
   };
   return (
     <div>
+      <div style={{ padding: 16, background: 'var(--blue-l)', borderRadius: 'var(--r-md)', marginBottom: 20, fontSize: 13, color: '#185FA5' }}>
+        These fees apply to wallet transactions. Set to 0 to disable.
+      </div>
       {[
-        ['percentage',         'Platform Fee (%)',               'number', '0',     'Percentage taken from each donation'],
-        ['fixed_amount',       'Fixed Fee per Transaction ($)',   'number', '0',     ''],
-        ['min_fee',            'Minimum Fee ($)',                 'number', '0',     ''],
-        ['withdrawal_fee',     'Withdrawal Fee ($)',              'number', '0',     ''],
-        ['minimum_withdrawal', 'Minimum Withdrawal Amount ($)',   'number', '10',    ''],
-      ].map(([k, label, type, ph, hint]) => (
+        ['percentage',         'Platform Fee (%)',             'Percentage taken from each donation'],
+        ['fixed_amount',       'Fixed Fee per Transaction ($)', ''],
+        ['min_fee',            'Minimum Fee ($)',              ''],
+        ['max_fee',            'Maximum Fee ($)',              'Leave empty for no maximum'],
+        ['withdrawal_fee',     'Withdrawal Fee ($)',           ''],
+        ['minimum_deposit',    'Minimum Deposit Amount ($)',   'Users cannot deposit below this amount'],
+        ['maximum_deposit',    'Maximum Deposit Amount ($)',   'Leave empty for no maximum'],
+        ['minimum_withdrawal', 'Minimum Withdrawal Amount ($)','Users cannot withdraw below this amount'],
+        ['maximum_withdrawal', 'Maximum Withdrawal Amount ($)','Leave empty for no maximum'],
+      ].map(([k, label, hint]) => (
         <div key={k} style={{ marginBottom: 16 }}>
           <label className="fl">{label}</label>
-          <input type={type} className="fi" step="0.5" min="0" value={local[k] || 0} onChange={e => upd(k, parseFloat(e.target.value))} placeholder={ph} />
-          {hint && <p style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: -10, marginBottom: 8 }}>{hint}</p>}
+          <input type="number" className="fi" step="0.01" min="0" value={local[k] ?? ''} onChange={e => upd(k, e.target.value ? parseFloat(e.target.value) : null)} placeholder={hint.includes('no max') ? 'No limit' : '0'} />
+          {hint && !hint.includes('no max') && <p style={{ fontSize: 11, color: 'var(--txt-3)', marginTop: -10, marginBottom: 8 }}>{hint}</p>}
         </div>
       ))}
       <button className="btn btn-g" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Fee Settings'}</button>
@@ -762,26 +761,34 @@ function DepositRequestsManager({ requests, onApprove, onReject, onProvideInstru
             Amount: <strong>${toNum(req.amount).toFixed(2)}</strong> ·{' '}
             <span className={`badge ${req.status === 'pending' ? 'bp' : req.status === 'approved' ? 'ba' : 'bx'}`}>{req.status}</span>
           </div>
+          {req.admin_instructions && (
+            <div style={{ fontSize: 12, background: 'var(--blue-l)', padding: 10, borderRadius: 8, marginBottom: 8, color: '#185FA5' }}>
+              <strong>Instructions sent:</strong> {req.admin_instructions}
+            </div>
+          )}
           {req.status === 'pending' && (
             <div>
-              <textarea placeholder="Payment instructions..." rows="2" className="fi" value={instructions[req.id] || ''} onChange={e => setInstructions(p => ({ ...p, [req.id]: e.target.value }))} />
+              <textarea placeholder="Payment instructions (bank details, mobile money, etc.)..." rows="2" className="fi" value={instructions[req.id] || ''} onChange={e => setInstructions(p => ({ ...p, [req.id]: e.target.value }))} />
               <button className="db dba" onClick={() => { if (!instructions[req.id]?.trim()) { showToast('Enter instructions', true); return; } onProvideInstructions(req.id, instructions[req.id]); setInstructions(p => ({ ...p, [req.id]: '' })); }}>
                 <Send size={12} /> Send Instructions
               </button>
             </div>
           )}
-          {req.status === 'instructions_sent' && <div style={{ color: 'var(--blue)', fontSize: 13 }}><Clock size={12} /> Waiting for payment proof…</div>}
-          {req.status === 'awaiting_proof' && req.proof_image_url && (
+          {req.status === 'instructions_sent' && <div style={{ color: 'var(--blue)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={12} /> Waiting for payment proof…</div>}
+          {req.status === 'awaiting_proof' && (
             <div>
-              <a href={req.proof_image_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green)', fontSize: 13 }}><Image size={12} /> View Proof</a>
-              <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                <button className="db dba" onClick={() => onApprove(req.id, req.amount)}><CheckCircle size={12} /> Approve</button>
-                <button className="db dbr" onClick={() => onReject(req.id)}><X size={12} /> Reject</button>
-              </div>
+              {/* ✅ FIX: Use ProofImageViewer to handle undefined/missing URLs */}
+              <ProofImageViewer url={req.proof_image_url} />
+              {req.proof_image_url && req.proof_image_url !== 'undefined' && (
+                <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                  <button className="db dba" onClick={() => onApprove(req.id, req.amount)}><CheckCircle size={12} /> Approve & Credit</button>
+                  <button className="db dbr" onClick={() => onReject(req.id)}><X size={12} /> Reject</button>
+                </div>
+              )}
             </div>
           )}
-          {req.status === 'approved' && <span style={{ color: 'var(--green)', fontSize: 13 }}><CheckCircle size={12} /> Credited</span>}
-          {req.status === 'rejected' && <span style={{ color: 'var(--red)', fontSize: 13 }}><X size={12} /> Rejected</span>}
+          {req.status === 'approved' && <span style={{ color: 'var(--green)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}><CheckCircle size={12} /> Credited to wallet</span>}
+          {req.status === 'rejected' && <span style={{ color: 'var(--red)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}><X size={12} /> Rejected</span>}
         </div>
       ))}
     </div>
@@ -821,17 +828,15 @@ function CompletionRequestsManager({ requests, onRelease, onRefund }) {
         <div key={req.id} style={{ borderBottom: '1px solid var(--border)', padding: '16px 0' }}>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>{req.title}</div>
           <div style={{ fontSize: 12, color: 'var(--txt-3)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Calendar size={10} /> Requested {new Date(req.completion_requested_at).toLocaleString()}
+            <Calendar size={10} /> {new Date(req.completion_requested_at).toLocaleString()}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="db dba" disabled={processingId === req.id} onClick={async () => {
-              if (!window.confirm('Release escrow? Cannot be undone.')) return;
-              setProcessingId(req.id); try { await onRelease(req.id); } finally { setProcessingId(null); }
-            }}>{processingId === req.id ? 'Processing…' : <><CheckCircle size={12} /> Release Escrow</>}</button>
-            <button className="db dbr" disabled={processingId === req.id} onClick={async () => {
-              if (!window.confirm('Refund all donors?')) return;
-              setProcessingId(req.id); try { await onRefund(req.id); } finally { setProcessingId(null); }
-            }}>{processingId === req.id ? 'Processing…' : <><RefreshCw size={12} /> Refund Donors</>}</button>
+            <button className="db dba" disabled={processingId === req.id} onClick={async () => { if (!window.confirm('Release escrow?')) return; setProcessingId(req.id); try { await onRelease(req.id); } finally { setProcessingId(null); } }}>
+              {processingId === req.id ? 'Processing…' : <><CheckCircle size={12} /> Release Escrow</>}
+            </button>
+            <button className="db dbr" disabled={processingId === req.id} onClick={async () => { if (!window.confirm('Refund all donors?')) return; setProcessingId(req.id); try { await onRefund(req.id); } finally { setProcessingId(null); } }}>
+              {processingId === req.id ? 'Processing…' : <><RefreshCw size={12} /> Refund Donors</>}
+            </button>
           </div>
         </div>
       ))}
@@ -840,7 +845,7 @@ function CompletionRequestsManager({ requests, onRelease, onRefund }) {
 }
 
 // ── PayoutsManager ────────────────────────────────
-function PayoutsManager({ payouts, onMarkPaid, showToast }) {
+function PayoutsManager({ payouts, onMarkPaid }) {
   const [filter, setFilter] = useState('all');
   const filtered = filter === 'all' ? payouts : payouts.filter(p => p.status === filter);
   if (!payouts.length) return <div style={{ color: 'var(--txt-3)' }}>No payout records.</div>;
@@ -872,15 +877,16 @@ function PayoutsManager({ payouts, onMarkPaid, showToast }) {
 
 // ── NotificationManager ───────────────────────────
 function NotificationManager({ settings, onSave, onSend, history, showToast }) {
-  const [local,    setLocal]    = useState(settings);
-  const [notif,    setNotif]    = useState({ title: '', body: '', target_type: 'all' });
-  const [sending,  setSending]  = useState(false);
-  const [saving,   setSaving]   = useState(false);
+  const [local, setLocal] = useState(settings);
+  const [notif, setNotif] = useState({ title: '', body: '', target_type: 'all' });
+  const [sending, setSending] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [fcmKey, setFcmKey] = useState('');
   useEffect(() => setLocal(settings), [settings]);
 
   const handleSaveSettings = async () => {
     setSaving(true);
-    try { await onSave(local); showToast('Notification settings saved'); }
+    try { await onSave({ ...local, fcm_server_key: fcmKey || local.fcm_server_key }); showToast('Settings saved'); }
     catch (err) { showToast(err.message, true); }
     finally { setSaving(false); }
   };
@@ -895,12 +901,27 @@ function NotificationManager({ settings, onSave, onSend, history, showToast }) {
 
   return (
     <div>
+      {/* Firebase Config */}
+      <div style={{ background: 'var(--surface-2)', borderRadius: 'var(--r-md)', padding: 16, marginBottom: 20 }}>
+        <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>🔥 Firebase Configuration</div>
+        <label className="fl">FCM Server Key</label>
+        <input type="password" className="fi" value={fcmKey || local.fcm_server_key || ''} onChange={e => setFcmKey(e.target.value)} placeholder="AAAA...your Firebase Server Key" />
+        <div style={{ fontSize: 12, color: 'var(--txt-3)', marginTop: -8, marginBottom: 12 }}>
+          Get from Firebase Console → Project Settings → Cloud Messaging → Server Key
+        </div>
+        <label className="fl">FCM Sender ID</label>
+        <input type="text" className="fi" value={local.fcm_sender_id || ''} onChange={e => setLocal(p => ({ ...p, fcm_sender_id: e.target.value }))} placeholder="Your Firebase Sender ID" />
+      </div>
+
       <div className="toggle-row">
-        <div className="toggle-info"><strong>Push Notifications</strong><p>Enable/disable push notifications to users</p></div>
+        <div className="toggle-info"><strong>Push Notifications Enabled</strong><p>Enable/disable all push notifications</p></div>
         <Toggle checked={local.enabled} onChange={val => setLocal(p => ({ ...p, enabled: val }))} />
       </div>
-      <button className="btn btn-g" onClick={handleSaveSettings} disabled={saving} style={{ marginTop: 16, marginBottom: 24 }}>{saving ? 'Saving…' : 'Save Settings'}</button>
+      <button className="btn btn-g" onClick={handleSaveSettings} disabled={saving} style={{ marginTop: 16, marginBottom: 24 }}>{saving ? 'Saving…' : 'Save Firebase Settings'}</button>
+
       <hr style={{ margin: '4px 0 20px', borderColor: 'var(--border)' }} />
+      <div style={{ fontWeight: 700, marginBottom: 16, fontSize: 15 }}>Send Push Notification</div>
+
       <label className="fl">Target Audience</label>
       <select className="fi" value={notif.target_type} onChange={e => setNotif(p => ({ ...p, target_type: e.target.value }))}>
         <option value="all">All Users</option>
@@ -912,9 +933,10 @@ function NotificationManager({ settings, onSave, onSend, history, showToast }) {
       <label className="fl">Body</label>
       <textarea className="fi" rows="3" value={notif.body} onChange={e => setNotif(p => ({ ...p, body: e.target.value }))} placeholder="Notification message" />
       <button className="btn btn-g" onClick={handleSend} disabled={sending}>{sending ? 'Sending…' : <><Send size={14} /> Send Push Notification</>}</button>
+
       {history.length > 0 && (
         <div style={{ marginTop: 24, maxHeight: 300, overflowY: 'auto' }}>
-          <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 13 }}>History</div>
+          <div style={{ fontWeight: 700, marginBottom: 8, fontSize: 13 }}>Notification History</div>
           {history.slice(0, 10).map((h, i) => (
             <div key={h.id || i} style={{ padding: 12, borderBottom: '1px solid var(--border)' }}>
               <div><strong>{h.title}</strong></div>
@@ -932,7 +954,7 @@ function NotificationManager({ settings, onSave, onSend, history, showToast }) {
 function AuditLogs({ logs }) {
   const [filter, setFilter] = useState('');
   if (!logs.length) return <div style={{ color: 'var(--txt-3)' }}>No audit logs yet.</div>;
-  const actions  = [...new Set(logs.map(l => l.action))];
+  const actions = [...new Set(logs.map(l => l.action))];
   const filtered = filter ? logs.filter(l => l.action === filter) : logs;
   return (
     <div>
@@ -964,26 +986,35 @@ export default function AdminDashboard() {
 
   const { currentUser, logout, showToast, loading: sessionLoading } = useApp();
   const navigate = useNavigate();
+  const notifRef = useRef(null);
 
-  const [authChecked,         setAuthChecked]         = useState(false);
-  const [activeTab,           setActiveTab]           = useState('overview');
-  const [dataLoading,         setDataLoading]         = useState(false);
-  const [darkMode,            setDarkMode]            = useState(localStorage.getItem('hb_darkmode') === 'true');
-  const [settingsTab,         setSettingsTab]         = useState('security');
+  // UI state
+  const [authChecked,        setAuthChecked]        = useState(false);
+  const [activeTab,          setActiveTab]          = useState('overview');
+  const [dataLoading,        setDataLoading]        = useState(false);
+  const [darkMode,           setDarkMode]           = useState(localStorage.getItem('hb_darkmode') === 'true');
+  const [settingsTab,        setSettingsTab]        = useState('security');
+  const [showNotifPanel,     setShowNotifPanel]     = useState(false);
+  const [notifications,      setNotifications]      = useState([]);
+
+  // Modals
   const [showChangePassword,  setShowChangePassword]  = useState(false);
   const [deleteUserModal,     setDeleteUserModal]     = useState({ open: false, userId: null, userName: '' });
   const [showAddUserModal,    setShowAddUserModal]    = useState(false);
+  const [editUserModal,       setEditUserModal]       = useState({ open: false, user: null });
+  const [editCampaignModal,   setEditCampaignModal]   = useState({ open: false, campaign: null });
+  const [createCampaignModal, setCreateCampaignModal] = useState(false);
+  const [walletModal,         setWalletModal]         = useState({ open: false, user: null });
+  const [progressModal,       setProgressModal]       = useState({ open: false, campaign: null });
   const [newUser,             setNewUser]             = useState({ name: '', email: '', password: '', role: 'donor', is_verified: true });
+  const [editUser,            setEditUser]            = useState({ name: '', email: '', role: 'donor', is_verified: false });
   const [addingUser,          setAddingUser]          = useState(false);
-  const [newDonationAlert,    setNewDonationAlert]    = useState(null);
-  const [lastDonationCheck,   setLastDonationCheck]   = useState(Date.now());
+  const [editingUser,         setEditingUser]         = useState(false);
 
-  // Settings
+  // Settings / toggles
   const [themeSettings,    setThemeSettings]    = useState({ '--primary': '#e8531e', '--primary-dark': '#c4400f', '--secondary': '#27a96c', '--dark': '#1a1a2e' });
   const [integrationKeys,  setIntegrationKeys]  = useState({ smtp_host: '', smtp_port: '', smtp_user: '', smtp_pass: '', recaptcha_site_key: '', recaptcha_secret_key: '' });
   const [socialLinks,      setSocialLinks]      = useState({ facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '' });
-
-  // Toggles
   const [maintenanceMode,       setMaintenanceMode]       = useState({ enabled: false, message: '' });
   const [verificationEnabled,   setVerificationEnabled]   = useState(true);
   const [recaptchaEnabled,      setRecaptchaEnabled]      = useState(false);
@@ -993,7 +1024,6 @@ export default function AdminDashboard() {
   const [togglingRecaptcha,     setTogglingRecaptcha]     = useState(false);
 
   // Data
-  const [stats,               setStats]               = useState({ total_raised: 0, total_campaigns: 0, pending_campaigns: 0, total_users: 0 });
   const [campaigns,           setCampaigns]           = useState([]);
   const [users,               setUsers]               = useState([]);
   const [donations,           setDonations]           = useState([]);
@@ -1001,15 +1031,27 @@ export default function AdminDashboard() {
   const [withdrawalRequests,  setWithdrawalRequests]  = useState([]);
   const [completionRequests,  setCompletionRequests]  = useState([]);
   const [payouts,             setPayouts]             = useState([]);
-  const [feeSettings,         setFeeSettings]         = useState({ percentage: 0, fixed_amount: 0, min_fee: 0, withdrawal_fee: 0, minimum_withdrawal: 10 });
+  const [feeSettings,         setFeeSettings]         = useState({ percentage: 0, fixed_amount: 0, min_fee: 0, withdrawal_fee: 0, minimum_withdrawal: 10, minimum_deposit: 1 });
   const [notifHistory,        setNotifHistory]        = useState([]);
+  const [notifSettings,       setNotifSettings]       = useState({ enabled: true });
   const [auditLogs,           setAuditLogs]           = useState([]);
   const [content,             setContent]             = useState({ hero_title: 'Together We Can', hero_subtitle: 'Support causes you care about.', hero_badge: 'HopeBridge', impact_title: 'Our Impact', impact_subtitle: 'Every donation counts', impact_stats: { raised: '$0', campaigns: '0', donors: '0' }, social_links: { facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '' } });
+  const [lastDonationCheck,   setLastDonationCheck]   = useState(Date.now());
 
-  // Dark mode
+  // Close notif panel on outside click
+  useEffect(() => {
+    const handler = e => { if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifPanel(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Helper to add a notification
+  const addNotif = (message, type = 'info') => {
+    setNotifications(prev => [{ id: Date.now(), message, type, time: new Date().toLocaleTimeString(), read: false }, ...prev].slice(0, 50));
+  };
+
   useEffect(() => { document.body.classList.toggle('dark-mode', darkMode); localStorage.setItem('hb_darkmode', darkMode); }, [darkMode]);
 
-  // Auth check
   useEffect(() => {
     if (sessionLoading) return;
     if (!currentUser) { showToast('Please log in', true); navigate('/'); return; }
@@ -1017,7 +1059,7 @@ export default function AdminDashboard() {
     setAuthChecked(true);
   }, [sessionLoading, currentUser]);
 
-  // Real-time donation polling
+  // Real-time donation polling — adds to notification panel
   useEffect(() => {
     if (!authChecked) return;
     const interval = setInterval(async () => {
@@ -1025,8 +1067,7 @@ export default function AdminDashboard() {
         const res = await adminApi.getDonations();
         const latest = res.donations?.[0];
         if (latest && new Date(latest.created_at).getTime() > lastDonationCheck) {
-          setNewDonationAlert(latest);
-          showToast(`💝 New $${latest.amount} donation from ${latest.donor_name || 'Anonymous'}`);
+          addNotif(`💝 New $${latest.amount} donation from ${latest.donor_name || 'Anonymous'} to "${latest.campaign_title}"`, 'info');
           setLastDonationCheck(Date.now());
         }
       } catch {}
@@ -1034,27 +1075,18 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, [authChecked, lastDonationCheck]);
 
-  useEffect(() => {
-    if (newDonationAlert) { const t = setTimeout(() => setNewDonationAlert(null), 5000); return () => clearTimeout(t); }
-  }, [newDonationAlert]);
-
-  // Fetch all data
   const fetchAll = async () => {
     setDataLoading(true);
     try {
-      const [s, c, u, don, dep, wd, compl, cont] = await Promise.all([
-        safeGet(() => adminApi.getStats(),                    { stats: {} }),
-        safeGet(() => adminApi.getCampaigns(),                { campaigns: [] }),
-        safeGet(() => adminApi.getUsers(),                    { users: [] }),
-        safeGet(() => adminApi.getDonations(),                { donations: [] }),
-        safeGet(() => adminApi.getDepositRequests?.(),        { requests: [] }),
-        safeGet(() => adminApi.getWithdrawalRequests?.(),     { withdrawals: [] }),
-        safeGet(() => adminApi.getCompletionRequests?.(),     { campaigns: [] }),
-        safeGet(() => adminApi.getContent(),                  { content: null }),
+      const [c, u, don, dep, wd, compl, cont] = await Promise.all([
+        safeGet(() => adminApi.getCampaigns(),             { campaigns: [] }),
+        safeGet(() => adminApi.getUsers(),                 { users: [] }),
+        safeGet(() => adminApi.getDonations(),             { donations: [] }),
+        safeGet(() => adminApi.getDepositRequests?.(),     { requests: [] }),
+        safeGet(() => adminApi.getWithdrawalRequests?.(),  { withdrawals: [] }),
+        safeGet(() => adminApi.getCompletionRequests?.(),  { campaigns: [] }),
+        safeGet(() => adminApi.getContent(),               { content: null }),
       ]);
-      const ps = { ...(s.stats || {}) };
-      ['total_raised','total_campaigns','pending_campaigns','total_users'].forEach(k => { if (ps[k] !== undefined) ps[k] = toNum(ps[k]); });
-      setStats(ps);
       setCampaigns((c.campaigns || []).map(x => ({ ...x, goal: toNum(x.goal), raised: toNum(x.raised) })));
       setUsers((u.users || []).map(x => ({ ...x, wallet_balance: toNum(x.wallet_balance) })));
       setDonations((don.donations || []).map(x => ({ ...x, amount: toNum(x.amount) })));
@@ -1067,62 +1099,86 @@ export default function AdminDashboard() {
   };
 
   const fetchExtras = async () => {
-    const [payRes, feeRes, notifRes, auditRes, sett] = await Promise.all([
-      safeGet(() => adminApi.getPayouts?.(),            { payouts: [] }),
-      safeGet(() => adminApi.getFeeSettings?.(),        { percentage: 0, fixed_amount: 0, min_fee: 0, withdrawal_fee: 0, minimum_withdrawal: 10 }),
-      safeGet(() => adminApi.getNotificationHistory?.(), { notifications: [] }),
-      safeGet(() => adminApi.getAuditLogs?.(),          { logs: [] }),
-      safeGet(() => adminApi.getSettings(),             { settings: null }),
+    const [payRes, feeRes, notifRes, auditRes, sett, notifSett] = await Promise.all([
+      safeGet(() => adminApi.getPayouts?.(),              { payouts: [] }),
+      safeGet(() => adminApi.getFeeSettings?.(),          { percentage: 0, fixed_amount: 0, min_fee: 0, withdrawal_fee: 0, minimum_withdrawal: 10, minimum_deposit: 1 }),
+      safeGet(() => adminApi.getNotificationHistory?.(),  { notifications: [] }),
+      safeGet(() => adminApi.getAuditLogs?.(),            { logs: [] }),
+      safeGet(() => adminApi.getSettings(),               { settings: null }),
+      safeGet(() => adminApi.getNotificationSettings?.(), { enabled: true }),
     ]);
     setPayouts(payRes.payouts || []);
     setFeeSettings(feeRes);
     setNotifHistory(notifRes.notifications || []);
     setAuditLogs(auditRes.logs || []);
+    setNotifSettings(notifSett);
     if (sett?.settings?.keys) {
       const k = sett.settings.keys;
       setMaintenanceMode({ enabled: k.maintenance_mode === 'true', message: k.maintenance_message || '' });
       setRecaptchaEnabled(k.recaptcha_enabled === 'true');
       setIntegrationKeys(prev => ({ ...prev, ...k }));
     }
-    try {
-      const verRes = await adminApi.getVerificationSetting?.();
-      if (verRes) setVerificationEnabled(verRes.enabled !== false);
-    } catch {}
+    try { const v = await adminApi.getVerificationSetting?.(); if (v) setVerificationEnabled(v.enabled !== false); } catch {}
   };
 
   useEffect(() => { if (authChecked) { fetchAll(); fetchExtras(); } }, [authChecked]);
 
   // Toggle handlers
-  const handleToggleMaintenance = async val => {
-    setTogglingMaintenance(true);
-    try { await adminApi.saveSettings({ keys: { maintenance_mode: val ? 'true' : 'false' } }); setMaintenanceMode(p => ({ ...p, enabled: val })); showToast(`Maintenance ${val ? 'enabled' : 'disabled'}`); }
-    catch (err) { showToast(err.message, true); } finally { setTogglingMaintenance(false); }
-  };
-
-  const handleToggleVerification = async val => {
-    setTogglingVerification(true);
-    try { await adminApi.updateVerificationSetting?.({ enabled: val }); setVerificationEnabled(val); showToast(`Email verification ${val ? 'enabled' : 'disabled'}`); }
-    catch (err) { showToast(err.message, true); } finally { setTogglingVerification(false); }
-  };
-
-  const handleToggleRecaptcha = async val => {
-    setTogglingRecaptcha(true);
-    try { await adminApi.saveSettings({ keys: { recaptcha_enabled: val ? 'true' : 'false' } }); setRecaptchaEnabled(val); showToast(`reCAPTCHA ${val ? 'enabled' : 'disabled'}`); }
-    catch (err) { showToast(err.message, true); } finally { setTogglingRecaptcha(false); }
-  };
+  const handleToggleMaintenance  = async val => { setTogglingMaintenance(true); try { await adminApi.saveSettings({ keys: { maintenance_mode: val ? 'true' : 'false' } }); setMaintenanceMode(p => ({ ...p, enabled: val })); showToast(`Maintenance ${val ? 'enabled' : 'disabled'}`); addNotif(`Maintenance mode ${val ? 'enabled' : 'disabled'}`, 'warning'); } catch (err) { showToast(err.message, true); } finally { setTogglingMaintenance(false); } };
+  const handleToggleVerification = async val => { setTogglingVerification(true); try { await adminApi.updateVerificationSetting?.({ enabled: val }); setVerificationEnabled(val); showToast(`Email verification ${val ? 'enabled' : 'disabled'}`); } catch (err) { showToast(err.message, true); } finally { setTogglingVerification(false); } };
+  const handleToggleRecaptcha    = async val => { setTogglingRecaptcha(true); try { await adminApi.saveSettings({ keys: { recaptcha_enabled: val ? 'true' : 'false' } }); setRecaptchaEnabled(val); showToast(`reCAPTCHA ${val ? 'enabled' : 'disabled'}`); } catch (err) { showToast(err.message, true); } finally { setTogglingRecaptcha(false); } };
 
   // CRUD handlers
-  const handleApproveCampaign = async id => { try { await adminApi.updateCampaign(id, { status: 'approved' }); showToast('Campaign approved'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleApproveCampaign = async id => { try { await adminApi.updateCampaign(id, { status: 'approved' }); showToast('Campaign approved'); addNotif('Campaign approved'); fetchAll(); } catch (err) { showToast(err.message, true); } };
   const handleRejectCampaign  = async id => { try { await adminApi.updateCampaign(id, { status: 'rejected' }); showToast('Campaign rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
   const handleDeleteCampaign  = async id => { if (!window.confirm('Delete permanently?')) return; try { await campaignApi.delete(id); showToast('Deleted'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleToggleUser      = async id => { try { await adminApi.toggleUser(id); showToast('User updated'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleVerifyUser      = async id => { try { await adminApi.verifyUser?.(id); showToast('User verified'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleUnverifyUser    = async id => { try { await adminApi.unverifyUser?.(id); showToast('User unverified'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleDeleteUser      = async id => { try { await adminApi.deleteUser?.(id); showToast('User deleted'); fetchAll(); } catch (err) { throw err; } };
-  const handleApproveDeposit  = async (id, amount) => { try { await adminApi.updateDepositRequest?.(id, { status: 'approved' }); showToast('Deposit approved'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleRejectDeposit   = async id => { try { await adminApi.updateDepositRequest?.(id, { status: 'rejected' }); showToast('Deposit rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+
+  const handleEditCampaignSave = async (id, data) => {
+    await adminApi.updateCampaign(id, data);
+    fetchAll();
+  };
+
+  const handleCreateCampaignSave = async (data) => {
+    await adminApi.createCampaign?.(data);
+    fetchAll();
+  };
+
+  const handleUpdateProgress = async (campaignId, raised) => {
+    try { await adminApi.updateCampaignProgress?.(campaignId, { raised }); showToast('Progress updated'); fetchAll(); }
+    catch { await fetch(`/api/campaigns/${campaignId}/progress`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('hb_token')}` }, body: JSON.stringify({ raised }) }); fetchAll(); }
+  };
+
+  const handleToggleUser       = async id => { try { await adminApi.toggleUser(id); showToast('User updated'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleVerifyUser       = async id => { try { await adminApi.verifyUser?.(id); showToast('User verified'); addNotif('User manually verified', 'info'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleDeleteUser       = async id => { try { await adminApi.deleteUser?.(id); showToast('User deleted'); fetchAll(); } catch (err) { throw err; } };
+
+  const handleAddUserSubmit = async e => {
+    e.preventDefault();
+    if (!newUser.name || !newUser.email || !newUser.password) { showToast('Fill all required fields', true); return; }
+    if (newUser.password.length < 6) { showToast('Password min 6 characters', true); return; }
+    setAddingUser(true);
+    try { await adminApi.addUser?.(newUser); showToast(`${newUser.name} added`); addNotif(`New user added: ${newUser.name}`); setShowAddUserModal(false); setNewUser({ name: '', email: '', password: '', role: 'donor', is_verified: true }); fetchAll(); }
+    catch (err) { showToast(err.message, true); } finally { setAddingUser(false); }
+  };
+
+  const handleEditUserSubmit = async e => {
+    e.preventDefault();
+    if (!editUserModal.user) return;
+    setEditingUser(true);
+    try { await adminApi.updateUser?.(editUserModal.user.id, editUser); showToast('User updated'); setEditUserModal({ open: false, user: null }); fetchAll(); }
+    catch (err) { showToast(err.message, true); } finally { setEditingUser(false); }
+  };
+
+  const handleWalletAdjust = async (userId, { amount, type, reason }) => {
+    await adminApi.adjustWallet?.(userId, { amount, type, reason });
+    addNotif(`Wallet ${type === 'add' ? 'credited' : 'debited'} $${amount} for user`);
+    fetchAll();
+  };
+
+  const handleApproveDeposit      = async (id, amount) => { try { await adminApi.updateDepositRequest?.(id, { status: 'approved' }); showToast('Deposit approved'); addNotif(`Deposit of $${amount} approved`); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleRejectDeposit       = async id => { try { await adminApi.updateDepositRequest?.(id, { status: 'rejected' }); showToast('Deposit rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
   const handleProvideInstructions = async (id, inst) => { try { await adminApi.updateDepositRequest?.(id, { admin_instructions: inst, status: 'instructions_sent' }); showToast('Instructions sent'); fetchAll(); } catch (err) { showToast(err.message, true); } };
-  const handleApproveWithdrawal   = async id => { try { await adminApi.approveWithdrawal(id); showToast('Withdrawal approved'); fetchAll(); } catch (err) { showToast(err.message, true); } };
+  const handleApproveWithdrawal   = async id => { try { await adminApi.approveWithdrawal(id); showToast('Withdrawal approved'); addNotif('Withdrawal approved'); fetchAll(); } catch (err) { showToast(err.message, true); } };
   const handleRejectWithdrawal    = async id => { const r = prompt('Reason:'); if (!r) return; try { await adminApi.rejectWithdrawal(id, r); showToast('Withdrawal rejected'); fetchAll(); } catch (err) { showToast(err.message, true); } };
   const handleReleaseEscrow       = async id => { try { await adminApi.releaseCampaignEscrow(id); showToast('Escrow released'); fetchAll(); } catch (err) { showToast(err.message, true); } };
   const handleRefundEscrow        = async id => { try { await adminApi.refundCampaignEscrow(id); showToast('Escrow refunded'); fetchAll(); } catch (err) { showToast(err.message, true); } };
@@ -1131,51 +1187,12 @@ export default function AdminDashboard() {
   const handleSaveFees            = async data => { try { await adminApi.updateFeeSettings?.(data); setFeeSettings(data); showToast('Fee settings saved'); } catch (err) { showToast(err.message, true); } };
   const handleMarkPayoutPaid      = async id => { try { await adminApi.markPayoutAsPaid?.(id); showToast('Marked as paid'); fetchExtras(); } catch (err) { showToast(err.message, true); } };
   const handleSaveNotifSettings   = async data => { try { await adminApi.updateNotificationSettings?.(data); setPushNotifEnabled(data.enabled); showToast('Saved'); } catch (err) { showToast(err.message, true); } };
-  const handleSendPushNotif       = async data => { try { await adminApi.sendPushNotification?.(data); showToast('Notification sent'); fetchExtras(); } catch (err) { showToast(err.message, true); } };
+  const handleSendPushNotif       = async data => { try { await adminApi.sendPushNotification?.(data); showToast('Notification sent'); addNotif(`Push sent: "${data.title}"`); fetchExtras(); } catch (err) { showToast(err.message, true); } };
   const handleChangePassword      = async data => { await adminApi.changePassword?.(data); };
- const handleAddUserSubmit = async (e) => {
-  e.preventDefault();
-  if (!newUser.name || !newUser.email || !newUser.password) {
-    showToast('Fill all required fields', true);
-    return;
-  }
-  if (newUser.password.length < 6) {
-    showToast('Password must be at least 6 characters', true);
-    return;
-  }
-  
-  setAddingUser(true);
-  try {
-    const response = await adminApi.addUser({
-      name: newUser.name,
-      email: newUser.email,
-      password: newUser.password,
-      role: newUser.role,
-      is_verified: newUser.is_verified
-    });
-    
-    showToast(`${newUser.name} added successfully`);
-    setShowAddUserModal(false);
-    setNewUser({ 
-      name: '', 
-      email: '', 
-      password: '', 
-      role: 'donor', 
-      is_verified: true 
-    });
-    fetchAll(); // Refresh user list
-  } catch (err) {
-    console.error('Add user error:', err);
-    showToast(err.message || 'Failed to add user', true);
-  } finally {
-    setAddingUser(false);
-  }
-};
-  const handleLogout = () => { logout(); navigate('/'); };
+  const handleLogout              = () => { logout(); navigate('/'); };
 
   if (sessionLoading || !authChecked) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading admin panel…</div>;
 
-  // Derived
   const totalRaised        = campaigns.reduce((s, c) => s + c.raised, 0);
   const activeCampaigns    = campaigns.filter(c => c.status === 'active' || c.status === 'approved').length;
   const pendingCampaigns   = campaigns.filter(c => c.status === 'pending' || c.status === 'review').length;
@@ -1183,16 +1200,14 @@ export default function AdminDashboard() {
   const creatorsCount      = users.filter(u => u.role === 'creator').length;
   const pendingWithdrawals = withdrawalRequests.filter(w => w.status === 'pending').length;
   const pendingCompletions = completionRequests.length;
+  const pendingDeposits    = depositRequests.filter(d => d.status === 'pending' || d.status === 'awaiting_proof').length;
+  const unreadNotifs       = notifications.filter(n => !n.read).length;
 
-  const tabLabel = t => ({
-    email_templates: 'Email Templates', notifications: 'Notifications',
-    'audit-logs': 'Audit Logs', fees: 'Fee Settings', payouts: 'Payouts',
-  }[t] || (t.charAt(0).toUpperCase() + t.slice(1)));
+  const tabLabel = t => ({ email_templates: 'Email Templates', notifications: 'Notifications', 'audit-logs': 'Audit Logs', fees: 'Fee Settings', payouts: 'Payouts' }[t] || (t.charAt(0).toUpperCase() + t.slice(1)));
 
   const SideNavBtn = ({ id, label, icon, badge, badgeClass = '' }) => (
     <button className={`nl ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}>
-      {icon}{label}
-      {badge > 0 && <span className={`nb ${badgeClass}`}>{badge}</span>}
+      {icon}{label}{badge > 0 && <span className={`nb ${badgeClass}`}>{badge}</span>}
     </button>
   );
 
@@ -1217,23 +1232,22 @@ export default function AdminDashboard() {
           <SideNavBtn id="users"      label="Users"       icon={<Users size={18} />} />
           <div className="nav-sec">Finance</div>
           <SideNavBtn id="donations"   label="Donations"    icon={<DollarSign size={18} />} />
-          <SideNavBtn id="deposits"    label="Deposits"     icon={<CreditCard size={18} />} />
+          <SideNavBtn id="deposits"    label="Deposits"     icon={<CreditCard size={18} />} badge={pendingDeposits} badgeClass="am" />
           <SideNavBtn id="withdrawals" label="Withdrawals"  icon={<Banknote size={18} />} badge={pendingWithdrawals} badgeClass="am" />
           <SideNavBtn id="payouts"     label="Payouts"      icon={<Receipt size={18} />} />
-          <SideNavBtn id="fees"        label="Fee Settings" icon={<DollarSign size={18} />} />
+          <SideNavBtn id="fees"        label="Fee Settings" icon={<Settings size={18} />} />
           <div className="nav-sec">Operations</div>
-          <SideNavBtn id="completions"    label="Completions"    icon={<CheckCircle size={18} />} badge={pendingCompletions} badgeClass="am" />
-          <SideNavBtn id="notifications"  label="Notifications"  icon={<Bell size={18} />} />
-          <SideNavBtn id="audit-logs"     label="Audit Logs"     icon={<History size={18} />} />
-          <SideNavBtn id="maintenance"    label="Maintenance"    icon={<Settings size={18} />} />
+          <SideNavBtn id="completions"   label="Completions"   icon={<CheckCircle size={18} />} badge={pendingCompletions} badgeClass="am" />
+          <SideNavBtn id="notifications" label="Notifications" icon={<Bell size={18} />} />
+          <SideNavBtn id="audit-logs"    label="Audit Logs"    icon={<History size={18} />} />
+          <SideNavBtn id="maintenance"   label="Maintenance"   icon={<AlertCircle size={18} />} />
           <div className="nav-sec">Admin</div>
           <SideNavBtn id="email_templates" label="Email Templates" icon={<MailIcon size={18} />} />
-          <SideNavBtn id="massmail"        label="Mass Mail"        icon={<Send size={18} />} />
-          <SideNavBtn id="content"         label="Content"          icon={<FileText size={18} />} />
-          <SideNavBtn id="settings"        label="Settings"         icon={<Settings size={18} />} />
+          <SideNavBtn id="massmail"        label="Mass Mail"       icon={<Send size={18} />} />
+          <SideNavBtn id="content"         label="Content"         icon={<FileText size={18} />} />
+          <SideNavBtn id="settings"        label="Settings"        icon={<Settings size={18} />} />
           <button className="nl" onClick={() => setDarkMode(d => !d)} style={{ marginTop: 8 }}>
-            {darkMode ? <Gift size={18} /> : <Gift size={18} />}
-            {darkMode ? 'Light Mode' : 'Dark Mode'}
+            <Settings size={18} />{darkMode ? 'Light Mode' : 'Dark Mode'}
           </button>
         </nav>
         <div className="sb-footer">
@@ -1248,9 +1262,22 @@ export default function AdminDashboard() {
         <div className="topbar">
           <div className="tb-title">{tabLabel(activeTab)}</div>
           <div className="tb-actions">
-            <div className="tb-btn" style={{ position: 'relative' }}>
-              <Bell size={18} />
-              {newDonationAlert && <div className="ndot" style={{ background: 'var(--green)' }} />}
+            {/* Notification bell with count and dropdown */}
+            <div ref={notifRef} style={{ position: 'relative' }}>
+              <div className="tb-btn" onClick={() => setShowNotifPanel(p => !p)}>
+                <Bell size={18} />
+                {unreadNotifs > 0 && (
+                  <div className="notif-badge">{unreadNotifs > 9 ? '9+' : unreadNotifs}</div>
+                )}
+              </div>
+              {showNotifPanel && (
+                <NotificationPanel
+                  notifications={notifications}
+                  onMarkRead={() => setNotifications(p => p.map(n => ({ ...n, read: true })))}
+                  onClearAll={() => setNotifications([])}
+                  onClose={() => setShowNotifPanel(false)}
+                />
+              )}
             </div>
             <div className="tb-btn" style={{ overflow: 'hidden', padding: 0 }}>
               <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12, color: '#fff' }}>SA</div>
@@ -1274,7 +1301,7 @@ export default function AdminDashboard() {
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>Platform Status</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', background: maintenanceMode.enabled ? 'rgba(239,159,39,0.4)' : 'rgba(255,255,255,0.15)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.2)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    {maintenanceMode.enabled ? <><Settings size={12} /> Maintenance</> : <><CheckCircle size={12} /> Live</>}
+                    {maintenanceMode.enabled ? <><AlertCircle size={12} /> Maintenance</> : <><CheckCircle size={12} /> Live</>}
                   </div>
                 </div>
               </div>
@@ -1297,20 +1324,17 @@ export default function AdminDashboard() {
             <div className="sh" style={{ marginBottom: 12 }}><div className="sht"><Settings size={18} /> Quick Toggles</div></div>
             <div className="qt-grid">
               {[
-                { label: 'Maintenance Mode', sub: maintenanceMode.enabled ? 'Enabled' : 'Disabled', on: maintenanceMode.enabled, icon: <Settings size={18} />, iconBg: maintenanceMode.enabled ? 'var(--amber-l)' : 'var(--surface-2)', iconColor: maintenanceMode.enabled ? '#854F0B' : 'var(--txt-3)', onChange: handleToggleMaintenance, danger: true, disabled: togglingMaintenance },
-                { label: 'Email Verification', sub: verificationEnabled ? 'Required' : 'Skipped', on: verificationEnabled, icon: <MailIcon size={18} />, iconBg: verificationEnabled ? 'var(--green-l)' : 'var(--surface-2)', iconColor: verificationEnabled ? 'var(--green-d)' : 'var(--txt-3)', onChange: handleToggleVerification, disabled: togglingVerification },
-                { label: 'reCAPTCHA', sub: recaptchaEnabled ? 'Active' : 'Inactive', on: recaptchaEnabled, icon: <Shield size={18} />, iconBg: recaptchaEnabled ? 'var(--blue-l)' : 'var(--surface-2)', iconColor: recaptchaEnabled ? '#185FA5' : 'var(--txt-3)', onChange: handleToggleRecaptcha, disabled: togglingRecaptcha },
-                { label: 'Dark Mode', sub: darkMode ? 'Dark' : 'Light', on: darkMode, icon: <Settings size={18} />, iconBg: 'var(--surface-2)', iconColor: 'var(--txt-3)', onChange: setDarkMode },
-              ].map(({ label, sub, on, icon, iconBg, iconColor, onChange, danger, disabled }) => (
+                { label: 'Maintenance Mode', sub: maintenanceMode.enabled ? 'Enabled' : 'Disabled', on: maintenanceMode.enabled, onChange: handleToggleMaintenance, danger: true, disabled: togglingMaintenance },
+                { label: 'Email Verification', sub: verificationEnabled ? 'Required' : 'Skipped', on: verificationEnabled, onChange: handleToggleVerification, disabled: togglingVerification },
+                { label: 'reCAPTCHA', sub: recaptchaEnabled ? 'Active' : 'Inactive', on: recaptchaEnabled, onChange: handleToggleRecaptcha, disabled: togglingRecaptcha },
+                { label: 'Dark Mode', sub: darkMode ? 'Dark' : 'Light', on: darkMode, onChange: setDarkMode },
+              ].map(({ label, sub, on, onChange, danger, disabled }) => (
                 <div key={label} className="qt-card">
                   <div>
                     <div className="qt-label">{label}</div>
                     <div className="qt-sub"><span className={`status-pill ${on ? 'on' : 'off'}`}><span className="status-dot" />{sub}</span></div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div className="qt-icon" style={{ background: iconBg, color: iconColor }}>{icon}</div>
-                    <Toggle checked={on} onChange={onChange} danger={danger} disabled={disabled} />
-                  </div>
+                  <Toggle checked={on} onChange={onChange} danger={danger} disabled={disabled} />
                 </div>
               ))}
             </div>
@@ -1319,21 +1343,21 @@ export default function AdminDashboard() {
             <div className="sh" style={{ marginBottom: 12 }}><div className="sht"><Zap size={18} /> Quick Actions</div></div>
             <div className="qg">
               {[
-                { id: 'campaigns',       label: 'Campaigns',    icon: <Target size={18} /> },
-                { id: 'users',           label: 'Users',        icon: <Users size={18} /> },
-                { id: 'deposits',        label: 'Deposits',     icon: <CreditCard size={18} /> },
-                { id: 'withdrawals',     label: 'Withdrawals',  icon: <Banknote size={18} /> },
-                { id: 'payouts',         label: 'Payouts',      icon: <Receipt size={18} /> },
-                { id: 'completions',     label: 'Completions',  icon: <CheckCircle size={18} /> },
-                { id: 'fees',            label: 'Fees',         icon: <DollarSign size={18} /> },
-                { id: 'notifications',   label: 'Push',         icon: <Bell size={18} /> },
-                { id: 'audit-logs',      label: 'Audit',        icon: <History size={18} /> },
-                { id: 'email_templates', label: 'Email',        icon: <MailIcon size={18} /> },
-                { id: 'massmail',        label: 'Mass Mail',    icon: <Send size={18} /> },
-                { id: 'content',         label: 'Content',      icon: <FileText size={18} /> },
-                { id: 'settings',        label: 'Settings',     icon: <Settings size={18} /> },
-                { id: 'maintenance',     label: 'Maintenance',  icon: <Settings size={18} /> },
-                { id: 'logout',          label: 'Sign Out',     icon: <LogOut size={18} />, danger: true },
+                { id: 'campaigns', label: 'Campaigns', icon: <Target size={18} /> },
+                { id: 'users', label: 'Users', icon: <Users size={18} /> },
+                { id: 'deposits', label: 'Deposits', icon: <CreditCard size={18} /> },
+                { id: 'withdrawals', label: 'Withdrawals', icon: <Banknote size={18} /> },
+                { id: 'payouts', label: 'Payouts', icon: <Receipt size={18} /> },
+                { id: 'completions', label: 'Completions', icon: <CheckCircle size={18} /> },
+                { id: 'fees', label: 'Fees', icon: <Settings size={18} /> },
+                { id: 'notifications', label: 'Push', icon: <Bell size={18} /> },
+                { id: 'audit-logs', label: 'Audit', icon: <History size={18} /> },
+                { id: 'email_templates', label: 'Email', icon: <MailIcon size={18} /> },
+                { id: 'massmail', label: 'Mass Mail', icon: <Send size={18} /> },
+                { id: 'content', label: 'Content', icon: <FileText size={18} /> },
+                { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
+                { id: 'maintenance', label: 'Maintenance', icon: <AlertCircle size={18} /> },
+                { id: 'logout', label: 'Sign Out', icon: <LogOut size={18} />, danger: true },
               ].map(({ id, label, icon, danger }) => (
                 <button key={id} className={`qb ${danger ? 'qx' : ''}`} onClick={() => id === 'logout' ? handleLogout() : setActiveTab(id)}>
                   <div className="qi">{icon}</div>
@@ -1376,7 +1400,7 @@ export default function AdminDashboard() {
                     {withdrawalRequests.filter(w => w.status === 'pending').slice(0, 2).map(req => (
                       <div key={req.id} className="di">
                         <div className="uav ava" style={{ width: 32, height: 32, fontSize: 11 }}>{req.name?.[0] || 'U'}</div>
-                        <div className="di-info"><div className="di-user">{req.name}</div><div className="di-amt"><DollarSign size={10} /> ${req.amount.toFixed(2)}</div></div>
+                        <div className="di-info"><div className="di-user">{req.name}</div><div className="di-amt">${req.amount.toFixed(2)}</div></div>
                         <div className="di-acts">
                           <button className="db dba" onClick={() => handleApproveWithdrawal(req.id)}><CheckCircle size={12} /></button>
                           <button className="db dbr" onClick={() => handleRejectWithdrawal(req.id)}><X size={12} /></button>
@@ -1392,7 +1416,10 @@ export default function AdminDashboard() {
 
           {/* ── Campaigns ── */}
           <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
-            <div className="sh"><div className="sht"><Target size={18} /> Campaign Management</div></div>
+            <div className="sh">
+              <div className="sht"><Target size={18} /> Campaign Management</div>
+              <button className="btn btn-g" onClick={() => setCreateCampaignModal(true)}><Plus size={16} /> Create Campaign</button>
+            </div>
             <div className="card"><div className="card-b" style={{ padding: 0 }}>
               <table className="ut">
                 <thead><tr><th style={{ paddingLeft: 20 }}>Campaign</th><th>Goal</th><th>Raised</th><th>Progress</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead>
@@ -1404,9 +1431,11 @@ export default function AdminDashboard() {
                     <td><div className="pb" style={{ width: 80 }}><div className="pf" style={{ width: `${Math.min((c.raised / c.goal) * 100, 100)}%` }} /></div>{Math.round((c.raised / c.goal) * 100)}%</td>
                     <td><span className={`badge ${c.status === 'approved' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td>
                     <td style={{ paddingRight: 20 }}>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {c.status === 'pending' && <><button className="db dba" onClick={() => handleApproveCampaign(c.id)}><CheckCircle size={12} /> Approve</button><button className="db dbr" onClick={() => handleRejectCampaign(c.id)}><X size={12} /> Reject</button></>}
-                        <button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}><Trash2 size={12} /> Delete</button>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {c.status === 'pending' && <button className="db dba" onClick={() => handleApproveCampaign(c.id)}><CheckCircle size={12} /> Approve</button>}
+                        <button className="db dbv" onClick={() => setEditCampaignModal({ open: true, campaign: c })}><Edit size={12} /> Edit</button>
+                        <button className="db dbp" onClick={() => setProgressModal({ open: true, campaign: c })}><TrendingUp size={12} /> Progress</button>
+                        <button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}><Trash2 size={12} /></button>
                       </div>
                     </td>
                   </tr>
@@ -1417,7 +1446,10 @@ export default function AdminDashboard() {
 
           {/* ── Users ── */}
           <div className={`ps ${activeTab === 'users' ? 'active' : ''}`}>
-            <div className="sh"><div className="sht"><Users size={18} /> User Management</div><button className="btn btn-g" onClick={() => setShowAddUserModal(true)}><Plus size={16} /> Add User</button></div>
+            <div className="sh">
+              <div className="sht"><Users size={18} /> User Management</div>
+              <button className="btn btn-g" onClick={() => setShowAddUserModal(true)}><Plus size={16} /> Add User</button>
+            </div>
             <div className="card"><div className="card-b" style={{ padding: 0 }}>
               <table className="ut">
                 <thead><tr><th style={{ paddingLeft: 20 }}>User</th><th>Role</th><th>Joined</th><th>Wallet</th><th>Status</th><th style={{ paddingRight: 20 }}>Actions</th></tr></thead>
@@ -1426,13 +1458,22 @@ export default function AdminDashboard() {
                     <td style={{ paddingLeft: 20 }}><div className="uc"><div className="uav avg">{u.name?.charAt(0)}</div><div><div style={{ fontWeight: 600 }}>{u.name}</div><small style={{ color: 'var(--txt-3)' }}>{u.email}</small></div></div></td>
                     <td><span className="badge br">{u.role}</span></td>
                     <td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
-                    <td style={{ fontWeight: 600 }}>${(u.wallet_balance || 0).toFixed(2)}</td>
-                    <td><span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span></td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>${(u.wallet_balance || 0).toFixed(2)}</div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span>
+                        {u.is_verified && <span className="badge" style={{ background: 'var(--blue-l)', color: '#185FA5' }}>Verified</span>}
+                      </div>
+                    </td>
                     <td style={{ paddingRight: 20 }}>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        <button className="db dbv" onClick={() => { setEditUser({ name: u.name, email: u.email, role: u.role, is_verified: u.is_verified }); setEditUserModal({ open: true, user: u }); }}><Edit size={12} /> Edit</button>
                         <button className="db dbv" onClick={() => handleToggleUser(u.id)}>{u.is_active ? <Lock size={12} /> : <Unlock size={12} />} {u.is_active ? 'Suspend' : 'Restore'}</button>
-                        {!u.is_verified && u.role !== 'admin' && <button className="db dba" onClick={() => handleVerifyUser(u.id)}><CheckCircle size={12} /> Verify</button>}
-                        {u.role !== 'admin' && <button className="db dbr" onClick={() => setDeleteUserModal({ open: true, userId: u.id, userName: u.name })}><Trash2 size={12} /> Delete</button>}
+                        {!u.is_verified && u.role !== 'admin' && <button className="db dba" onClick={() => handleVerifyUser(u.id)}><UserCheck size={12} /> Verify</button>}
+                        <button className="db dbp" onClick={() => setWalletModal({ open: true, user: u })}><Wallet size={12} /> Wallet</button>
+                        {u.role !== 'admin' && <button className="db dbr" onClick={() => setDeleteUserModal({ open: true, userId: u.id, userName: u.name })}><Trash2 size={12} /></button>}
                       </div>
                     </td>
                   </tr>
@@ -1475,19 +1516,21 @@ export default function AdminDashboard() {
           {/* ── Payouts ── */}
           <div className={`ps ${activeTab === 'payouts' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><Receipt size={18} /> Payout Reconciliation</div></div>
-            <div className="card"><div className="card-b"><PayoutsManager payouts={payouts} onMarkPaid={handleMarkPayoutPaid} showToast={showToast} /></div></div>
+            <div className="card"><div className="card-b"><PayoutsManager payouts={payouts} onMarkPaid={handleMarkPayoutPaid} /></div></div>
           </div>
 
           {/* ── Fee Settings ── */}
           <div className={`ps ${activeTab === 'fees' ? 'active' : ''}`}>
-            <div className="sh"><div className="sht"><DollarSign size={18} /> Transaction Fee Settings</div></div>
+            <div className="sh"><div className="sht"><Settings size={18} /> Transaction Fee & Deposit/Withdrawal Limits</div></div>
             <div className="card"><div className="card-b"><FeeSettings fees={feeSettings} onSave={handleSaveFees} showToast={showToast} /></div></div>
           </div>
 
           {/* ── Notifications ── */}
           <div className={`ps ${activeTab === 'notifications' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><Bell size={18} /> Push Notifications</div></div>
-            <div className="card"><div className="card-b"><NotificationManager settings={{ enabled: pushNotifEnabled }} onSave={handleSaveNotifSettings} onSend={handleSendPushNotif} history={notifHistory} showToast={showToast} /></div></div>
+            <div className="card"><div className="card-b">
+              <NotificationManager settings={notifSettings} onSave={handleSaveNotifSettings} onSend={handleSendPushNotif} history={notifHistory} showToast={showToast} />
+            </div></div>
           </div>
 
           {/* ── Audit Logs ── */}
@@ -1514,7 +1557,7 @@ export default function AdminDashboard() {
 
           {/* ── Maintenance ── */}
           <div className={`ps ${activeTab === 'maintenance' ? 'active' : ''}`}>
-            <div className="sh"><div className="sht"><Settings size={18} /> Maintenance Mode</div></div>
+            <div className="sh"><div className="sht"><AlertCircle size={18} /> Maintenance Mode</div></div>
             <div className="card"><div className="card-b">
               <div className="toggle-row">
                 <div className="toggle-info"><strong>Enable Maintenance Mode</strong><p>Only admins can access the site when enabled</p></div>
@@ -1544,7 +1587,7 @@ export default function AdminDashboard() {
               <div className="settings-tabs">
                 {['security', 'theme', 'keys', 'social'].map(t => (
                   <button key={t} className={`role-tab ${settingsTab === t ? 'active' : ''}`} onClick={() => setSettingsTab(t)}>
-                    {t === 'security' ? 'Security' : t === 'theme' ? 'Theme' : t === 'keys' ? 'Integration Keys' : 'Social Links'}
+                    {t === 'security' ? 'Security' : t === 'theme' ? 'Theme' : t === 'keys' ? 'SMTP Keys' : 'Social Links'}
                   </button>
                 ))}
               </div>
@@ -1628,12 +1671,12 @@ export default function AdminDashboard() {
       <nav className="bnav">
         <div className="bnav-inner">
           {[
-            { id: 'overview',     icon: <LayoutDashboard size={20} />, label: 'Home' },
-            { id: 'campaigns',    icon: <Target size={20} />,          label: 'Campaigns' },
-            { id: 'deposits',     icon: <CreditCard size={20} />,      label: 'Deposits' },
-            { id: 'withdrawals',  icon: <Banknote size={20} />,        label: 'Withdrawals' },
-            { id: 'notifications',icon: <Bell size={20} />,            label: 'Alerts' },
-            { id: 'settings',     icon: <Settings size={20} />,        label: 'Settings' },
+            { id: 'overview',      icon: <LayoutDashboard size={20} />, label: 'Home' },
+            { id: 'campaigns',     icon: <Target size={20} />,          label: 'Campaigns' },
+            { id: 'deposits',      icon: <CreditCard size={20} />,      label: 'Deposits' },
+            { id: 'withdrawals',   icon: <Banknote size={20} />,        label: 'Withdrawals' },
+            { id: 'notifications', icon: <Bell size={20} />,            label: 'Alerts' },
+            { id: 'settings',      icon: <Settings size={20} />,        label: 'Settings' },
           ].map(({ id, icon, label }) => (
             <button key={id} className={`bni ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}>
               <div className="bni-icon" style={{ color: activeTab === id ? 'var(--green)' : 'var(--txt-3)' }}>{icon}</div>
@@ -1643,10 +1686,15 @@ export default function AdminDashboard() {
         </div>
       </nav>
 
-      {/* Modals */}
+      {/* ── All Modals ── */}
       <ChangePasswordModal isOpen={showChangePassword} onClose={() => setShowChangePassword(false)} onSave={handleChangePassword} showToast={showToast} />
       <DeleteUserModal isOpen={deleteUserModal.open} onClose={() => setDeleteUserModal({ open: false, userId: null, userName: '' })} onConfirm={() => handleDeleteUser(deleteUserModal.userId)} userName={deleteUserModal.userName} showToast={showToast} />
-      <AddUserModal isOpen={showAddUserModal} onClose={() => setShowAddUserModal(false)} onSubmit={handleAddUserSubmit} userData={newUser} setUserData={setNewUser} loading={addingUser} />
+      <UserModal isOpen={showAddUserModal} onClose={() => setShowAddUserModal(false)} onSubmit={handleAddUserSubmit} userData={newUser} setUserData={setNewUser} loading={addingUser} />
+      <UserModal isOpen={editUserModal.open} onClose={() => setEditUserModal({ open: false, user: null })} onSubmit={handleEditUserSubmit} userData={editUser} setUserData={setEditUser} loading={editingUser} editMode />
+      <EditCampaignModal isOpen={editCampaignModal.open} onClose={() => setEditCampaignModal({ open: false, campaign: null })} campaign={editCampaignModal.campaign} onSave={handleEditCampaignSave} showToast={showToast} />
+      <CreateCampaignModal isOpen={createCampaignModal} onClose={() => setCreateCampaignModal(false)} onSave={handleCreateCampaignSave} showToast={showToast} />
+      <WalletAdjustModal isOpen={walletModal.open} onClose={() => setWalletModal({ open: false, user: null })} user={walletModal.user} onSave={handleWalletAdjust} showToast={showToast} />
+      <CampaignProgressModal isOpen={progressModal.open} onClose={() => setProgressModal({ open: false, campaign: null })} campaign={progressModal.campaign} onSave={handleUpdateProgress} showToast={showToast} />
     </div>
   );
 }
