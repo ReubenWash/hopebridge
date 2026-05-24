@@ -4,7 +4,6 @@ import { useApp } from '../context/AppContext';
 import { donationApi, campaignApi, walletApi } from '../services/api';
 import CampaignModal from '../components/CampaignModal';
 import DonationsModal from '../components/DonationsModal';
-import NotificationBell from '../components/NotificationBell';
 import {
   Heart,
   LayoutDashboard,
@@ -85,7 +84,7 @@ const injectStyles = () => {
     .sb-creator { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
     .creator-av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--green-d)); display: flex; align-items: center; justify-content: center; font-weight: 600; color: #fff; }
     .creator-name { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .verified-badge { color: #378ADD; background: rgba(55,138,221,0.15); border-radius: 20px; padding: 2px 8px; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; }
+    .verified-badge { color: #378ADD; background: rgba(55,138,221,0.15); border-radius: 20px; padding: 2px 6px; display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; }
     .creator-badge { font-size: 11px; color: var(--txt-3); background: var(--green-l); padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 4px; }
     .sb-nav { flex: 1; padding: 10px; }
     .nav-sec { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); padding: 10px 10px 4px; }
@@ -147,81 +146,19 @@ const injectStyles = () => {
       display: block;
     }
     
-    /* Mobile Bottom Navigation */
-    .mobile-bottom-nav {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      z-index: 200;
-      padding: 8px 16px;
-      padding-bottom: env(safe-area-inset-bottom, 8px);
-    }
-    
-    .mobile-bottom-nav-inner {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      max-width: 500px;
-      margin: 0 auto;
-    }
-    
-    .mobile-nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 8px;
-      border-radius: var(--r-md);
-      transition: all 0.2s;
-      color: var(--txt-3);
-      font-size: 10px;
-      font-weight: 600;
-      position: relative;
-    }
-    
-    .mobile-nav-item.active {
-      color: var(--green);
-      background: var(--green-l);
-    }
-    
-    .mobile-nav-item svg {
-      width: 22px;
-      height: 22px;
-    }
-    
-    .mobile-nav-badge {
-      position: absolute;
-      top: 2px;
-      right: 5px;
-      background: var(--red);
-      color: #fff;
-      font-size: 9px;
-      border-radius: 50%;
-      min-width: 16px;
-      height: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main { margin-left: 0; }
       .topbar { display: none; }
       .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
       .mob-top { display: flex; height: 58px; background: var(--surface); align-items: center; padding: 0 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
-      .mobile-bottom-nav { display: block; }
+      .bnav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 68px; background: var(--surface); border-top: 1px solid var(--border); z-index: 200; }
+      .bnav-inner { display: flex; width: 100%; max-width: 500px; margin: 0 auto; }
+      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; }
+      .bni.active .bni-icon svg { stroke: var(--green); }
+      .bni-lbl { font-size: 10px; font-weight: 600; color: var(--txt-3); }
       .page { padding: 16px; padding-bottom: 90px; }
-      .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-      .card-h { flex-direction: column; gap: 8px; align-items: flex-start; }
-      .ut { display: block; overflow-x: auto; white-space: nowrap; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
     }
     
     .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
@@ -231,7 +168,7 @@ const injectStyles = () => {
     .sc .si svg { stroke: var(--green-d); width: 18px; height: 18px; }
     .sv { font-family: var(--fd); font-size: 32px; line-height: 1; }
     .sl { font-size: 12px; color: var(--txt-2); margin-top: 4px; }
-    .sd { font-size: 11px; font-weight: 700; margin-top: 8px; color: var(--green); }
+    .sd { font-size: 11px; font-weight: 700; margin-top: 8px; }
     .card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--sh-sm); overflow: hidden; margin-bottom: 24px; }
     .card-h { display: flex; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
     .card-t { font-family: var(--fd); font-size: 17px; display: flex; align-items: center; gap: 8px; }
@@ -268,7 +205,7 @@ const injectStyles = () => {
 };
 
 // Transaction History Component
-function TransactionHistory({ transactions, loading, onRefresh }) {
+function TransactionHistory({ transactions, loading }) {
   const [showAll, setShowAll] = useState(false);
   const displayTransactions = showAll ? transactions : transactions.slice(0, 5);
   
@@ -307,9 +244,6 @@ function TransactionHistory({ transactions, loading, onRefresh }) {
           <ChevronRight size={12} />
         </button>
       )}
-      <button className="card-a" onClick={onRefresh} style={{ marginTop: 8 }}>
-        <RefreshCw size={12} /> Refresh
-      </button>
     </div>
   );
 }
@@ -501,6 +435,12 @@ export default function CreatorDashboard() {
 
   const handleLogout = () => { logout(); navigate('/'); };
 
+  // Navigation helper
+  const navigateTo = (path) => {
+    navigate(path);
+    setMobileMenuOpen(false);
+  };
+
   // Safe derived values
   const safeCampaigns = Array.isArray(myCampaigns) ? myCampaigns : [];
   const safeDonations = Array.isArray(donations) ? donations : [];
@@ -513,17 +453,8 @@ export default function CreatorDashboard() {
   const pendingPayoutSum = pendingPayouts.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
   const isVerified = currentUser?.is_verified === true;
 
-  // Mobile bottom navigation items
+  // Mobile menu items
   const mobileNavItems = [
-    { id: 'overview', label: 'Home', icon: <LayoutDashboard size={20} /> },
-    { id: 'campaigns', label: 'Campaigns', icon: <Target size={20} />, badge: safeCampaigns.length },
-    { id: 'donations', label: 'Donations', icon: <DollarSign size={20} /> },
-    { id: 'wallet', label: 'Wallet', icon: <Wallet size={20} /> },
-    { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
-  ];
-
-  // Sidebar navigation items for mobile
-  const sidebarNavItems = [
     { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
     { id: 'campaigns', label: 'My Campaigns', icon: <Target size={18} />, badge: safeCampaigns.length },
     { id: 'donations', label: 'Donations', icon: <DollarSign size={18} /> },
@@ -567,7 +498,7 @@ export default function CreatorDashboard() {
         </div>
         
         <nav className="sb-nav">
-          {sidebarNavItems.map(item => (
+          {mobileNavItems.map(item => (
             <button
               key={item.id}
               className={`nl ${activeTab === item.id ? 'active' : ''}`}
@@ -670,9 +601,11 @@ export default function CreatorDashboard() {
             {activeTab === 'settings' && 'Settings'}
           </div>
           <div className="tb-actions">
-            <NotificationBell showToast={showToast} />
-            <button className="tb-btn" onClick={() => setDarkMode(!darkMode)}>
-              {darkMode ? '🌙' : '☀️'}
+            <div className="tb-btn" onClick={() => showToast('Notifications coming soon')}>
+              <Bell size={18} />
+            </div>
+            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
+              <LogOut size={18} style={{ stroke: 'var(--red)' }} />
             </button>
             <div className="tb-btn">
               <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
@@ -686,9 +619,8 @@ export default function CreatorDashboard() {
           </button>
           <div style={{ fontFamily: 'var(--fd)', fontSize: 18, flex: 1, textAlign: 'center' }}>HopeBridge</div>
           <div className="tb-actions">
-            <NotificationBell showToast={showToast} />
-            <button className="tb-btn" onClick={() => setDarkMode(!darkMode)}>
-              {darkMode ? '🌙' : '☀️'}
+            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
+              <LogOut size={18} style={{ stroke: 'var(--red)' }} />
             </button>
           </div>
         </div>
@@ -799,19 +731,19 @@ export default function CreatorDashboard() {
                           <td>
                             <strong>{c.title}</strong>
                             <div style={{ fontSize: 11, color: 'var(--txt-3)' }}>Created {new Date(c.created_at).toLocaleDateString()}</div>
-                           </td>
+                          </td>
                           <td>${parseFloat(c.goal).toLocaleString()}</td>
                           <td>${parseFloat(c.raised || 0).toLocaleString()}</td>
                           <td>
                             <div className="pb" style={{ width: 100 }}><div className="pf" style={{ width: `${percent}%` }}></div></div>
                             {Math.round(percent)}%
-                           </td>
+                          </td>
                           <td><span className={`badge ${c.status === 'approved' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>{c.status}</span></td>
                           <td>
                             <button className="db dba" onClick={() => { setSelectedCampaignId(c.id); setProgressModalOpen(true); }}>Update</button>
                             <button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}>Delete</button>
-                           </td>
-                         </tr>
+                          </td>
+                        </tr>
                       );
                     })}
                   </tbody>
@@ -826,9 +758,7 @@ export default function CreatorDashboard() {
               <div className="card-b" style={{ padding: 0, overflowX: 'auto' }}>
                 <table className="ut" style={{ minWidth: 500 }}>
                   <thead>
-                    <tr>
-                      <th>Donor</th><th>Campaign</th><th>Amount</th><th>Date</th>
-                     </tr>
+                    <tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Date</th></tr>
                   </thead>
                   <tbody>
                     {safeDonations.length === 0 && (
@@ -911,7 +841,7 @@ export default function CreatorDashboard() {
                 </button>
               </div>
               <div className="card-b">
-                <TransactionHistory transactions={transactions} loading={transactionsLoading} onRefresh={loadTransactions} />
+                <TransactionHistory transactions={transactions} loading={transactionsLoading} />
               </div>
             </div>
           </div>
@@ -966,22 +896,22 @@ export default function CreatorDashboard() {
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="mobile-bottom-nav">
-        <div className="mobile-bottom-nav-inner">
-          {mobileNavItems.map(item => (
-            <button
-              key={item.id}
-              className={`mobile-nav-item ${activeTab === item.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(item.id)}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-              {item.badge > 0 && <span className="mobile-nav-badge">{item.badge > 9 ? '9+' : item.badge}</span>}
+      {/* Mobile Bottom Nav */}
+      <nav className="bnav">
+        <div className="bnav-inner">
+          {[
+            { id: 'overview', label: 'Overview', icon: <LayoutDashboard size={20} /> },
+            { id: 'campaigns', label: 'Campaigns', icon: <Target size={20} /> },
+            { id: 'donations', label: 'Donations', icon: <DollarSign size={20} /> },
+            { id: 'wallet', label: 'Wallet', icon: <Wallet size={20} /> },
+          ].map(({ id, label, icon }) => (
+            <button key={id} className={`bni ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}>
+              <div className="bni-icon">{icon}</div>
+              <span className="bni-lbl">{label}</span>
             </button>
           ))}
         </div>
-      </div>
+      </nav>
 
       {/* Progress Update Modal */}
       <div className={`modal-bd ${progressModalOpen ? 'open' : ''}`} onClick={() => setProgressModalOpen(false)}>

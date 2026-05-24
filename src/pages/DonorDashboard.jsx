@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { walletApi, campaignApi, donationApi } from '../services/api';
 import DonationForm from '../components/DonationForm';
-import NotificationBell from '../components/NotificationBell';
 import {
   Heart,
   LayoutDashboard,
@@ -172,70 +171,6 @@ const injectStyles = () => {
       display: block;
     }
     
-    /* Mobile Bottom Navigation */
-    .mobile-bottom-nav {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      z-index: 200;
-      padding: 8px 16px;
-      padding-bottom: env(safe-area-inset-bottom, 8px);
-    }
-    
-    .mobile-bottom-nav-inner {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      max-width: 500px;
-      margin: 0 auto;
-    }
-    
-    .mobile-nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 8px;
-      border-radius: var(--r-md);
-      transition: all 0.2s;
-      color: var(--txt-3);
-      font-size: 10px;
-      font-weight: 600;
-      position: relative;
-    }
-    
-    .mobile-nav-item.active {
-      color: var(--green);
-      background: var(--green-l);
-    }
-    
-    .mobile-nav-item svg {
-      width: 22px;
-      height: 22px;
-    }
-    
-    .mobile-nav-badge {
-      position: absolute;
-      top: 2px;
-      right: 5px;
-      background: var(--red);
-      color: #fff;
-      font-size: 9px;
-      border-radius: 50%;
-      min-width: 16px;
-      height: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
     /* Campaign Card Styles */
     .campaign-card {
       background: var(--surface);
@@ -273,11 +208,13 @@ const injectStyles = () => {
       .topbar { display: none; }
       .mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
       .mob-top { display: flex; height: 58px; background: var(--surface); align-items: center; padding: 0 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
-      .mobile-bottom-nav { display: block; }
+      .bnav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 68px; background: var(--surface); border-top: 1px solid var(--border); z-index: 200; }
+      .bnav-inner { display: flex; width: 100%; max-width: 500px; margin: 0 auto; }
+      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; }
+      .bni.active .bni-icon svg { stroke: var(--green); }
+      .bni-lbl { font-size: 10px; font-weight: 600; color: var(--txt-3); }
       .page { padding: 16px; padding-bottom: 90px; }
-      .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-      .card-h { flex-direction: column; gap: 8px; align-items: flex-start; }
-      .ut { display: block; overflow-x: auto; white-space: nowrap; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
     }
     
     .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
@@ -660,17 +597,8 @@ export default function DonorDashboard() {
   const pendingDeposit = depositRequests.find(r => ['pending', 'instructions_sent', 'awaiting_proof'].includes(r.status));
   const isVerified = currentUser?.is_verified === true;
 
-  // Mobile bottom navigation items
-  const mobileBottomNavItems = [
-    { id: 'overview', label: 'Home', icon: <LayoutDashboard size={20} /> },
-    { id: 'donations', label: 'Donations', icon: <DollarSign size={20} /> },
-    { id: 'donate', label: 'Donate', icon: <Gift size={20} /> },
-    { id: 'wallet', label: 'Wallet', icon: <Wallet size={20} /> },
-    { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
-  ];
-
-  // Sidebar navigation items for mobile
-  const sidebarNavItems = [
+  // Mobile menu items
+  const mobileNavItems = [
     { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
     { id: 'donations', label: 'My Donations', icon: <DollarSign size={18} /> },
     { id: 'donate', label: 'Donate Now', icon: <Gift size={18} /> },
@@ -709,7 +637,7 @@ export default function DonorDashboard() {
         </div>
         
         <nav className="sb-nav">
-          {sidebarNavItems.map(item => (
+          {mobileNavItems.map(item => (
             <button
               key={item.id}
               className={`nl ${activeTab === item.id ? 'active' : ''}`}
@@ -797,9 +725,11 @@ export default function DonorDashboard() {
             {activeTab === 'settings' && 'Settings'}
           </div>
           <div className="tb-actions">
-            <NotificationBell showToast={showToast} />
-            <button className="tb-btn" onClick={() => setDarkMode(!darkMode)}>
-              {darkMode ? '🌙' : '☀️'}
+            <div className="tb-btn" onClick={() => showToast('Notifications coming soon')}>
+              <Bell size={18} />
+            </div>
+            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
+              <LogOut size={18} style={{ stroke: 'var(--red)' }} />
             </button>
             <div className="tb-btn" onClick={() => showToast('Profile')}>
               <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
@@ -813,9 +743,8 @@ export default function DonorDashboard() {
           </button>
           <div style={{ fontFamily: 'var(--fd)', fontSize: 18, flex: 1, textAlign: 'center' }}>HopeBridge</div>
           <div className="tb-actions">
-            <NotificationBell showToast={showToast} />
-            <button className="tb-btn" onClick={() => setDarkMode(!darkMode)}>
-              {darkMode ? '🌙' : '☀️'}
+            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
+              <LogOut size={18} style={{ stroke: 'var(--red)' }} />
             </button>
           </div>
         </div>
@@ -905,7 +834,9 @@ export default function DonorDashboard() {
                       </tr>
                     ))}
                     {donations.length === 0 && (
-                      <tr><td colSpan="4" style={{ textAlign: 'center', padding: '40px' }}>No donations yet</td></tr>
+                      <tr>
+                        <td colSpan="4" style={{ textAlign: 'center', padding: '40px' }}>No donations yet</td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -1039,21 +970,22 @@ export default function DonorDashboard() {
         </div>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="mobile-bottom-nav">
-        <div className="mobile-bottom-nav-inner">
-          {mobileBottomNavItems.map(item => (
-            <button
-              key={item.id}
-              className={`mobile-nav-item ${activeTab === item.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(item.id)}
-            >
-              {item.icon}
-              <span>{item.label}</span>
+      {/* Mobile Bottom Nav */}
+      <nav className="bnav">
+        <div className="bnav-inner">
+          {['overview', 'donations', 'donate', 'wallet'].map(tab => (
+            <button key={tab} className={`bni ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+              <div className="bni-icon">
+                {tab === 'overview' && <LayoutDashboard size={20} />}
+                {tab === 'donations' && <DollarSign size={20} />}
+                {tab === 'donate' && <Gift size={20} />}
+                {tab === 'wallet' && <Wallet size={20} />}
+              </div>
+              <span className="bni-lbl">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
             </button>
           ))}
         </div>
-      </div>
+      </nav>
     </div>
   );
 }
