@@ -3,55 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { walletApi, campaignApi, donationApi } from '../services/api';
 import DonationForm from '../components/DonationForm';
+import ProfileSettings from '../components/ProfileSettings';
 import {
-  Heart,
-  LayoutDashboard,
-  DollarSign,
-  Wallet,
-  Settings,
-  LogOut,
-  Bell,
-  TrendingUp,
-  Users,
-  CreditCard,
-  Plus,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  FileText,
-  ArrowRight,
-  ChevronRight,
-  Star,
-  Zap,
-  Shield,
-  Award,
-  Calendar,
-  MessageCircle,
-  Send,
-  Eye,
-  EyeOff,
-  MapPin,
-  Phone,
-  Mail,
-  User,
-  Building,
-  Banknote,
-  History,
-  Download,
-  RefreshCw,
-  X,
-  Menu,
-  Gift,
-  PiggyBank,
-  Landmark,
-  Smartphone,
-  Upload,
-  Image,
-  Copy,
-  ExternalLink,
-  Sun,
-  Moon,
-  Target
+  Heart, LayoutDashboard, DollarSign, Wallet, Settings, LogOut,
+  Bell, TrendingUp, Users, CreditCard, Plus, CheckCircle, Clock,
+  AlertCircle, FileText, ArrowRight, ChevronRight, Star, Zap,
+  Shield, Award, Calendar, MessageCircle, Send, Eye, EyeOff,
+  MapPin, Phone, Mail, User, Building, Banknote, History, Download,
+  RefreshCw, X, Menu, Gift, PiggyBank, Landmark, Smartphone, Upload,
+  Image, Copy, ExternalLink, Sun, Moon, Target
 } from 'lucide-react';
 
 // ---------- Helper Functions ----------
@@ -76,7 +36,7 @@ const statusLabel = (s) => ({
   rejected: 'Rejected',
 }[s] || s);
 
-// ---------- Global Style Injection (once) ----------
+// ---------- Global Style Injection ----------
 let stylesInjected = false;
 const injectStyles = () => {
   if (stylesInjected) return;
@@ -125,6 +85,7 @@ const injectStyles = () => {
     .tb-actions { display: flex; gap: 10px; }
     .tb-btn { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background var(--tr); }
     .tb-btn svg { width: 18px; height: 18px; stroke: var(--txt-2); }
+    .notification-badge { position: absolute; top: -4px; right: -4px; background: var(--red); color: white; font-size: 10px; font-weight: 700; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; }
     .page { padding: 28px; }
     .ps { display: none; }
     .ps.active { display: block; }
@@ -167,19 +128,38 @@ const injectStyles = () => {
     .fl { font-size: 12px; font-weight: 700; color: var(--txt-2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; display: block; }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(17,19,24,0.93); color: #fff; padding: 10px 24px; border-radius: 40px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; pointer-events: none; }
     .toast.show { opacity: 1; }
+    .modal-bd { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+    .modal { background: var(--surface); border-radius: var(--r-xl); padding: 28px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+    .modal-t { font-family: var(--fd); font-size: 20px; margin-bottom: 8px; }
+    .modal-s { font-size: 13px; color: var(--txt-2); margin-bottom: 20px; }
+    .notification-panel { position: absolute; top: 50px; right: 28px; width: 320px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--sh-lg); z-index: 1000; max-height: 400px; overflow-y: auto; }
+    .notification-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+    .notification-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background var(--tr); }
+    .notification-item:hover { background: var(--surface-2); }
+    .notification-item.unread { background: var(--green-l); }
+    .notification-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; margin-top: 4px; }
+    .notification-text { font-size: 13px; line-height: 1.4; }
+    .notification-time { font-size: 11px; color: var(--txt-3); margin-top: 4px; }
+    .notification-empty { padding: 32px; text-align: center; color: var(--txt-3); }
     .mob-top, .bnav { display: none; }
+    .mob-top { position: sticky; top: 0; z-index: 100; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .mob-logo { font-family: var(--fd); font-size: 18px; font-weight: 600; flex: 1; }
+    .mob-actions { display: flex; align-items: center; gap: 12px; }
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main { margin-left: 0; }
       .topbar { display: none; }
-      .mob-top { display: flex; height: 58px; background: var(--surface); align-items: center; padding: 0 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
+      .mob-top { display: flex; height: 58px; align-items: center; padding: 0 16px; gap: 12px; }
       .bnav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 68px; background: var(--surface); border-top: 1px solid var(--border); z-index: 200; }
       .bnav-inner { display: flex; width: 100%; max-width: 500px; margin: 0 auto; }
-      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; }
+      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; cursor: pointer; padding: 8px 0; }
       .bni.active .bni-icon svg { stroke: var(--green); }
       .bni-lbl { font-size: 10px; font-weight: 600; color: var(--txt-3); }
       .page { padding: 16px; padding-bottom: 90px; }
-      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .card-b { padding: 12px 16px; }
+      .ut th, .ut td { padding: 8px 10px; }
+      .notification-panel { width: calc(100vw - 32px); right: 16px; left: 16px; }
     }
   `;
   document.head.appendChild(styleEl);
@@ -244,6 +224,10 @@ export default function DonorDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [loadingData, setLoadingData] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Data state
   const [donations, setDonations] = useState([]);
@@ -324,7 +308,50 @@ export default function DonorDashboard() {
     }
   };
 
-  // Poll pending deposit request (every 3 seconds)
+  // Load notifications
+  const loadNotifications = async () => {
+    try {
+      const token = localStorage.getItem('hb_token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unread_count || 0);
+      }
+    } catch (err) {
+      console.error('Failed to load notifications:', err);
+    }
+  };
+
+  const markNotificationRead = async (id) => {
+    try {
+      const token = localStorage.getItem('hb_token');
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications/${id}/read`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      loadNotifications();
+    } catch (err) {
+      console.error('Failed to mark notification read:', err);
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      const token = localStorage.getItem('hb_token');
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications/read-all`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      loadNotifications();
+    } catch (err) {
+      console.error('Failed to mark all read:', err);
+    }
+  };
+
+  // Poll pending deposit request
   useEffect(() => {
     const pending = depositRequests.find(r => ['pending', 'instructions_sent', 'awaiting_proof'].includes(r.status));
     if (!pending) {
@@ -373,7 +400,7 @@ export default function DonorDashboard() {
     };
   }, [depositRequests, refreshWallet, showToast, loadData]);
 
-  // Poll withdrawal requests (every 5 seconds)
+  // Poll withdrawal requests
   useEffect(() => {
     const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending');
     if (pendingWithdrawals.length === 0) return;
@@ -395,7 +422,7 @@ export default function DonorDashboard() {
     return () => clearInterval(withdrawalInterval);
   }, [withdrawals, showToast]);
 
-  // Periodic wallet refresh (every 10 seconds)
+  // Periodic wallet refresh
   useEffect(() => {
     if (walletRefreshInterval.current) clearInterval(walletRefreshInterval.current);
     walletRefreshInterval.current = setInterval(() => {
@@ -412,10 +439,11 @@ export default function DonorDashboard() {
     if (currentUser) {
       loadData();
       loadTransactions();
+      loadNotifications();
     }
   }, [currentUser]);
 
-  // ----- Handlers -----
+  // Handlers
   const handleRequestDeposit = async (e) => {
     e.preventDefault();
     const amt = toNumber(depositAmount);
@@ -489,7 +517,36 @@ export default function DonorDashboard() {
   const pendingDeposit = depositRequests.find(r => ['pending', 'instructions_sent', 'awaiting_proof'].includes(r.status));
   const isVerified = currentUser?.is_verified === true;
 
-  // ----- Render -----
+  // Notification Panel Component
+  const NotificationPanel = () => (
+    <div className="notification-panel">
+      <div className="notification-header">
+        <span>Notifications</span>
+        {unreadCount > 0 && (
+          <button className="db dba" style={{ fontSize: 10 }} onClick={markAllRead}>Mark all read</button>
+        )}
+      </div>
+      {notifications.length === 0 ? (
+        <div className="notification-empty">No notifications</div>
+      ) : (
+        notifications.map(notif => (
+          <div 
+            key={notif.id} 
+            className={`notification-item ${!notif.read ? 'unread' : ''}`}
+            onClick={() => markNotificationRead(notif.id)}
+          >
+            <div className="notification-dot" style={{ background: notif.type === 'error' ? 'var(--red)' : notif.type === 'warning' ? 'var(--amber)' : 'var(--green)' }} />
+            <div>
+              <div className="notification-text">{notif.message}</div>
+              <div className="notification-time">{new Date(notif.created_at).toLocaleTimeString()}</div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+
+  // Render
   return (
     <div className="shell">
       {/* Sidebar */}
@@ -513,27 +570,22 @@ export default function DonorDashboard() {
         <nav className="sb-nav">
           <div className="nav-sec">Main</div>
           <button className={`nl ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
-            <LayoutDashboard size={18} />
-            Dashboard
+            <LayoutDashboard size={18} /> Dashboard
           </button>
           <button className={`nl ${activeTab === 'donations' ? 'active' : ''}`} onClick={() => setActiveTab('donations')}>
-            <DollarSign size={18} />
-            My Donations
+            <DollarSign size={18} /> My Donations
           </button>
           <button className={`nl ${activeTab === 'donate' ? 'active' : ''}`} onClick={() => setActiveTab('donate')}>
-            <Gift size={18} />
-            Donate Now
+            <Gift size={18} /> Donate Now
           </button>
           <div className="nav-sec">Finance</div>
           <button className={`nl ${activeTab === 'wallet' ? 'active' : ''}`} onClick={() => setActiveTab('wallet')}>
-            <Wallet size={18} />
-            Wallet
+            <Wallet size={18} /> Wallet
             {depositRequests.some(r => ['pending', 'instructions_sent'].includes(r.status)) && <span className="nb">!</span>}
           </button>
           <div className="nav-sec">Account</div>
-          <button className={`nl ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
-            <Settings size={18} />
-            Settings
+          <button className={`nl ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setShowSettings(true)}>
+            <Settings size={18} /> Settings
           </button>
           <button className="nl" onClick={() => setDarkMode(!darkMode)}>
             {darkMode ? <Sun size={18} /> : <Moon size={18} />}
@@ -542,13 +594,13 @@ export default function DonorDashboard() {
         </nav>
         <div className="sb-footer">
           <button className="nl" style={{ color: 'var(--red)' }} onClick={handleLogout}>
-            <LogOut size={18} />
-            Sign Out
+            <LogOut size={18} /> Sign Out
           </button>
         </div>
       </aside>
 
       <div className="main">
+        {/* Desktop Topbar */}
         <div className="topbar">
           <div className="tb-title">
             {activeTab === 'overview' && 'Dashboard'}
@@ -558,25 +610,41 @@ export default function DonorDashboard() {
             {activeTab === 'settings' && 'Settings'}
           </div>
           <div className="tb-actions">
-            <div className="tb-btn" onClick={() => showToast('Notifications coming soon')}>
+            <div className="tb-btn" style={{ position: 'relative' }} onClick={() => setShowNotifications(!showNotifications)}>
               <Bell size={18} />
+              {unreadCount > 0 && <div className="notification-badge">{unreadCount > 9 ? '9+' : unreadCount}</div>}
             </div>
+            {showNotifications && (
+              <div style={{ position: 'absolute', top: 50, right: 28, zIndex: 1000 }}>
+                <NotificationPanel />
+              </div>
+            )}
             <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
               <LogOut size={18} style={{ stroke: 'var(--red)' }} />
             </button>
-            <div className="tb-btn" onClick={() => showToast('Profile')}>
+            <div className="tb-btn" onClick={() => setShowSettings(true)}>
               <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
             </div>
           </div>
         </div>
 
+        {/* Mobile Topbar */}
         <div className="mob-top">
           <div className="mob-logo">HopeBridge</div>
-          <div className="tb-actions">
+          <div className="mob-actions">
+            <div className="tb-btn" style={{ position: 'relative' }} onClick={() => setShowNotifications(!showNotifications)}>
+              <Bell size={18} />
+              {unreadCount > 0 && <div className="notification-badge">{unreadCount > 9 ? '9+' : unreadCount}</div>}
+            </div>
+            {showNotifications && (
+              <div style={{ position: 'absolute', top: 50, right: 16, zIndex: 1000 }}>
+                <NotificationPanel />
+              </div>
+            )}
             <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
               <LogOut size={18} style={{ stroke: 'var(--red)' }} />
             </button>
-            <div className="tb-btn" onClick={() => showToast('Profile')}>
+            <div className="tb-btn" onClick={() => setShowSettings(true)}>
               <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
             </div>
           </div>
@@ -585,7 +653,7 @@ export default function DonorDashboard() {
         <div className="page">
           {loadingData && <div style={{ padding: '8px 16px', background: 'var(--green)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>Loading your data...</div>}
 
-          {/* ========== OVERVIEW TAB ========== */}
+          {/* Overview Tab */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
             <div className="stats-grid">
               <div className="sc" onClick={() => setActiveTab('wallet')}>
@@ -645,19 +713,14 @@ export default function DonorDashboard() {
             </div>
           </div>
 
-          {/* ========== DONATIONS TAB ========== */}
+          {/* Donations Tab */}
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t"><DollarSign size={18} /> All Donations</div></div>
               <div className="card-b" style={{ padding: 0 }}>
                 <table className="ut">
                   <thead>
-                    <tr>
-                      <th>Campaign</th>
-                      <th>Amount</th>
-                      <th>Date</th>
-                      <th>Status</th>
-                    </tr>
+                    <tr><th>Campaign</th><th>Amount</th><th>Date</th><th>Status</th></tr>
                   </thead>
                   <tbody>
                     {donations.map(d => (
@@ -669,9 +732,7 @@ export default function DonorDashboard() {
                       </tr>
                     ))}
                     {donations.length === 0 && (
-                      <tr>
-                        <td colSpan="4" style={{ textAlign: 'center', padding: '40px' }}>No donations yet</td>
-                      </tr>
+                      <tr><td colSpan="4" style={{ textAlign: 'center', padding: '40px' }}>No donations yet</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -679,7 +740,7 @@ export default function DonorDashboard() {
             </div>
           </div>
 
-          {/* ========== DONATE TAB ========== */}
+          {/* Donate Tab */}
           <div className={`ps ${activeTab === 'donate' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t"><Gift size={18} /> Make a Donation</div></div>
@@ -689,9 +750,8 @@ export default function DonorDashboard() {
             </div>
           </div>
 
-          {/* ========== WALLET TAB ========== */}
+          {/* Wallet Tab */}
           <div className={`ps ${activeTab === 'wallet' ? 'active' : ''}`}>
-            {/* Deposit Section */}
             <div className="card">
               <div className="card-h"><div className="card-t"><CreditCard size={18} /> Deposit Funds</div></div>
               <div className="card-b">
@@ -745,7 +805,6 @@ export default function DonorDashboard() {
               </div>
             </div>
 
-            {/* Withdraw Section */}
             <div className="card">
               <div className="card-h"><div className="card-t"><Banknote size={18} /> Withdraw Funds</div></div>
               <div className="card-b">
@@ -768,38 +827,22 @@ export default function DonorDashboard() {
               </div>
             </div>
 
-            {/* Transaction History */}
             <div className="card">
-              <div className="card-h">
-                <div className="card-t"><History size={18} /> Transaction History</div>
-              </div>
+              <div className="card-h"><div className="card-t"><History size={18} /> Transaction History</div></div>
               <div className="card-b">
-                <TransactionHistory 
-                  transactions={transactions} 
-                  loading={transactionsLoading} 
-                  onRefresh={loadTransactions}
-                />
+                <TransactionHistory transactions={transactions} loading={transactionsLoading} onRefresh={loadTransactions} />
               </div>
             </div>
           </div>
 
-          {/* ========== SETTINGS TAB ========== */}
+          {/* Settings Tab */}
           <div className={`ps ${activeTab === 'settings' ? 'active' : ''}`}>
-            <div className="card">
-              <div className="card-h"><div className="card-t"><User size={18} /> Profile Settings</div></div>
-              <div className="card-b">
-                <label className="fl">Display Name</label>
-                <input className="fi" type="text" defaultValue={currentUser?.name} />
-                <label className="fl">Email</label>
-                <input className="fi" type="email" defaultValue={currentUser?.email} />
-                <button className="btn btn-g" onClick={() => showToast('Profile update coming soon')}>Save Changes</button>
-              </div>
-            </div>
+            <ProfileSettings userRole="donor" />
           </div>
         </div>
       </div>
 
-      {/* Mobile Bottom Nav - REMOVED FAB BUTTON */}
+      {/* Mobile Bottom Nav */}
       <nav className="bnav">
         <div className="bnav-inner">
           {['overview', 'donations', 'donate', 'wallet'].map(tab => (
@@ -815,6 +858,15 @@ export default function DonorDashboard() {
           ))}
         </div>
       </nav>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="modal-bd" onClick={() => setShowSettings(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: 0 }}>
+            <ProfileSettings onClose={() => setShowSettings(false)} userRole="donor" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,30 +4,53 @@ import { useApp } from '../context/AppContext';
 import { donationApi, campaignApi, walletApi } from '../services/api';
 import CampaignModal from '../components/CampaignModal';
 import DonationsModal from '../components/DonationsModal';
+import ProfileSettings from '../components/ProfileSettings';
+import { 
+  Heart, LayoutDashboard, DollarSign, Wallet, Settings, LogOut, Bell, 
+  TrendingUp, Users, CreditCard, Plus, CheckCircle, Clock, AlertCircle, 
+  FileText, ArrowRight, ChevronRight, Calendar, Send, Upload, Image, 
+  Gift, Banknote, History, RefreshCw, X, Menu, Sun, Moon, Target, 
+  Landmark, Smartphone, Copy, ExternalLink, Star, Zap, Shield, Award,
+  MessageCircle, Eye, EyeOff, MapPin, Phone, Mail, User, Building,
+  Download, PiggyBank
+} from 'lucide-react';
 
-// Global style injection (once)
+// ---------- Helper Functions ----------
+const toNumber = (val, fallback = 0) => {
+  const num = parseFloat(val);
+  return isNaN(num) ? fallback : num;
+};
+
+// ---------- Global Style Injection ----------
 let stylesInjected = false;
 const injectStyles = () => {
   if (stylesInjected) return;
   stylesInjected = true;
   const styleEl = document.createElement('style');
   styleEl.textContent = `
-    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     :root {
-      --green: #1D9E75; --green-d: #0F6E56; --green-dd: #085041; --green-l: #E1F5EE; --green-m: #9FE1CB;
-      --red: #E24B4A; --red-l: #FCEBEB; --amber: #EF9F27; --amber-l: #FAEEDA; --blue: #378ADD; --blue-l: #E6F1FB;
-      --bg: #EEF1F5; --surface: #FFFFFF; --surface-2: #F6F8FA; --border: rgba(0,0,0,0.07); --border-2: rgba(0,0,0,0.13);
+      --green: #1D9E75; --green-d: #0F6E56; --green-dd: #085041; --green-l: #E1F5EE;
+      --red: #E24B4A; --red-l: #FCEBEB; --amber: #EF9F27; --amber-l: #FAEEDA;
+      --blue: #378ADD; --blue-l: #E6F1FB;
+      --bg: #EEF1F5; --surface: #FFFFFF; --surface-2: #F6F8FA;
+      --border: rgba(0,0,0,0.07); --border-2: rgba(0,0,0,0.13);
       --txt: #111318; --txt-2: #5A6272; --txt-3: #9AA3B2;
       --sidebar-w: 260px; --topbar-h: 64px; --bottom-nav: 68px;
       --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 26px;
       --sh-sm: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
-      --fd: 'Instrument Serif', Georgia, serif; --fb: 'DM Sans', sans-serif; --tr: 0.2s ease;
+      --fd: 'Instrument Serif', Georgia, serif; --fb: 'DM Sans', sans-serif;
+      --tr: 0.2s ease;
     }
+    body.dark-mode {
+      --bg: #121212; --surface: #1E1E1E; --surface-2: #2A2A2A;
+      --border: rgba(255,255,255,0.1); --txt: #EEEEEE; --txt-2: #AAAAAA; --txt-3: #777777;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: var(--fb); background: var(--bg); color: var(--txt); min-height: 100vh; }
     .shell { display: flex; min-height: 100vh; }
     .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; z-index: 200; overflow-y: auto; }
     .sb-logo { padding: 22px 20px 14px; border-bottom: 1px solid var(--border); }
-    .logo-mark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark { display: flex; align-items: center; gap: 10px; }
     .logo-icon { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--green); display: flex; align-items: center; justify-content: center; }
     .logo-icon svg { width: 20px; height: 20px; stroke: #fff; stroke-width: 2; fill: none; }
     .logo-text { font-family: var(--fd); font-size: 19px; color: var(--txt); }
@@ -49,23 +72,20 @@ const injectStyles = () => {
     .tb-title { font-family: var(--fd); font-size: 22px; flex: 1; }
     .tb-actions { display: flex; gap: 10px; }
     .tb-btn { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background var(--tr); }
-    .tb-btn svg { width: 18px; height: 18px; stroke: var(--txt-2); }
     .page { padding: 28px; }
     .ps { display: none; }
     .ps.active { display: block; }
     .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
-    .sc { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--sh-sm); position: relative; overflow: hidden; }
+    .sc { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--sh-sm); }
     .sc .si { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--green-l); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
-    .sc .si svg { stroke: var(--green-d); width: 18px; height: 18px; }
     .sv { font-family: var(--fd); font-size: 32px; line-height: 1; }
     .sl { font-size: 12px; color: var(--txt-2); margin-top: 4px; }
-    .sd { font-size: 11px; font-weight: 700; margin-top: 8px; }
     .card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--sh-sm); overflow: hidden; margin-bottom: 24px; }
     .card-h { display: flex; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
-    .card-t { font-family: var(--fd); font-size: 17px; }
-    .card-a { font-size: 12px; font-weight: 600; color: var(--green); background: none; border: none; cursor: pointer; }
+    .card-t { font-family: var(--fd); font-size: 17px; display: flex; align-items: center; gap: 8px; }
+    .card-a { font-size: 12px; font-weight: 600; color: var(--green); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px; }
     .card-b { padding: 16px 20px; }
-    .badge { font-size: 10px; font-weight: 700; padding: 4px 9px; border-radius: 20px; display: inline-block; }
+    .badge { font-size: 10px; font-weight: 700; padding: 4px 9px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; }
     .ba { background: var(--green-l); color: var(--green-d); }
     .bp { background: var(--amber-l); color: #854F0B; }
     .br { background: var(--blue-l); color: #185FA5; }
@@ -74,39 +94,38 @@ const injectStyles = () => {
     .cr:last-child { border-bottom: none; }
     .ci { flex: 1; }
     .cn { font-weight: 600; font-size: 14px; }
-    .cm { font-size: 11px; color: var(--txt-3); margin-top: 2px; }
+    .cm { font-size: 11px; color: var(--txt-3); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
     .pb { height: 4px; background: var(--bg); border-radius: 2px; margin-top: 6px; overflow: hidden; }
     .pf { height: 100%; background: var(--green); border-radius: 2px; }
     .ut { width: 100%; border-collapse: collapse; }
     .ut th { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--txt-3); text-align: left; padding: 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
     .ut td { padding: 14px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-    .db { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; transition: opacity var(--tr); margin-right: 4px; }
+    .db { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
     .dba { background: var(--green-l); color: var(--green-d); }
     .dbr { background: var(--red-l); color: var(--red); }
     .dbv { background: var(--blue-l); color: #185FA5; }
-    .btn { padding: 10px 18px; border-radius: var(--r-sm); font-weight: 600; border: none; cursor: pointer; }
+    .btn { padding: 10px 18px; border-radius: var(--r-sm); font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
     .btn-g { background: var(--green); color: #fff; }
     .btn-gh { background: var(--surface-2); border: 1px solid var(--border); }
-    .modal-bd { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 999; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .25s; }
-    .modal-bd.open { opacity: 1; pointer-events: all; }
-    .modal { background: var(--surface); border-radius: var(--r-xl); padding: 28px; width: 90%; max-width: 420px; }
     .fi { width: 100%; padding: 10px 12px; border: 1px solid var(--border-2); border-radius: var(--r-sm); margin-bottom: 16px; font-family: var(--fb); }
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(17,19,24,0.93); color: #fff; padding: 10px 24px; border-radius: 40px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; pointer-events: none; }
-    .toast.show { opacity: 1; }
-    .mob-top, .bnav, .fab { display: none; }
+    .fl { font-size: 12px; font-weight: 700; color: var(--txt-2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; display: block; }
+    .modal-bd { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+    .modal { background: var(--surface); border-radius: var(--r-xl); padding: 28px; width: 90%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+    .modal-t { font-family: var(--fd); font-size: 22px; margin-bottom: 6px; }
+    .modal-s { font-size: 13px; color: var(--txt-2); margin-bottom: 20px; }
+    .mob-top, .bnav { display: none; }
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main { margin-left: 0; }
       .topbar { display: none; }
-      .mob-top { display: flex; height: 58px; background: var(--surface); align-items: center; padding: 0 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); }
+      .mob-top { display: flex; height: 58px; background: var(--surface); align-items: center; padding: 0 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); justify-content: space-between; }
       .bnav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 68px; background: var(--surface); border-top: 1px solid var(--border); z-index: 200; }
       .bnav-inner { display: flex; width: 100%; max-width: 500px; margin: 0 auto; }
-      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; }
+      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; cursor: pointer; }
       .bni.active .bni-icon svg { stroke: var(--green); }
       .bni-lbl { font-size: 10px; font-weight: 600; color: var(--txt-3); }
-      .fab { display: flex; position: fixed; right: 20px; bottom: 82px; width: 52px; height: 52px; background: var(--green); border-radius: 50%; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.2); z-index: 150; border: none; }
       .page { padding: 16px; padding-bottom: 90px; }
-      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
     }
   `;
   document.head.appendChild(styleEl);
@@ -120,12 +139,14 @@ export default function CreatorDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [modalOpen, setModalOpen] = useState(false);
   const [editCampaign, setEditCampaign] = useState(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [viewDonations, setViewDonations] = useState(null);
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState(null);
   const [progressAmount, setProgressAmount] = useState('');
+  const [darkMode, setDarkMode] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
-  // ✅ All state initialized with safe defaults — prevents any .filter/.map on undefined
   const [donations, setDonations] = useState([]);
   const [payoutRequests, setPayoutRequests] = useState([]);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -139,7 +160,14 @@ export default function CreatorDashboard() {
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
-  // Auth check & initial data load
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+  }, [darkMode]);
+
   useEffect(() => {
     if (!currentUser) { navigate('/'); return; }
     if (currentUser.role !== 'creator') { navigate('/'); return; }
@@ -152,54 +180,24 @@ export default function CreatorDashboard() {
     try {
       await loadMyCampaigns();
 
-      // ── Donations ──────────────────────────────────────────────
       let donRes = { donations: [] };
       try {
         const raw = await donationApi.getMyDonations();
-        // Normalise: handle { donations: [] }, plain array, or anything else
-        donRes = {
-          donations: Array.isArray(raw)
-            ? raw
-            : Array.isArray(raw?.donations)
-            ? raw.donations
-            : [],
-        };
-      } catch (err) {
-        console.warn('Failed to fetch donations:', err.message);
-      }
+        donRes = { donations: Array.isArray(raw) ? raw : Array.isArray(raw?.donations) ? raw.donations : [] };
+      } catch (err) { console.warn('Failed to fetch donations:', err.message); }
 
-      // ── Payout requests ────────────────────────────────────────
       let payRes = { requests: [] };
       try {
         const raw = await donationApi.getMyPayoutRequests();
-       
-        // Normalise: handle { requests: [] }, plain array, or anything else
-        payRes = {
-          requests: Array.isArray(raw)
-            ? raw
-            : Array.isArray(raw?.requests)
-            ? raw.requests
-            : Array.isArray(raw?.data)
-            ? raw.data
-            : [],
-        };
-      } catch (err) {
-        console.warn('Failed to fetch payout requests:', err.message);
-      }
+        payRes = { requests: Array.isArray(raw) ? raw : Array.isArray(raw?.requests) ? raw.requests : [] };
+      } catch (err) { console.warn('Failed to fetch payout requests:', err.message); }
 
-      // ── Wallet ─────────────────────────────────────────────────
       let walletRes = { balance: 0, total_earned: 0 };
       try {
         const raw = await donationApi.getCreatorWallet();
-        walletRes = {
-          balance: parseFloat(raw?.balance ?? 0),
-          total_earned: parseFloat(raw?.total_earned ?? 0),
-        };
-      } catch (err) {
-        console.warn('Failed to fetch wallet:', err.message);
-      }
+        walletRes = { balance: parseFloat(raw?.balance ?? 0), total_earned: parseFloat(raw?.total_earned ?? 0) };
+      } catch (err) { console.warn('Failed to fetch wallet:', err.message); }
 
-      // ✅ Safe setters — all arrays guaranteed
       setDonations(donRes.donations);
       setPayoutRequests(payRes.requests);
       setWalletBalance(walletRes.balance);
@@ -276,16 +274,16 @@ export default function CreatorDashboard() {
 
   const handleLogout = () => { logout(); navigate('/'); };
 
-  // ✅ Safe derived values — always working from guaranteed arrays
-  const safeCampaigns      = Array.isArray(myCampaigns) ? myCampaigns : [];
-  const safeDonations      = Array.isArray(donations) ? donations : [];
+  const safeCampaigns = Array.isArray(myCampaigns) ? myCampaigns : [];
+  const safeDonations = Array.isArray(donations) ? donations : [];
   const safePayoutRequests = Array.isArray(payoutRequests) ? payoutRequests : [];
 
-  const initials        = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  const totalRaised     = safeCampaigns.reduce((sum, c) => sum + parseFloat(c.raised || 0), 0);
+  const initials = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const totalRaised = safeCampaigns.reduce((sum, c) => sum + parseFloat(c.raised || 0), 0);
   const activeCampaigns = safeCampaigns.filter(c => c.status === 'approved' || c.status === 'active').length;
-  const pendingPayouts  = safePayoutRequests.filter(p => p.status === 'pending');
+  const pendingPayouts = safePayoutRequests.filter(p => p.status === 'pending');
   const pendingPayoutSum = pendingPayouts.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+  const isVerified = currentUser?.is_verified === true;
 
   return (
     <div className="shell">
@@ -293,126 +291,109 @@ export default function CreatorDashboard() {
       <aside className="sidebar">
         <div className="sb-logo">
           <div className="logo-mark">
-            <div className="logo-icon">
-              <svg viewBox="0 0 24 24"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
-            </div>
-            <div>
-              <div className="logo-text">HopeBridge</div>
-              <div className="logo-sub">Creator Studio</div>
-            </div>
+            <div className="logo-icon"><Heart size={20} color="#fff" strokeWidth={2} /></div>
+            <div><div className="logo-text">HopeBridge</div><div className="logo-sub">Creator Studio</div></div>
           </div>
         </div>
-
         <div className="sb-creator">
           <div className="creator-av">{initials}</div>
           <div>
-            <div className="creator-name">{currentUser?.name}</div>
+            <div className="creator-name">{currentUser?.name} {isVerified && <CheckCircle size={14} style={{ color: '#378ADD', display: 'inline' }} />}</div>
             <div className="creator-badge">Verified Creator</div>
           </div>
         </div>
-
         <nav className="sb-nav">
           <div className="nav-sec">Workspace</div>
-          {[
-            { id: 'overview',   label: 'Dashboard',     icon: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></> },
-            { id: 'campaigns',  label: 'My Campaigns',  icon: <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></>, badge: safeCampaigns.length },
-            { id: 'donations',  label: 'Donations',     icon: <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/> },
-          ].map(({ id, label, icon, badge }) => (
-            <button key={id} className={`nl ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}>
-              <svg viewBox="0 0 24 24">{icon}</svg>
-              {label}
-              {badge > 0 && <span className="nb">{badge}</span>}
-            </button>
-          ))}
-
+          <button className={`nl ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
+            <LayoutDashboard size={18} /> Dashboard
+          </button>
+          <button className={`nl ${activeTab === 'campaigns' ? 'active' : ''}`} onClick={() => setActiveTab('campaigns')}>
+            <Target size={18} /> My Campaigns
+            {safeCampaigns.length > 0 && <span className="nb">{safeCampaigns.length}</span>}
+          </button>
+          <button className={`nl ${activeTab === 'donations' ? 'active' : ''}`} onClick={() => setActiveTab('donations')}>
+            <Heart size={18} /> Donations
+          </button>
           <div className="nav-sec">Finance</div>
           <button className={`nl ${activeTab === 'payouts' ? 'active' : ''}`} onClick={() => setActiveTab('payouts')}>
-            <svg viewBox="0 0 24 24"><polyline points="17,1 21,5 17,9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7,23 3,19 7,15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-            Payouts
+            <Banknote size={18} /> Payouts
             {pendingPayouts.length > 0 && <span className="nb">{pendingPayouts.length}</span>}
           </button>
           <button className={`nl ${activeTab === 'wallet' ? 'active' : ''}`} onClick={() => setActiveTab('wallet')}>
-            <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-            Wallet
+            <Wallet size={18} /> Wallet
           </button>
-
           <div className="nav-sec">Account</div>
-          <button className={`nl ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l-.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            Settings
+          <button className={`nl ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setShowSettings(true)}>
+            <Settings size={18} /> Settings
+          </button>
+          <button className="nl" onClick={() => setDarkMode(!darkMode)}>
+            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            {darkMode ? 'Light Mode' : 'Dark Mode'}
           </button>
         </nav>
-
         <div className="sb-footer">
           <button className="nl" style={{ color: 'var(--red)' }} onClick={handleLogout}>
-            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Sign Out
+            <LogOut size={18} /> Sign Out
           </button>
         </div>
       </aside>
 
-      {/* Main */}
+      {/* Main Content */}
       <div className="main">
-        {/* Desktop topbar */}
         <div className="topbar">
           <div className="tb-title">
-            {activeTab === 'overview'  && 'Dashboard'}
+            {activeTab === 'overview' && 'Dashboard'}
             {activeTab === 'campaigns' && 'My Campaigns'}
             {activeTab === 'donations' && 'Donations'}
-            {activeTab === 'payouts'   && 'Payouts'}
-            {activeTab === 'wallet'    && 'Wallet'}
-            {activeTab === 'settings'  && 'Settings'}
+            {activeTab === 'payouts' && 'Payouts'}
+            {activeTab === 'wallet' && 'Wallet'}
+            {activeTab === 'settings' && 'Settings'}
           </div>
           <div className="tb-actions">
-            <div className="tb-btn" onClick={() => showToast('Notifications')}>
-              <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <div className="tb-btn" onClick={() => showToast('Notifications coming soon')}>
+              <Bell size={18} />
             </div>
-            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
-              <svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            </button>
-            <div className="tb-btn">
-              <div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div>
+            <div className="tb-btn" onClick={() => setShowSettings(true)}>
+              <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff', fontSize: 12 }}>{initials}</div>
             </div>
           </div>
         </div>
 
-        {/* Mobile topbar */}
         <div className="mob-top">
-          <div style={{ fontFamily: 'var(--fd)', fontSize: 18, flex: 1 }}>HopeBridge</div>
-          <div className="tb-actions">
-            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}>
-              <svg viewBox="0 0 24 24" style={{ stroke: 'var(--red)' }}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            </button>
+          <div className="mob-logo" style={{ fontFamily: 'var(--fd)', fontSize: 18, fontWeight: 600 }}>HopeBridge</div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div className="tb-btn" onClick={() => showToast('Notifications coming soon')}>
+              <Bell size={18} />
+            </div>
+            <div className="tb-btn" onClick={() => setShowSettings(true)}>
+              <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff', fontSize: 12 }}>{initials}</div>
+            </div>
           </div>
         </div>
 
         <div className="page">
-          {loadingData && (
-            <div style={{ padding: '8px 16px', background: 'var(--green)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>
-              Loading your data…
-            </div>
-          )}
+          {loadingData && <div style={{ padding: '8px 16px', background: 'var(--green)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>Loading your data...</div>}
 
-          {/* ── Overview ─────────────────────────────────────── */}
+          {/* Overview Tab */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
             <div className="stats-grid">
               <div className="sc">
-                <div className="si"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/></svg></div>
+                <div className="si"><DollarSign size={18} /></div>
                 <div className="sv">${totalRaised.toLocaleString()}</div>
                 <div className="sl">Total raised</div>
               </div>
               <div className="sc">
-                <div className="si"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div>
+                <div className="si"><Target size={18} /></div>
                 <div className="sv">{activeCampaigns}</div>
                 <div className="sl">Active campaigns</div>
               </div>
               <div className="sc">
-                <div className="si"><svg viewBox="0 0 24 24"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg></div>
+                <div className="si"><Heart size={18} /></div>
                 <div className="sv">{safeDonations.length}</div>
                 <div className="sl">Total donations</div>
               </div>
               <div className="sc">
-                <div className="si"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
+                <div className="si"><Wallet size={18} /></div>
                 <div className="sv">${walletBalance.toLocaleString()}</div>
                 <div className="sl">Wallet balance</div>
               </div>
@@ -420,8 +401,8 @@ export default function CreatorDashboard() {
 
             <div className="card">
               <div className="card-h">
-                <div className="card-t">Recent Donations</div>
-                <button className="card-a" onClick={() => setActiveTab('donations')}>View all →</button>
+                <div className="card-t"><History size={18} /> Recent Donations</div>
+                <button className="card-a" onClick={() => setActiveTab('donations')}>View all <ArrowRight size={14} /></button>
               </div>
               <div className="card-b">
                 {safeDonations.slice(0, 3).map(d => (
@@ -440,11 +421,11 @@ export default function CreatorDashboard() {
 
             <div className="card">
               <div className="card-h">
-                <div className="card-t">Active Campaigns</div>
+                <div className="card-t"><Target size={18} /> Active Campaigns</div>
                 <button className="card-a" onClick={() => setActiveTab('campaigns')}>Manage →</button>
               </div>
               <div className="card-b">
-                {safeCampaigns.filter(c => c.status === 'approved' || c.status === 'active').map(c => (
+                {safeCampaigns.filter(c => c.status === 'approved' || c.status === 'active').slice(0, 3).map(c => (
                   <div key={c.id} className="cr">
                     <div className="ci">
                       <div className="cn">{c.title}</div>
@@ -461,11 +442,11 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* ── Campaigns ────────────────────────────────────── */}
+          {/* Campaigns Tab */}
           <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontFamily: 'var(--fd)', fontSize: 20 }}>My Campaigns</div>
-              <button className="btn btn-g" onClick={() => { setEditCampaign(null); setModalOpen(true); }}>+ New Campaign</button>
+              <button className="btn btn-g" onClick={() => { setEditCampaign(null); setModalOpen(true); }}><Plus size={16} /> New Campaign</button>
             </div>
             <div className="card">
               <div className="card-b" style={{ padding: 0 }}>
@@ -477,7 +458,7 @@ export default function CreatorDashboard() {
                   </thead>
                   <tbody>
                     {safeCampaigns.length === 0 && (
-                      <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--txt-3)', padding: 24 }}>No campaigns yet</td></tr>
+                      <tr><td colSpan="6" style={{ textAlign: 'center', color: 'var(--txt-3)', padding: 24 }}>No campaigns yet</td></tr>
                     )}
                     {safeCampaigns.map(c => {
                       const percent = Math.min(((c.raised || 0) / c.goal) * 100, 100);
@@ -495,7 +476,8 @@ export default function CreatorDashboard() {
                           </td>
                           <td><span className="badge ba">{c.status}</span></td>
                           <td>
-                            <button className="db dba" onClick={() => { setSelectedCampaignId(c.id); setProgressModalOpen(true); }}>Update</button>
+                            <button className="db dba" onClick={() => { setSelectedCampaignId(c.id); setProgressModalOpen(true); }}>Progress</button>
+                            <button className="db dbv" onClick={() => { setEditCampaign(c); setEditModalOpen(true); }}>Edit</button>
                             <button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}>Delete</button>
                           </td>
                         </tr>
@@ -507,19 +489,17 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* ── Donations ────────────────────────────────────── */}
+          {/* Donations Tab */}
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
             <div className="card">
-              <div className="card-h"><div className="card-t">Donations Received</div></div>
+              <div className="card-h"><div className="card-t"><Heart size={18} /> Donations Received</div></div>
               <div className="card-b" style={{ padding: 0 }}>
                 <table className="ut">
                   <thead>
                     <tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Date</th></tr>
                   </thead>
                   <tbody>
-                    {safeDonations.length === 0 && (
-                      <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--txt-3)', padding: 24 }}>No donations yet</td></tr>
-                    )}
+                    {safeDonations.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: 24 }}>No donations yet</td></tr>}
                     {safeDonations.map(d => (
                       <tr key={d.id}>
                         <td>{d.donor_name || 'Anonymous'}</td>
@@ -534,10 +514,10 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* ── Payouts ──────────────────────────────────────── */}
+          {/* Payouts Tab */}
           <div className={`ps ${activeTab === 'payouts' ? 'active' : ''}`}>
             <div className="card">
-              <div className="card-h"><div className="card-t">Available Balance & Withdrawals</div></div>
+              <div className="card-h"><div className="card-t"><Banknote size={18} /> Available Balance & Withdrawals</div></div>
               <div className="card-b">
                 <div className="stats-grid" style={{ marginBottom: 20 }}>
                   <div className="sc">
@@ -552,9 +532,7 @@ export default function CreatorDashboard() {
                 <button className="btn btn-g" onClick={handleRequestPayout}>Request Withdrawal</button>
                 <hr style={{ margin: '20px 0', borderColor: 'var(--border)' }} />
                 <strong>Recent payout requests</strong>
-                {safePayoutRequests.length === 0 && (
-                  <div style={{ padding: '10px 0', color: 'var(--txt-3)' }}>No payout requests yet</div>
-                )}
+                {safePayoutRequests.length === 0 && <div style={{ padding: '10px 0', color: 'var(--txt-3)' }}>No payout requests yet</div>}
                 {safePayoutRequests.map(p => (
                   <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
                     <span>${parseFloat(p.amount || 0).toFixed(2)} · {new Date(p.created_at).toLocaleDateString()}</span>
@@ -565,10 +543,10 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* ── Wallet ───────────────────────────────────────── */}
+          {/* Wallet Tab */}
           <div className={`ps ${activeTab === 'wallet' ? 'active' : ''}`}>
             <div className="card">
-              <div className="card-h"><div className="card-t">Creator Wallet</div></div>
+              <div className="card-h"><div className="card-t"><Wallet size={18} /> Creator Wallet</div></div>
               <div className="card-b">
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
                   <span>Current balance</span><strong>${walletBalance.toLocaleString()}</strong>
@@ -584,46 +562,9 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* ── Settings ─────────────────────────────────────── */}
+          {/* Settings Tab */}
           <div className={`ps ${activeTab === 'settings' ? 'active' : ''}`}>
-            <div className="card">
-              <div className="card-h"><div className="card-t">Profile Settings</div></div>
-              <div className="card-b">
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>Display Name</label>
-                <input className="fi" type="text" defaultValue={currentUser?.name} />
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>Email</label>
-                <input className="fi" type="email" defaultValue={currentUser?.email} />
-                <button className="btn btn-g" onClick={() => showToast('Settings saved (demo)')}>Save Changes</button>
-              </div>
-            </div>
-
-            <div className="card" style={{ marginTop: 20 }}>
-              <div className="card-h"><div className="card-t">Payment Methods</div></div>
-              <div className="card-b">
-                <form onSubmit={savePaymentMethod}>
-                  {[
-                    { label: 'PayPal Email',        key: 'paypal_email',    type: 'email', placeholder: 'you@example.com' },
-                    { label: 'Bank Account Name',   key: 'account_name',   type: 'text',  placeholder: 'Account holder name' },
-                    { label: 'Bank Account Number', key: 'account_number', type: 'text',  placeholder: 'Account number' },
-                    { label: 'Bank Name',           key: 'bank_name',      type: 'text',  placeholder: 'Bank name' },
-                  ].map(({ label, key, type, placeholder }) => (
-                    <div key={key}>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--txt-2)', display: 'block', marginBottom: 4 }}>{label}</label>
-                      <input
-                        className="fi"
-                        type={type}
-                        placeholder={placeholder}
-                        value={paymentMethod[key] || ''}
-                        onChange={e => setPaymentMethod(prev => ({ ...prev, [key]: e.target.value }))}
-                      />
-                    </div>
-                  ))}
-                  <button type="submit" className="btn btn-g" disabled={loadingPayment}>
-                    {loadingPayment ? 'Saving…' : 'Save Payment Method'}
-                  </button>
-                </form>
-              </div>
-            </div>
+            <ProfileSettings userRole="creator" />
           </div>
         </div>
       </div>
@@ -631,51 +572,68 @@ export default function CreatorDashboard() {
       {/* Mobile Bottom Nav */}
       <nav className="bnav">
         <div className="bnav-inner">
-          {[
-            { id: 'overview',  label: 'Overview',  icon: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></> },
-            { id: 'campaigns', label: 'Campaigns', icon: <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></> },
-            { id: 'donations', label: 'Donations', icon: <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"/> },
-            { id: 'wallet',    label: 'Wallet',    icon: <><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></> },
-          ].map(({ id, label, icon }) => (
-            <button key={id} className={`bni ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}>
-              <div className="bni-icon"><svg width="20" viewBox="0 0 24 24" fill="none" stroke="var(--txt-3)" strokeWidth="1.8">{icon}</svg></div>
-              <span className="bni-lbl">{label}</span>
+          {['overview', 'campaigns', 'donations', 'wallet'].map(tab => (
+            <button key={tab} className={`bni ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+              <div className="bni-icon">
+                {tab === 'overview' && <LayoutDashboard size={20} />}
+                {tab === 'campaigns' && <Target size={20} />}
+                {tab === 'donations' && <Heart size={20} />}
+                {tab === 'wallet' && <Wallet size={20} />}
+              </div>
+              <span className="bni-lbl">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
             </button>
           ))}
         </div>
       </nav>
 
+      {/* FAB Button */}
       <button className="fab" onClick={() => { setEditCampaign(null); setModalOpen(true); }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <Plus size={24} color="#fff" />
       </button>
 
       {/* Progress Update Modal */}
-      <div className={`modal-bd ${progressModalOpen ? 'open' : ''}`} onClick={() => setProgressModalOpen(false)}>
-        <div className="modal" onClick={e => e.stopPropagation()}>
-          <div className="card-t" style={{ marginBottom: 12 }}>Update Campaign Progress</div>
-          <input
-            className="fi"
-            type="number"
-            placeholder="New raised amount (USD)"
-            value={progressAmount}
-            onChange={e => setProgressAmount(e.target.value)}
-          />
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-gh" onClick={() => setProgressModalOpen(false)}>Cancel</button>
-            <button className="btn btn-g" onClick={handleUpdateProgress}>Update</button>
+      {progressModalOpen && (
+        <div className="modal-bd" onClick={() => setProgressModalOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-t">Update Campaign Progress</div>
+            <div className="modal-s">Enter the new total raised amount</div>
+            <input className="fi" type="number" placeholder="New raised amount (USD)" value={progressAmount} onChange={e => setProgressAmount(e.target.value)} />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-gh" onClick={() => setProgressModalOpen(false)}>Cancel</button>
+              <button className="btn btn-g" onClick={handleUpdateProgress}>Update</button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
+      {/* Create Campaign Modal */}
       {modalOpen && (
         <CampaignModal
-          campaign={editCampaign}
-          onClose={() => { setModalOpen(false); setEditCampaign(null); loadData(); }}
+          campaign={null}
+          onClose={() => { setModalOpen(false); loadData(); }}
         />
       )}
 
+      {/* Edit Campaign Modal */}
+      {editModalOpen && editCampaign && (
+        <CampaignModal
+          campaign={editCampaign}
+          onClose={() => { setEditModalOpen(false); setEditCampaign(null); loadData(); }}
+        />
+      )}
+
+      {/* Donations Modal */}
       {viewDonations && (
         <DonationsModal campaign={viewDonations} onClose={() => setViewDonations(null)} />
+      )}
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="modal-bd" onClick={() => setShowSettings(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: 0 }}>
+            <ProfileSettings onClose={() => setShowSettings(false)} userRole="creator" />
+          </div>
+        </div>
       )}
     </div>
   );
