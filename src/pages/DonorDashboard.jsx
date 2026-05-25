@@ -36,7 +36,7 @@ const statusLabel = (s) => ({
   rejected: 'Rejected',
 }[s] || s);
 
-// ---------- Inject Styles (Guaranteed to work) ----------
+// ----------  (Guaranteed to work) ----------
 let stylesInjected = false;
 const injectStyles = () => {
   if (stylesInjected) return;
@@ -221,6 +221,16 @@ const injectStyles = () => {
       .card-b { padding: 12px 16px; }
       .notification-panel { width: calc(100vw - 32px); right: 16px; left: 16px; top: 60px; }
     }
+    /* FIX: Hide mobile top bar on desktop */
+.mob-top, .bnav { display: none !important; }
+@media (min-width: 769px) {
+  .mob-top, .bnav { display: none !important; }
+}
+@media (max-width: 768px) {
+  .topbar { display: none !important; }
+  .mob-top { display: flex !important; }
+  .bnav { display: block !important; }
+}
   `;
   document.head.appendChild(styleEl);
   console.log('✅ Donor dashboard styles injected');
