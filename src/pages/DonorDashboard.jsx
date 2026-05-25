@@ -36,46 +36,79 @@ const statusLabel = (s) => ({
   rejected: 'Rejected',
 }[s] || s);
 
-// ---------- Global Style Injection ----------
+// ---------- Inject Styles (Guaranteed to work) ----------
 let stylesInjected = false;
 const injectStyles = () => {
   if (stylesInjected) return;
   stylesInjected = true;
   const styleEl = document.createElement('style');
+  styleEl.setAttribute('id', 'donor-dashboard-styles');
   styleEl.textContent = `
+    /* RESET & BASE */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #F8F9FA;
+      color: #212529;
+      line-height: 1.5;
+    }
+    h1, h2, h3, h4, h5, h6 { font-family: 'Raleway', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-weight: 700; }
+    
+    /* CSS VARIABLES */
     :root {
       --primary: #e8531e;
       --primary-dark: #c4400f;
+      --primary-light: #f47c50;
       --secondary: #27a96c;
       --dark: #1a1a2e;
-      --green: #1D9E75; --green-d: #0F6E56; --green-dd: #085041; --green-l: #E1F5EE; --green-m: #9FE1CB;
-      --red: #E24B4A; --red-l: #FCEBEB; --amber: #EF9F27; --amber-l: #FAEEDA; --blue: #378ADD; --blue-l: #E6F1FB;
-      --bg: #F8F9FA; --surface: #FFFFFF; --surface-2: #F1F3F5; --border: rgba(0,0,0,0.08); --border-2: rgba(0,0,0,0.12);
-      --txt: #212529; --txt-2: #6C757D; --txt-3: #ADB5BD;
-      --sidebar-w: 260px; --topbar-h: 64px; --bottom-nav: 68px;
-      --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 24px;
+      --text: #444;
+      --text-light: #777;
+      --bg-light: #f8f9fa;
+      --green: #1D9E75; --green-d: #0F6E56; --green-l: #E1F5EE;
+      --red: #E24B4A; --red-l: #FCEBEB;
+      --amber: #EF9F27; --amber-l: #FAEEDA;
+      --blue: #378ADD; --blue-l: #E6F1FB;
+      --bg: #F8F9FA;
+      --surface: #FFFFFF;
+      --surface-2: #F1F3F5;
+      --border: rgba(0,0,0,0.08);
+      --border-2: rgba(0,0,0,0.12);
+      --txt: #212529;
+      --txt-2: #6C757D;
+      --txt-3: #ADB5BD;
+      --sidebar-w: 260px;
+      --topbar-h: 64px;
+      --bottom-nav: 68px;
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 16px;
+      --r-xl: 24px;
       --sh-sm: 0 1px 3px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.02);
       --sh-md: 0 4px 12px rgba(0,0,0,0.08);
       --sh-lg: 0 12px 32px rgba(0,0,0,0.12);
       --tr: 0.2s ease;
     }
     body.dark-mode {
-      --bg: #121212; --surface: #1E1E1E; --surface-2: #2A2A2A; --border: rgba(255,255,255,0.1);
-      --txt: #EEEEEE; --txt-2: #AAAAAA; --txt-3: #777777;
+      --bg: #121212;
+      --surface: #1E1E1E;
+      --surface-2: #2A2A2A;
+      --border: rgba(255,255,255,0.1);
+      --txt: #EEEEEE;
+      --txt-2: #AAAAAA;
+      --txt-3: #777777;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Open Sans', sans-serif; background: var(--bg); color: var(--txt); min-height: 100vh; }
-    h1, h2, h3, h4, h5, h6 { font-family: 'Raleway', sans-serif; font-weight: 700; }
-    .shell { display: flex; min-height: 100vh; }
+    
+    /* SHELL */
+    .shell { display: flex; min-height: 100vh; background: var(--bg); }
     .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; z-index: 200; overflow-y: auto; }
     .sb-logo { padding: 22px 20px 14px; border-bottom: 1px solid var(--border); }
-    .logo-mark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark { display: flex; align-items: center; gap: 10px; }
     .logo-icon { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--primary); display: flex; align-items: center; justify-content: center; }
     .logo-text { font-family: 'Raleway', sans-serif; font-size: 1.3rem; font-weight: 900; color: var(--primary); }
     .logo-sub { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--txt-3); }
     .sb-user { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
     .user-av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); display: flex; align-items: center; justify-content: center; font-weight: 600; color: #fff; }
-    .user-name { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+    .user-name { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; color: var(--txt); }
     .verified-badge { color: var(--blue); }
     .user-badge { font-size: 10px; color: var(--txt-3); background: var(--green-l); padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 4px; }
     .sb-nav { flex: 1; padding: 10px; }
@@ -84,19 +117,18 @@ const injectStyles = () => {
     .nl:hover { background: var(--bg); color: var(--txt); }
     .nl.active { background: rgba(232,83,30,0.1); color: var(--primary); }
     .nl svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; }
-    .nb { margin-left: auto; font-size: 10px; font-weight: 700; background: var(--red); color: #fff; padding: 2px 7px; border-radius: 20px; }
     .sb-footer { padding: 12px 10px; border-top: 1px solid var(--border); }
-    .main { flex: 1; margin-left: var(--sidebar-w); }
+    .main { flex: 1; margin-left: var(--sidebar-w); min-height: 100vh; background: var(--bg); }
     .topbar { height: var(--topbar-h); background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 28px; gap: 16px; position: sticky; top: 0; z-index: 100; }
     .tb-title { font-family: 'Raleway', sans-serif; font-size: 1.5rem; font-weight: 700; flex: 1; color: var(--txt); }
     .tb-actions { display: flex; gap: 10px; }
-    .tb-btn { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background var(--tr); position: relative; }
+    .tb-btn { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; transition: background var(--tr); }
     .tb-btn svg { width: 18px; height: 18px; stroke: var(--txt-2); }
     .notification-badge { position: absolute; top: -4px; right: -4px; background: var(--red); color: white; font-size: 9px; font-weight: 700; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--surface); }
     .page { padding: 28px; }
     .ps { display: none; }
     .ps.active { display: block; }
-
+    
     /* Stats Grid */
     .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 28px; }
     .sc { background: var(--surface); border-radius: var(--r-lg); padding: 22px 18px; box-shadow: var(--sh-sm); cursor: pointer; transition: all 0.25s ease; border: 1px solid var(--border); }
@@ -106,20 +138,20 @@ const injectStyles = () => {
     .sv { font-family: 'Raleway', sans-serif; font-size: 32px; line-height: 1.1; font-weight: 800; margin-bottom: 4px; color: var(--txt); }
     .sl { font-size: 13px; color: var(--txt-2); font-weight: 500; }
     .sd { font-size: 11px; font-weight: 600; margin-top: 10px; color: var(--primary); opacity: 0.7; }
-
-    /* Quick Actions Grid (inspired by admin) */
+    
+    /* Quick Actions Grid */
     .qg { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 28px; }
-    .qb { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 16px 8px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s; font-family: 'Open Sans', sans-serif; }
+    .qb { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 16px 8px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s; }
     .qb:hover { transform: translateY(-2px); box-shadow: var(--sh-md); border-color: var(--primary); }
     .qi { width: 40px; height: 40px; border-radius: var(--r-sm); background: rgba(232,83,30,0.1); display: flex; align-items: center; justify-content: center; color: var(--primary); }
     .ql { font-size: 11px; font-weight: 600; color: var(--txt-2); text-align: center; line-height: 1.3; }
     .qb.qx .qi { background: var(--red-l); color: var(--red); }
     .qb.qx .ql { color: var(--red); }
-
+    
     /* Cards */
     .card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--sh-sm); overflow: hidden; margin-bottom: 24px; border: 1px solid var(--border); }
     .card-h { display: flex; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
-    .card-t { font-family: 'Raleway', sans-serif; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .card-t { font-family: 'Raleway', sans-serif; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--txt); }
     .card-a { font-size: 12px; font-weight: 600; color: var(--primary); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px; }
     .card-b { padding: 16px 20px; }
     .badge { font-size: 10px; font-weight: 700; padding: 4px 9px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; }
@@ -130,13 +162,13 @@ const injectStyles = () => {
     .cr { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
     .cr:last-child { border-bottom: none; }
     .ci { flex: 1; min-width: 0; }
-    .cn { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cn { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--txt); }
     .cm { font-size: 11px; color: var(--txt-3); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
     .pb { height: 4px; background: var(--bg); border-radius: 2px; margin-top: 6px; overflow: hidden; }
     .pf { height: 100%; background: var(--primary); border-radius: 2px; }
     .ut { width: 100%; border-collapse: collapse; }
     .ut th { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--txt-3); text-align: left; padding: 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
-    .ut td { padding: 14px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .ut td { padding: 14px 12px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--txt); }
     .db { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; transition: opacity var(--tr); display: inline-flex; align-items: center; gap: 4px; }
     .dba { background: var(--green-l); color: var(--green-d); }
     .dbr { background: var(--red-l); color: var(--red); }
@@ -148,13 +180,13 @@ const injectStyles = () => {
     .fl { font-size: 12px; font-weight: 700; color: var(--txt-2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; display: block; }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(17,19,24,0.93); color: #fff; padding: 10px 24px; border-radius: 40px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; pointer-events: none; }
     .toast.show { opacity: 1; }
-
-    /* Modal (no blur) */
+    
+    /* Modal - No Blur */
     .hb-modal-bd { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9998; display: flex; align-items: center; justify-content: center; backdrop-filter: none; }
     .hb-modal { background: var(--surface); border-radius: var(--r-xl); padding: 28px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; position: relative; z-index: 9999; }
-    .hb-modal-t { font-family: 'Raleway', sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; }
+    .hb-modal-t { font-family: 'Raleway', sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; color: var(--txt); }
     .hb-modal-s { font-size: 13px; color: var(--txt-2); margin-bottom: 20px; }
-
+    
     /* Notifications */
     .notification-panel { position: absolute; top: 50px; right: 28px; width: 320px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--sh-lg); z-index: 1000; max-height: 400px; overflow-y: auto; }
     .notification-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
@@ -162,10 +194,10 @@ const injectStyles = () => {
     .notification-item:hover { background: var(--surface-2); }
     .notification-item.unread { background: var(--green-l); }
     .notification-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; margin-top: 4px; }
-    .notification-text { font-size: 13px; line-height: 1.4; }
+    .notification-text { font-size: 13px; line-height: 1.4; color: var(--txt); }
     .notification-time { font-size: 11px; color: var(--txt-3); margin-top: 4px; }
     .notification-empty { padding: 32px; text-align: center; color: var(--txt-3); }
-
+    
     /* Mobile */
     .mob-top, .bnav { display: none; }
     .mob-top { position: sticky; top: 0; z-index: 100; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; height: 58px; }
@@ -174,7 +206,7 @@ const injectStyles = () => {
     .bnav-inner { display: flex; justify-content: space-around; align-items: center; height: 100%; }
     .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; cursor: pointer; padding: 8px 0; color: var(--txt-3); font-size: 10px; font-weight: 600; }
     .bni.active { color: var(--primary); }
-
+    
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main { margin-left: 0; }
@@ -187,13 +219,14 @@ const injectStyles = () => {
       .sc { padding: 16px; }
       .sv { font-size: 26px; }
       .card-b { padding: 12px 16px; }
-      .notification-panel { width: calc(100vw - 32px); right: 16px; }
+      .notification-panel { width: calc(100vw - 32px); right: 16px; left: 16px; top: 60px; }
     }
   `;
-  document.head.appendChild(el);
+  document.head.appendChild(styleEl);
+  console.log('✅ Donor dashboard styles injected');
 };
 
-// Transaction History Component (used in Deposit and Withdraw)
+// Transaction History Component
 function TransactionHistory({ transactions, loading, onRefresh }) {
   const [showAll, setShowAll] = useState(false);
   const displayTransactions = showAll ? transactions : transactions.slice(0, 5);
@@ -237,7 +270,6 @@ export default function DonorDashboard() {
   const { currentUser, logout, showToast, walletBalance, refreshWallet } = useApp();
   const navigate = useNavigate();
 
-  // UI state
   const [activeTab, setActiveTab] = useState('overview');
   const [loadingData, setLoadingData] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
@@ -246,7 +278,6 @@ export default function DonorDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Data state
   const [donations, setDonations] = useState([]);
   const [totalDonated, setTotalDonated] = useState(0);
   const [depositRequests, setDepositRequests] = useState([]);
@@ -255,20 +286,17 @@ export default function DonorDashboard() {
   const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [approvedCampaigns, setApprovedCampaigns] = useState([]);
 
-  // Deposit form
   const [depositAmount, setDepositAmount] = useState('');
   const [depositLoading, setDepositLoading] = useState(false);
   const [proofFile, setProofFile] = useState(null);
   const [proofUploading, setProofUploading] = useState(false);
   const proofInputRef = useRef();
 
-  // Withdraw form
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawMethod, setWithdrawMethod] = useState('bank');
   const [withdrawDetails, setWithdrawDetails] = useState('');
   const [withdrawLoading, setWithdrawLoading] = useState(false);
 
-  // Polling refs
   const depositPollInterval = useRef(null);
   const walletRefreshInterval = useRef(null);
 
@@ -351,7 +379,6 @@ export default function DonorDashboard() {
     } catch (err) { console.error(err); }
   };
 
-  // Poll pending deposit
   useEffect(() => {
     const pending = depositRequests.find(r => ['pending', 'instructions_sent', 'awaiting_proof'].includes(r.status));
     if (!pending) {
@@ -377,7 +404,6 @@ export default function DonorDashboard() {
     return () => { if (depositPollInterval.current) clearInterval(depositPollInterval.current); };
   }, [depositRequests, refreshWallet, showToast, loadData]);
 
-  // Poll withdrawals
   useEffect(() => {
     const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending');
     if (pendingWithdrawals.length === 0) return;
@@ -398,7 +424,6 @@ export default function DonorDashboard() {
     return () => clearInterval(interval);
   }, [withdrawals, showToast]);
 
-  // Periodic refresh
   useEffect(() => {
     if (walletRefreshInterval.current) clearInterval(walletRefreshInterval.current);
     walletRefreshInterval.current = setInterval(() => { refreshWallet(); loadData(); }, 10000);
@@ -409,7 +434,6 @@ export default function DonorDashboard() {
     if (currentUser) { loadData(); loadTransactions(); loadNotifications(); }
   }, [currentUser]);
 
-  // Handlers
   const handleRequestDeposit = async (e) => {
     e.preventDefault();
     const amt = toNumber(depositAmount);
@@ -561,7 +585,7 @@ export default function DonorDashboard() {
 
           {/* Overview Tab */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
-            {/* Quick Actions Grid (inspired by admin) */}
+            {/* Quick Actions Grid */}
             <div className="qg">
               <button className="qb" onClick={() => setActiveTab('donate')}><div className="qi"><Heart size={20} /></div><span className="ql">Donate Now</span></button>
               <button className="qb" onClick={() => setActiveTab('deposit')}><div className="qi"><Plus size={20} /></div><span className="ql">Deposit Funds</span></button>
@@ -624,7 +648,7 @@ export default function DonorDashboard() {
             <div className="card"><div className="card-h"><div className="card-t"><Gift size={18} /> Make a Donation</div></div><div className="card-b"><DonationForm /></div></div>
           </div>
 
-          {/* Deposit Tab (separate) */}
+          {/* Deposit Tab */}
           <div className={`ps ${activeTab === 'deposit' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t"><Plus size={18} /> Deposit Funds</div></div>
@@ -665,7 +689,7 @@ export default function DonorDashboard() {
             </div>
           </div>
 
-          {/* Withdraw Tab (separate) */}
+          {/* Withdraw Tab */}
           <div className={`ps ${activeTab === 'withdraw' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t"><Banknote size={18} /> Withdraw Funds</div></div>
@@ -692,7 +716,7 @@ export default function DonorDashboard() {
             </div>
           </div>
 
-          {/* Settings (modal, no blur) */}
+          {/* Settings Modal */}
           {showSettings && (
             <div className="hb-modal-bd" onClick={() => setShowSettings(false)}>
               <div className="hb-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: 0 }}>
