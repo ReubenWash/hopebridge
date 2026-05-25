@@ -83,20 +83,36 @@ const injectStyles = () => {
     .topbar { height: var(--topbar-h); background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 28px; gap: 16px; position: sticky; top: 0; z-index: 100; }
     .tb-title { font-family: var(--fd); font-size: 22px; flex: 1; }
     .tb-actions { display: flex; gap: 10px; }
-    .tb-btn { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background var(--tr); }
+    .tb-btn { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background var(--tr); position: relative; }
     .tb-btn svg { width: 18px; height: 18px; stroke: var(--txt-2); }
     .notification-badge { position: absolute; top: -4px; right: -4px; background: var(--red); color: white; font-size: 10px; font-weight: 700; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; }
     .page { padding: 28px; }
     .ps { display: none; }
     .ps.active { display: block; }
-    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
-    .sc { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--sh-sm); cursor: pointer; transition: transform 0.2s; }
-    .sc:hover { transform: translateY(-2px); }
-    .sc .si { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--green-l); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
-    .sc .si svg { stroke: var(--green-d); width: 18px; height: 18px; }
-    .sv { font-family: var(--fd); font-size: 32px; line-height: 1; }
-    .sl { font-size: 12px; color: var(--txt-2); margin-top: 4px; }
-    .sd { font-size: 11px; font-weight: 700; margin-top: 8px; color: var(--green); }
+
+    /* IMPROVED STATS GRID & CARDS */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 28px; }
+    .sc { background: var(--surface); border-radius: var(--r-lg); padding: 22px 18px; box-shadow: var(--sh-sm); cursor: pointer; transition: all 0.25s ease; border: 1px solid var(--border); }
+    .sc:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08), 0 0 0 1px var(--green-l); }
+    .sc .si { width: 44px; height: 44px; border-radius: var(--r-md); background: var(--green-l); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; transition: all 0.2s; }
+    .sc:hover .si { background: var(--green); }
+    .sc:hover .si svg { stroke: white; }
+    .sc .si svg { stroke: var(--green-d); width: 22px; height: 22px; transition: stroke 0.2s; }
+    .sv { font-family: var(--fd); font-size: 34px; line-height: 1.1; font-weight: 600; margin-bottom: 4px; }
+    .sl { font-size: 13px; color: var(--txt-2); font-weight: 500; }
+    .sd { font-size: 11px; font-weight: 600; margin-top: 10px; color: var(--green); opacity: 0.7; transition: opacity 0.2s; }
+    .sc:hover .sd { opacity: 1; }
+
+    /* QUICK ACTIONS ROW */
+    .quick-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; justify-content: flex-start; }
+    .qa-btn { padding: 10px 18px; border-radius: 40px; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; cursor: pointer; border: none; background: var(--surface); box-shadow: var(--sh-sm); color: var(--txt-2); }
+    .qa-btn svg { width: 18px; height: 18px; stroke: currentColor; }
+    .qa-btn:hover { transform: translateY(-2px); background: var(--surface-2); color: var(--green); }
+    .qa-btn-primary { background: var(--green); color: white; }
+    .qa-btn-primary:hover { background: var(--green-d); color: white; transform: translateY(-2px); }
+    .qa-btn-danger { background: var(--red-l); color: var(--red); }
+    .qa-btn-danger:hover { background: var(--red); color: white; }
+
     .card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--sh-sm); overflow: hidden; margin-bottom: 24px; }
     .card-h { display: flex; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
     .card-t { font-family: var(--fd); font-size: 17px; display: flex; align-items: center; gap: 8px; }
@@ -128,7 +144,7 @@ const injectStyles = () => {
     .fl { font-size: 12px; font-weight: 700; color: var(--txt-2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; display: block; }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(17,19,24,0.93); color: #fff; padding: 10px 24px; border-radius: 40px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; pointer-events: none; }
     .toast.show { opacity: 1; }
-    .modal-bd { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+    .modal-bd { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; align-items: center; justify-content: center; } /* FIXED: removed backdrop-filter blur */
     .modal { background: var(--surface); border-radius: var(--r-xl); padding: 28px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
     .modal-t { font-family: var(--fd); font-size: 20px; margin-bottom: 8px; }
     .modal-s { font-size: 13px; color: var(--txt-2); margin-bottom: 20px; }
@@ -145,6 +161,12 @@ const injectStyles = () => {
     .mob-top { position: sticky; top: 0; z-index: 100; background: var(--surface); border-bottom: 1px solid var(--border); }
     .mob-logo { font-family: var(--fd); font-size: 18px; font-weight: 600; flex: 1; }
     .mob-actions { display: flex; align-items: center; gap: 12px; }
+
+    /* Wallet Tabs */
+    .wallet-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; gap: 4px; }
+    .wallet-tab { padding: 10px 20px; font-size: 14px; font-weight: 600; background: none; border: none; cursor: pointer; color: var(--txt-3); transition: all 0.2s; border-radius: var(--r-sm) var(--r-sm) 0 0; }
+    .wallet-tab.active { color: var(--green); border-bottom: 2px solid var(--green); background: var(--green-l); }
+
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main { margin-left: 0; }
@@ -157,9 +179,14 @@ const injectStyles = () => {
       .bni-lbl { font-size: 10px; font-weight: 600; color: var(--txt-3); }
       .page { padding: 16px; padding-bottom: 90px; }
       .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .sc { padding: 16px; }
+      .sv { font-size: 28px; }
+      .quick-actions { gap: 8px; margin-bottom: 20px; }
+      .qa-btn { padding: 8px 14px; font-size: 12px; }
       .card-b { padding: 12px 16px; }
       .ut th, .ut td { padding: 8px 10px; }
       .notification-panel { width: calc(100vw - 32px); right: 16px; left: 16px; }
+      .wallet-tab { padding: 8px 12px; font-size: 13px; }
     }
   `;
   document.head.appendChild(styleEl);
@@ -228,6 +255,7 @@ export default function DonorDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [walletTab, setWalletTab] = useState('deposit'); // NEW: for wallet tabs
 
   // Data state
   const [donations, setDonations] = useState([]);
@@ -513,6 +541,14 @@ export default function DonorDashboard() {
     setActiveTab('donate');
   };
 
+  const handleQuickAction = (action) => {
+    if (action === 'donate') setActiveTab('donate');
+    if (action === 'wallet') setActiveTab('wallet');
+    if (action === 'donations') setActiveTab('donations');
+    if (action === 'deposit') { setActiveTab('wallet'); setWalletTab('deposit'); }
+    if (action === 'logout') handleLogout();
+  };
+
   const initials = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   const pendingDeposit = depositRequests.find(r => ['pending', 'instructions_sent', 'awaiting_proof'].includes(r.status));
   const isVerified = currentUser?.is_verified === true;
@@ -655,32 +691,53 @@ export default function DonorDashboard() {
 
           {/* Overview Tab */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
+            {/* QUICK ACTIONS ROW - NEW */}
+            <div className="quick-actions">
+              <button className="qa-btn qa-btn-primary" onClick={() => handleQuickAction('donate')}>
+                <Heart size={16} /> Donate Now
+              </button>
+              <button className="qa-btn" onClick={() => handleQuickAction('wallet')}>
+                <Wallet size={16} /> Wallet
+              </button>
+              <button className="qa-btn" onClick={() => handleQuickAction('donations')}>
+                <DollarSign size={16} /> My Donations
+              </button>
+              <button className="qa-btn" onClick={() => handleQuickAction('deposit')}>
+                <Plus size={16} /> Deposit Funds
+              </button>
+              <button className="qa-btn qa-btn-danger" onClick={() => handleQuickAction('logout')}>
+                <LogOut size={16} /> Logout
+              </button>
+            </div>
+
+            {/* Stats Grid - IMPROVED UI */}
             <div className="stats-grid">
               <div className="sc" onClick={() => setActiveTab('wallet')}>
-                <div className="si"><Wallet size={18} /></div>
+                <div className="si"><Wallet size={22} /></div>
                 <div className="sv">${walletBalance.toLocaleString()}</div>
                 <div className="sl">Wallet Balance</div>
                 <div className="sd">Click to manage →</div>
               </div>
               <div className="sc" onClick={() => setActiveTab('donations')}>
-                <div className="si"><DollarSign size={18} /></div>
+                <div className="si"><DollarSign size={22} /></div>
                 <div className="sv">${totalDonated.toLocaleString()}</div>
                 <div className="sl">Total Donated</div>
                 <div className="sd">Click to view →</div>
               </div>
               <div className="sc" onClick={() => setActiveTab('donations')}>
-                <div className="si"><Heart size={18} /></div>
+                <div className="si"><Heart size={22} /></div>
                 <div className="sv">{donations.length}</div>
                 <div className="sl">Donations Made</div>
                 <div className="sd">Click to view →</div>
               </div>
               <div className="sc" onClick={handleBrowseCampaigns}>
-                <div className="si"><Users size={18} /></div>
+                <div className="si"><Users size={22} /></div>
                 <div className="sv">{approvedCampaigns.length}</div>
                 <div className="sl">Active Campaigns</div>
                 <div className="sd">Click to donate →</div>
               </div>
             </div>
+
             <div className="card">
               <div className="card-h"><div className="card-t"><History size={18} /> Recent Donations</div><button className="card-a" onClick={() => setActiveTab('donations')}>View all <ArrowRight size={14} /></button></div>
               <div className="card-b">
@@ -750,80 +807,95 @@ export default function DonorDashboard() {
             </div>
           </div>
 
-          {/* Wallet Tab */}
+          {/* Wallet Tab - WITH TABS FOR DEPOSIT/WITHDRAW */}
           <div className={`ps ${activeTab === 'wallet' ? 'active' : ''}`}>
             <div className="card">
-              <div className="card-h"><div className="card-t"><CreditCard size={18} /> Deposit Funds</div></div>
+              <div className="card-h"><div className="card-t"><CreditCard size={18} /> Wallet</div></div>
               <div className="card-b">
-                {pendingDeposit ? (
-                  <div>
-                    <div style={{ background: '#eff6ff', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                      <div><strong>Pending Deposit #{pendingDeposit.id}</strong> – ${pendingDeposit.amount}</div>
-                      <div>Status: <span style={{ color: statusColor(pendingDeposit.status) }}>{statusLabel(pendingDeposit.status)}</span></div>
-                      {pendingDeposit.admin_instructions && (
-                        <div style={{ marginTop: 12, background: '#dbeafe', padding: 12, borderRadius: 8 }}>
-                          <strong>Instructions:</strong><br/>{pendingDeposit.admin_instructions}
-                        </div>
-                      )}
-                    </div>
-                    {(pendingDeposit.status === 'pending' || pendingDeposit.status === 'instructions_sent') && !pendingDeposit.proof_image_url && (
-                      <>
-                        <input type="file" ref={proofInputRef} accept="image/*" style={{ display: 'none' }} onChange={e => setProofFile(e.target.files[0])} />
-                        {proofFile ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <Image size={16} /> {proofFile.name}
-                            <button className="db dbr" onClick={() => setProofFile(null)}>Remove</button>
-                          </div>
-                        ) : (
-                          <button className="db dba" onClick={() => proofInputRef.current?.click()}>
-                            <Upload size={12} /> Select Proof Image
-                          </button>
-                        )}
-                        {proofFile && (
-                          <button className="btn btn-g" onClick={handleUploadProof} disabled={proofUploading} style={{ marginTop: 12 }}>
-                            {proofUploading ? 'Uploading...' : <><Upload size={14} /> Upload Proof</>}
-                          </button>
-                        )}
-                      </>
-                    )}
-                    {pendingDeposit.status === 'awaiting_proof' && <div><CheckCircle size={14} /> Proof submitted, waiting for admin verification.</div>}
-                  </div>
-                ) : (
-                  <form onSubmit={handleRequestDeposit}>
-                    <label className="fl">Amount (USD)</label>
-                    <input type="number" min="1" step="0.01" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} required className="fi" placeholder="Min $1" />
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                      {[20, 50, 100, 200, 500].map(a => (
-                        <button key={a} type="button" onClick={() => setDepositAmount(a)} style={{ padding: '6px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6 }}>${a}</button>
-                      ))}
-                    </div>
-                    <button type="submit" className="btn btn-g" disabled={depositLoading}>
-                      {depositLoading ? 'Submitting...' : <><Send size={14} /> Request Deposit</>}
-                    </button>
-                  </form>
-                )}
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="card-h"><div className="card-t"><Banknote size={18} /> Withdraw Funds</div></div>
-              <div className="card-b">
-                <div style={{ marginBottom: 12, background: '#fef9c3', padding: 12, borderRadius: 8 }}>Available: <strong>${walletBalance.toFixed(2)}</strong></div>
-                <form onSubmit={handleWithdraw}>
-                  <label className="fl">Amount (USD)</label>
-                  <input type="number" min="1" step="0.01" max={walletBalance} value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} required className="fi" />
-                  <label className="fl">Payment Method</label>
-                  <select className="fi" value={withdrawMethod} onChange={e => setWithdrawMethod(e.target.value)}>
-                    <option value="bank"><Landmark size={14} /> Bank Transfer</option>
-                    <option value="mobile_money"><Smartphone size={14} /> Mobile Money</option>
-                    <option value="paypal"><CreditCard size={14} /> PayPal</option>
-                  </select>
-                  <label className="fl">Payment Details</label>
-                  <textarea className="fi" rows="2" placeholder={withdrawMethod === 'bank' ? 'Account name, number, bank name' : withdrawMethod === 'mobile_money' ? 'Phone number & network' : 'PayPal email'} value={withdrawDetails} onChange={e => setWithdrawDetails(e.target.value)} required />
-                  <button type="submit" className="btn btn-g" disabled={withdrawLoading}>
-                    {withdrawLoading ? 'Submitting...' : <><Send size={14} /> Request Withdrawal</>}
+                {/* Tab Buttons */}
+                <div className="wallet-tabs">
+                  <button className={`wallet-tab ${walletTab === 'deposit' ? 'active' : ''}`} onClick={() => setWalletTab('deposit')}>
+                    Deposit Funds
                   </button>
-                </form>
+                  <button className={`wallet-tab ${walletTab === 'withdraw' ? 'active' : ''}`} onClick={() => setWalletTab('withdraw')}>
+                    Withdraw Funds
+                  </button>
+                </div>
+
+                {/* Deposit Tab Content */}
+                {walletTab === 'deposit' && (
+                  <>
+                    {pendingDeposit ? (
+                      <div>
+                        <div style={{ background: '#eff6ff', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                          <div><strong>Pending Deposit #{pendingDeposit.id}</strong> – ${pendingDeposit.amount}</div>
+                          <div>Status: <span style={{ color: statusColor(pendingDeposit.status) }}>{statusLabel(pendingDeposit.status)}</span></div>
+                          {pendingDeposit.admin_instructions && (
+                            <div style={{ marginTop: 12, background: '#dbeafe', padding: 12, borderRadius: 8 }}>
+                              <strong>Instructions:</strong><br/>{pendingDeposit.admin_instructions}
+                            </div>
+                          )}
+                        </div>
+                        {(pendingDeposit.status === 'pending' || pendingDeposit.status === 'instructions_sent') && !pendingDeposit.proof_image_url && (
+                          <>
+                            <input type="file" ref={proofInputRef} accept="image/*" style={{ display: 'none' }} onChange={e => setProofFile(e.target.files[0])} />
+                            {proofFile ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Image size={16} /> {proofFile.name}
+                                <button className="db dbr" onClick={() => setProofFile(null)}>Remove</button>
+                              </div>
+                            ) : (
+                              <button className="db dba" onClick={() => proofInputRef.current?.click()}>
+                                <Upload size={12} /> Select Proof Image
+                              </button>
+                            )}
+                            {proofFile && (
+                              <button className="btn btn-g" onClick={handleUploadProof} disabled={proofUploading} style={{ marginTop: 12 }}>
+                                {proofUploading ? 'Uploading...' : <><Upload size={14} /> Upload Proof</>}
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {pendingDeposit.status === 'awaiting_proof' && <div><CheckCircle size={14} /> Proof submitted, waiting for admin verification.</div>}
+                      </div>
+                    ) : (
+                      <form onSubmit={handleRequestDeposit}>
+                        <label className="fl">Amount (USD)</label>
+                        <input type="number" min="1" step="0.01" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} required className="fi" placeholder="Min $1" />
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                          {[20, 50, 100, 200, 500].map(a => (
+                            <button key={a} type="button" onClick={() => setDepositAmount(a)} style={{ padding: '6px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6 }}>${a}</button>
+                          ))}
+                        </div>
+                        <button type="submit" className="btn btn-g" disabled={depositLoading}>
+                          {depositLoading ? 'Submitting...' : <><Send size={14} /> Request Deposit</>}
+                        </button>
+                      </form>
+                    )}
+                  </>
+                )}
+
+                {/* Withdraw Tab Content */}
+                {walletTab === 'withdraw' && (
+                  <>
+                    <div style={{ marginBottom: 12, background: '#fef9c3', padding: 12, borderRadius: 8 }}>Available: <strong>${walletBalance.toFixed(2)}</strong></div>
+                    <form onSubmit={handleWithdraw}>
+                      <label className="fl">Amount (USD)</label>
+                      <input type="number" min="1" step="0.01" max={walletBalance} value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} required className="fi" />
+                      <label className="fl">Payment Method</label>
+                      <select className="fi" value={withdrawMethod} onChange={e => setWithdrawMethod(e.target.value)}>
+                        <option value="bank"><Landmark size={14} /> Bank Transfer</option>
+                        <option value="mobile_money"><Smartphone size={14} /> Mobile Money</option>
+                        <option value="paypal"><CreditCard size={14} /> PayPal</option>
+                      </select>
+                      <label className="fl">Payment Details</label>
+                      <textarea className="fi" rows="2" placeholder={withdrawMethod === 'bank' ? 'Account name, number, bank name' : withdrawMethod === 'mobile_money' ? 'Phone number & network' : 'PayPal email'} value={withdrawDetails} onChange={e => setWithdrawDetails(e.target.value)} required />
+                      <button type="submit" className="btn btn-g" disabled={withdrawLoading}>
+                        {withdrawLoading ? 'Submitting...' : <><Send size={14} /> Request Withdrawal</>}
+                      </button>
+                    </form>
+                  </>
+                )}
               </div>
             </div>
 
@@ -859,14 +931,14 @@ export default function DonorDashboard() {
         </div>
       </nav>
 
-      {/* Settings Modal */}
-{showSettings && (
-  <div className="modal-bd" onClick={() => setShowSettings(false)}>
-    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: 0, background: 'var(--surface)', borderRadius: 'var(--r-xl)' }}>
-      <ProfileSettings onClose={() => setShowSettings(false)} userRole="donor" />
-    </div>
-  </div>
-)}
+      {/* Settings Modal - BLUR REMOVED */}
+      {showSettings && (
+        <div className="modal-bd" onClick={() => setShowSettings(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: 0, background: 'var(--surface)', borderRadius: 'var(--r-xl)' }}>
+            <ProfileSettings onClose={() => setShowSettings(false)} userRole="donor" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
