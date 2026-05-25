@@ -1,17 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { walletApi, campaignApi, donationApi } from '../services/api';
-import DonationForm from '../components/DonationForm';
+import { donationApi, campaignApi, walletApi } from '../services/api';
+import CampaignModal from '../components/CampaignModal';
+import DonationsModal from '../components/DonationsModal';
 import ProfileSettings from '../components/ProfileSettings';
-import {
-  Heart, LayoutDashboard, DollarSign, Wallet, Settings, LogOut,
-  Bell, TrendingUp, Users, CreditCard, Plus, CheckCircle, Clock,
-  AlertCircle, FileText, ArrowRight, ChevronRight, Star, Zap,
-  Shield, Award, Calendar, MessageCircle, Send, Eye, EyeOff,
-  MapPin, Phone, Mail, User, Building, Banknote, History, Download,
-  RefreshCw, X, Menu, Gift, PiggyBank, Landmark, Smartphone, Upload,
-  Image, Copy, ExternalLink, Sun, Moon, Target
+import { 
+  Heart, LayoutDashboard, DollarSign, Wallet, Settings, LogOut, Bell, 
+  TrendingUp, Users, CreditCard, Plus, CheckCircle, Clock, AlertCircle, 
+  FileText, ArrowRight, ChevronRight, Calendar, Send, Upload, Image, 
+  Gift, Banknote, History, RefreshCw, X, Menu, Sun, Moon, Target, 
+  Landmark, Smartphone, Copy, ExternalLink, Star, Zap, Shield, Award,
+  MessageCircle, Eye, EyeOff, MapPin, Phone, Mail, User, Building,
+  Download, PiggyBank
 } from 'lucide-react';
 
 // ---------- Helper Functions ----------
@@ -19,22 +20,6 @@ const toNumber = (val, fallback = 0) => {
   const num = parseFloat(val);
   return isNaN(num) ? fallback : num;
 };
-
-const statusColor = (s) => ({
-  pending: '#f59e0b',
-  instructions_sent: '#3b82f6',
-  awaiting_proof: '#8b5cf6',
-  approved: '#10b981',
-  rejected: '#ef4444',
-}[s] || '#6b7280');
-
-const statusLabel = (s) => ({
-  pending: 'Pending',
-  instructions_sent: 'Instructions Sent',
-  awaiting_proof: 'Proof Uploaded',
-  approved: 'Approved',
-  rejected: 'Rejected',
-}[s] || s);
 
 // ---------- Global Style Injection ----------
 let stylesInjected = false;
@@ -44,83 +29,61 @@ const injectStyles = () => {
   const styleEl = document.createElement('style');
   styleEl.textContent = `
     :root {
-      --primary: #e8531e;
-      --primary-dark: #c4400f;
-      --secondary: #27a96c;
-      --dark: #1a1a2e;
-      --green: #1D9E75; --green-d: #0F6E56; --green-dd: #085041; --green-l: #E1F5EE; --green-m: #9FE1CB;
-      --red: #E24B4A; --red-l: #FCEBEB; --amber: #EF9F27; --amber-l: #FAEEDA; --blue: #378ADD; --blue-l: #E6F1FB;
-      --bg: #F8F9FA; --surface: #FFFFFF; --surface-2: #F1F3F5; --border: rgba(0,0,0,0.08); --border-2: rgba(0,0,0,0.12);
-      --txt: #212529; --txt-2: #6C757D; --txt-3: #ADB5BD;
+      --green: #1D9E75; --green-d: #0F6E56; --green-dd: #085041; --green-l: #E1F5EE;
+      --red: #E24B4A; --red-l: #FCEBEB; --amber: #EF9F27; --amber-l: #FAEEDA;
+      --blue: #378ADD; --blue-l: #E6F1FB;
+      --bg: #EEF1F5; --surface: #FFFFFF; --surface-2: #F6F8FA;
+      --border: rgba(0,0,0,0.07); --border-2: rgba(0,0,0,0.13);
+      --txt: #111318; --txt-2: #5A6272; --txt-3: #9AA3B2;
       --sidebar-w: 260px; --topbar-h: 64px; --bottom-nav: 68px;
-      --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 24px;
-      --sh-sm: 0 1px 3px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.02);
-      --sh-md: 0 4px 12px rgba(0,0,0,0.08);
-      --sh-lg: 0 12px 32px rgba(0,0,0,0.12);
+      --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 26px;
+      --sh-sm: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+      --fd: 'Instrument Serif', Georgia, serif; --fb: 'DM Sans', sans-serif;
       --tr: 0.2s ease;
     }
     body.dark-mode {
-      --bg: #121212; --surface: #1E1E1E; --surface-2: #2A2A2A; --border: rgba(255,255,255,0.1);
-      --txt: #EEEEEE; --txt-2: #AAAAAA; --txt-3: #777777;
+      --bg: #121212; --surface: #1E1E1E; --surface-2: #2A2A2A;
+      --border: rgba(255,255,255,0.1); --txt: #EEEEEE; --txt-2: #AAAAAA; --txt-3: #777777;
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Open Sans', sans-serif; background: var(--bg); color: var(--txt); min-height: 100vh; }
-    h1, h2, h3, h4, h5, h6 { font-family: 'Raleway', sans-serif; font-weight: 700; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: var(--fb); background: var(--bg); color: var(--txt); min-height: 100vh; }
     .shell { display: flex; min-height: 100vh; }
     .sidebar { width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; height: 100vh; display: flex; flex-direction: column; z-index: 200; overflow-y: auto; }
     .sb-logo { padding: 22px 20px 14px; border-bottom: 1px solid var(--border); }
-    .logo-mark { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .logo-icon { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--primary); display: flex; align-items: center; justify-content: center; }
-    .logo-text { font-family: 'Raleway', sans-serif; font-size: 1.3rem; font-weight: 900; color: var(--primary); }
-    .logo-sub { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--txt-3); }
-    .sb-user { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
-    .user-av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); display: flex; align-items: center; justify-content: center; font-weight: 600; color: #fff; }
-    .user-name { font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; }
-    .verified-badge { color: var(--blue); }
-    .user-badge { font-size: 10px; color: var(--txt-3); background: var(--green-l); padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 4px; }
+    .logo-mark { display: flex; align-items: center; gap: 10px; }
+    .logo-icon { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--green); display: flex; align-items: center; justify-content: center; }
+    .logo-icon svg { width: 20px; height: 20px; stroke: #fff; stroke-width: 2; fill: none; }
+    .logo-text { font-family: var(--fd); font-size: 19px; color: var(--txt); }
+    .logo-sub { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); }
+    .sb-creator { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .creator-av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--green), var(--green-d)); display: flex; align-items: center; justify-content: center; font-weight: 600; color: #fff; }
+    .creator-name { font-weight: 600; font-size: 14px; }
+    .creator-badge { font-size: 11px; color: var(--txt-3); background: var(--green-l); padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 4px; }
     .sb-nav { flex: 1; padding: 10px; }
     .nav-sec { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--txt-3); padding: 10px 10px 4px; }
-    .nl { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--r-sm); cursor: pointer; border: none; background: none; width: 100%; text-align: left; color: var(--txt-2); font-size: 13px; font-weight: 600; transition: all var(--tr); }
+    .nl { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--r-sm); cursor: pointer; border: none; background: none; width: 100%; text-align: left; color: var(--txt-2); font-size: 13.5px; font-weight: 500; transition: all var(--tr); }
     .nl:hover { background: var(--bg); color: var(--txt); }
-    .nl.active { background: rgba(232,83,30,0.1); color: var(--primary); }
+    .nl.active { background: var(--green-l); color: var(--green-d); font-weight: 600; }
     .nl svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; fill: none; }
-    .nb { margin-left: auto; font-size: 10px; font-weight: 700; background: var(--red); color: #fff; padding: 2px 7px; border-radius: 20px; }
+    .nb { margin-left: auto; font-size: 10px; font-weight: 700; background: var(--amber); color: #fff; padding: 2px 7px; border-radius: 20px; }
     .sb-footer { padding: 12px 10px; border-top: 1px solid var(--border); }
     .main { flex: 1; margin-left: var(--sidebar-w); }
     .topbar { height: var(--topbar-h); background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 28px; gap: 16px; position: sticky; top: 0; z-index: 100; }
-    .tb-title { font-family: 'Raleway', sans-serif; font-size: 1.5rem; font-weight: 700; flex: 1; color: var(--txt); }
+    .tb-title { font-family: var(--fd); font-size: 22px; flex: 1; }
     .tb-actions { display: flex; gap: 10px; }
-    .tb-btn { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background var(--tr); position: relative; }
-    .tb-btn svg { width: 18px; height: 18px; stroke: var(--txt-2); }
-    .notification-badge { position: absolute; top: -4px; right: -4px; background: var(--red); color: white; font-size: 9px; font-weight: 700; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--surface); }
+    .tb-btn { width: 38px; height: 38px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background var(--tr); }
     .page { padding: 28px; }
     .ps { display: none; }
     .ps.active { display: block; }
-
-    /* Stats Grid */
-    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 28px; }
-    .sc { background: var(--surface); border-radius: var(--r-lg); padding: 22px 18px; box-shadow: var(--sh-sm); cursor: pointer; transition: all 0.25s ease; border: 1px solid var(--border); }
-    .sc:hover { transform: translateY(-3px); box-shadow: var(--sh-md); border-color: var(--primary); }
-    .sc .si { width: 44px; height: 44px; border-radius: var(--r-md); background: rgba(232,83,30,0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
-    .sc .si svg { stroke: var(--primary); width: 22px; height: 22px; }
-    .sv { font-family: 'Raleway', sans-serif; font-size: 32px; line-height: 1.1; font-weight: 800; margin-bottom: 4px; color: var(--txt); }
-    .sl { font-size: 13px; color: var(--txt-2); font-weight: 500; }
-    .sd { font-size: 11px; font-weight: 600; margin-top: 10px; color: var(--primary); opacity: 0.7; }
-
-    /* Quick Actions Grid (inspired by admin) */
-    .qg { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 28px; }
-    .qb { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 16px 8px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s; font-family: 'Open Sans', sans-serif; }
-    .qb:hover { transform: translateY(-2px); box-shadow: var(--sh-md); border-color: var(--primary); }
-    .qi { width: 40px; height: 40px; border-radius: var(--r-sm); background: rgba(232,83,30,0.1); display: flex; align-items: center; justify-content: center; color: var(--primary); }
-    .ql { font-size: 11px; font-weight: 600; color: var(--txt-2); text-align: center; line-height: 1.3; }
-    .qb.qx .qi { background: var(--red-l); color: var(--red); }
-    .qb.qx .ql { color: var(--red); }
-
-    /* Cards */
-    .card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--sh-sm); overflow: hidden; margin-bottom: 24px; border: 1px solid var(--border); }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .sc { background: var(--surface); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--sh-sm); }
+    .sc .si { width: 36px; height: 36px; border-radius: var(--r-sm); background: var(--green-l); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+    .sv { font-family: var(--fd); font-size: 32px; line-height: 1; }
+    .sl { font-size: 12px; color: var(--txt-2); margin-top: 4px; }
+    .card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--sh-sm); overflow: hidden; margin-bottom: 24px; }
     .card-h { display: flex; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
-    .card-t { font-family: 'Raleway', sans-serif; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-    .card-a { font-size: 12px; font-weight: 600; color: var(--primary); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+    .card-t { font-family: var(--fd); font-size: 17px; display: flex; align-items: center; gap: 8px; }
+    .card-a { font-size: 12px; font-weight: 600; color: var(--green); background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 4px; }
     .card-b { padding: 16px 20px; }
     .badge { font-size: 10px; font-weight: 700; padding: 4px 9px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; }
     .ba { background: var(--green-l); color: var(--green-d); }
@@ -129,365 +92,198 @@ const injectStyles = () => {
     .bx { background: var(--red-l); color: var(--red); }
     .cr { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
     .cr:last-child { border-bottom: none; }
-    .ci { flex: 1; min-width: 0; }
-    .cn { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ci { flex: 1; }
+    .cn { font-weight: 600; font-size: 14px; }
     .cm { font-size: 11px; color: var(--txt-3); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
     .pb { height: 4px; background: var(--bg); border-radius: 2px; margin-top: 6px; overflow: hidden; }
-    .pf { height: 100%; background: var(--primary); border-radius: 2px; }
+    .pf { height: 100%; background: var(--green); border-radius: 2px; }
     .ut { width: 100%; border-collapse: collapse; }
     .ut th { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--txt-3); text-align: left; padding: 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
     .ut td { padding: 14px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-    .db { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; transition: opacity var(--tr); display: inline-flex; align-items: center; gap: 4px; }
+    .db { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
     .dba { background: var(--green-l); color: var(--green-d); }
     .dbr { background: var(--red-l); color: var(--red); }
     .dbv { background: var(--blue-l); color: #185FA5; }
-    .btn { padding: 10px 18px; border-radius: var(--r-sm); font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-family: 'Raleway', sans-serif; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.8rem; }
-    .btn-g { background: var(--primary); color: #fff; }
-    .btn-gh { background: var(--surface-2); border: 1px solid var(--border); color: var(--txt-2); }
-    .fi { width: 100%; padding: 10px 12px; border: 1px solid var(--border-2); border-radius: var(--r-sm); margin-bottom: 16px; font-family: 'Open Sans', sans-serif; background: var(--surface); color: var(--txt); }
+    .btn { padding: 10px 18px; border-radius: var(--r-sm); font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-g { background: var(--green); color: #fff; }
+    .btn-gh { background: var(--surface-2); border: 1px solid var(--border); }
+    .fi { width: 100%; padding: 10px 12px; border: 1px solid var(--border-2); border-radius: var(--r-sm); margin-bottom: 16px; font-family: var(--fb); }
     .fl { font-size: 12px; font-weight: 700; color: var(--txt-2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; display: block; }
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(17,19,24,0.93); color: #fff; padding: 10px 24px; border-radius: 40px; font-size: 13px; z-index: 9999; opacity: 0; transition: opacity .2s; pointer-events: none; }
-    .toast.show { opacity: 1; }
-
-    /* Modal (no blur) */
-    .hb-modal-bd { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9998; display: flex; align-items: center; justify-content: center; backdrop-filter: none; }
-    .hb-modal { background: var(--surface); border-radius: var(--r-xl); padding: 28px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; position: relative; z-index: 9999; }
-    .hb-modal-t { font-family: 'Raleway', sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; }
-    .hb-modal-s { font-size: 13px; color: var(--txt-2); margin-bottom: 20px; }
-
-    /* Notifications */
-    .notification-panel { position: absolute; top: 50px; right: 28px; width: 320px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--sh-lg); z-index: 1000; max-height: 400px; overflow-y: auto; }
-    .notification-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
-    .notification-item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background var(--tr); }
-    .notification-item:hover { background: var(--surface-2); }
-    .notification-item.unread { background: var(--green-l); }
-    .notification-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; margin-top: 4px; }
-    .notification-text { font-size: 13px; line-height: 1.4; }
-    .notification-time { font-size: 11px; color: var(--txt-3); margin-top: 4px; }
-    .notification-empty { padding: 32px; text-align: center; color: var(--txt-3); }
-
-    /* Mobile */
+    .modal-bd { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+    .modal { background: var(--surface); border-radius: var(--r-xl); padding: 28px; width: 90%; max-width: 560px; max-height: 90vh; overflow-y: auto; }
+    .modal-t { font-family: var(--fd); font-size: 22px; margin-bottom: 6px; }
+    .modal-s { font-size: 13px; color: var(--txt-2); margin-bottom: 20px; }
     .mob-top, .bnav { display: none; }
-    .mob-top { position: sticky; top: 0; z-index: 100; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; height: 58px; }
-    .mob-logo { font-family: 'Raleway', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--primary); }
-    .bnav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--bottom-nav); background: var(--surface); border-top: 1px solid var(--border); z-index: 200; }
-    .bnav-inner { display: flex; justify-content: space-around; align-items: center; height: 100%; }
-    .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; cursor: pointer; padding: 8px 0; color: var(--txt-3); font-size: 10px; font-weight: 600; }
-    .bni.active { color: var(--primary); }
-
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main { margin-left: 0; }
       .topbar { display: none; }
-      .mob-top { display: flex; }
-      .bnav { display: block; }
+      .mob-top { display: flex; height: 58px; background: var(--surface); align-items: center; padding: 0 16px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border); justify-content: space-between; }
+      .bnav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 68px; background: var(--surface); border-top: 1px solid var(--border); z-index: 200; }
+      .bnav-inner { display: flex; width: 100%; max-width: 500px; margin: 0 auto; }
+      .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; cursor: pointer; }
+      .bni.active .bni-icon svg { stroke: var(--green); }
+      .bni-lbl { font-size: 10px; font-weight: 600; color: var(--txt-3); }
       .page { padding: 16px; padding-bottom: 90px; }
       .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
-      .qg { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-      .sc { padding: 16px; }
-      .sv { font-size: 26px; }
-      .card-b { padding: 12px 16px; }
-      .notification-panel { width: calc(100vw - 32px); right: 16px; }
     }
   `;
-  document.head.appendChild(el);
+  document.head.appendChild(styleEl);
 };
 
-// Transaction History Component (used in Deposit and Withdraw)
-function TransactionHistory({ transactions, loading, onRefresh }) {
-  const [showAll, setShowAll] = useState(false);
-  const displayTransactions = showAll ? transactions : transactions.slice(0, 5);
-  
-  if (loading) return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt-3)' }}>Loading transactions...</div>;
-  if (!transactions || transactions.length === 0) return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt-3)' }}>No transactions yet</div>;
-  
-  return (
-    <div>
-      {displayTransactions.map(tx => (
-        <div key={tx.id} className="cr">
-          <div className="ci">
-            <div className="cn" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {tx.type === 'deposit' && <CreditCard size={14} color="#378ADD" />}
-              {tx.type === 'donation_out' && <Heart size={14} color="#E24B4A" />}
-              {tx.type === 'withdrawal_out' && <Banknote size={14} color="#f59e0b" />}
-              {tx.type === 'escrow_refund' && <RefreshCw size={14} color="#1D9E75" />}
-              <span>{tx.description || tx.type.replace('_', ' ').toUpperCase()}</span>
-            </div>
-            <div className="cm"><Calendar size={10} /> {new Date(tx.created_at).toLocaleDateString()}</div>
-          </div>
-          <div style={{ fontWeight: 700, color: tx.amount > 0 ? 'var(--primary)' : 'var(--red)' }}>
-            {tx.amount > 0 ? '+' : ''}{toNumber(tx.amount).toFixed(2)}
-          </div>
-        </div>
-      ))}
-      {transactions.length > 5 && (
-        <button className="card-a" onClick={() => setShowAll(!showAll)} style={{ marginTop: 12 }}>
-          {showAll ? 'Show less' : `View all (${transactions.length})`}
-          <ChevronRight size={12} />
-        </button>
-      )}
-      <button className="card-a" onClick={onRefresh} style={{ marginTop: 8 }}><RefreshCw size={12} /> Refresh</button>
-    </div>
-  );
-}
-
-// ---------- Main DonorDashboard ----------
-export default function DonorDashboard() {
+export default function CreatorDashboard() {
   injectStyles();
-  const { currentUser, logout, showToast, walletBalance, refreshWallet } = useApp();
-  const navigate = useNavigate();
 
-  // UI state
+  const { currentUser, myCampaigns, loadMyCampaigns, deleteCampaign, logout, showToast } = useApp();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
-  const [loadingData, setLoadingData] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editCampaign, setEditCampaign] = useState(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [viewDonations, setViewDonations] = useState(null);
+  const [progressModalOpen, setProgressModalOpen] = useState(false);
+  const [selectedCampaignId, setSelectedCampaignId] = useState(null);
+  const [progressAmount, setProgressAmount] = useState('');
   const [darkMode, setDarkMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
 
-  // Data state
   const [donations, setDonations] = useState([]);
-  const [totalDonated, setTotalDonated] = useState(0);
-  const [depositRequests, setDepositRequests] = useState([]);
-  const [withdrawals, setWithdrawals] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [transactionsLoading, setTransactionsLoading] = useState(false);
-  const [approvedCampaigns, setApprovedCampaigns] = useState([]);
-
-  // Deposit form
-  const [depositAmount, setDepositAmount] = useState('');
-  const [depositLoading, setDepositLoading] = useState(false);
-  const [proofFile, setProofFile] = useState(null);
-  const [proofUploading, setProofUploading] = useState(false);
-  const proofInputRef = useRef();
-
-  // Withdraw form
-  const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [withdrawMethod, setWithdrawMethod] = useState('bank');
-  const [withdrawDetails, setWithdrawDetails] = useState('');
-  const [withdrawLoading, setWithdrawLoading] = useState(false);
-
-  // Polling refs
-  const depositPollInterval = useRef(null);
-  const walletRefreshInterval = useRef(null);
+  const [payoutRequests, setPayoutRequests] = useState([]);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [totalEarned, setTotalEarned] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState({
+    paypal_email: '',
+    account_name: '',
+    account_number: '',
+    bank_name: '',
+  });
+  const [loadingPayment, setLoadingPayment] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
-    document.body.classList.toggle('dark-mode', darkMode);
+    if (darkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
   }, [darkMode]);
 
   useEffect(() => {
-    if (!currentUser) navigate('/');
-    else if (currentUser.role !== 'donor') navigate('/');
-  }, [currentUser, navigate]);
+    if (!currentUser) { navigate('/'); return; }
+    if (currentUser.role !== 'creator') { navigate('/'); return; }
+    loadData();
+    loadPaymentMethod();
+  }, [currentUser]);
 
   const loadData = async () => {
     setLoadingData(true);
     try {
-      const [donRes, depositRes, withdrawRes, txRes, campaignsRes] = await Promise.all([
-        donationApi.getMyDonations().catch(() => ({ donations: [] })),
-        walletApi.getMyDepositRequests().catch(() => ({ requests: [] })),
-        walletApi.getMyWithdrawals().catch(() => ({ withdrawals: [] })),
-        walletApi.getTransactions().catch(() => ({ transactions: [] })),
-        campaignApi.getAll({ status: 'approved' }).catch(() => ({ campaigns: [] })),
-      ]);
-      setDonations(donRes.donations || []);
-      setDepositRequests(depositRes.requests || []);
-      setWithdrawals(withdrawRes.withdrawals || []);
-      setTransactions(txRes.transactions || []);
-      setApprovedCampaigns(campaignsRes.campaigns || []);
-      const total = (donRes.donations || []).reduce((s, d) => s + toNumber(d.amount), 0);
-      setTotalDonated(total);
+      await loadMyCampaigns();
+
+      let donRes = { donations: [] };
+      try {
+        const raw = await donationApi.getMyDonations();
+        donRes = { donations: Array.isArray(raw) ? raw : Array.isArray(raw?.donations) ? raw.donations : [] };
+      } catch (err) { console.warn('Failed to fetch donations:', err.message); }
+
+      let payRes = { requests: [] };
+      try {
+        const raw = await donationApi.getMyPayoutRequests();
+        payRes = { requests: Array.isArray(raw) ? raw : Array.isArray(raw?.requests) ? raw.requests : [] };
+      } catch (err) { console.warn('Failed to fetch payout requests:', err.message); }
+
+      let walletRes = { balance: 0, total_earned: 0 };
+      try {
+        const raw = await donationApi.getCreatorWallet();
+        walletRes = { balance: parseFloat(raw?.balance ?? 0), total_earned: parseFloat(raw?.total_earned ?? 0) };
+      } catch (err) { console.warn('Failed to fetch wallet:', err.message); }
+
+      setDonations(donRes.donations);
+      setPayoutRequests(payRes.requests);
+      setWalletBalance(walletRes.balance);
+      setTotalEarned(walletRes.total_earned);
     } catch (err) {
-      console.error(err);
-      showToast('Error loading dashboard data', true);
+      console.error('Error loading data:', err);
+      showToast('Error loading data', true);
     } finally {
       setLoadingData(false);
     }
   };
 
-  const loadTransactions = async () => {
-    setTransactionsLoading(true);
+  const loadPaymentMethod = async () => {
     try {
-      const data = await walletApi.getTransactions();
-      setTransactions(data.transactions || []);
-    } catch (err) { console.warn(err); }
-    finally { setTransactionsLoading(false); }
-  };
-
-  const loadNotifications = async () => {
-    try {
-      const token = localStorage.getItem('hb_token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unread_count || 0);
-      }
-    } catch (err) { console.error(err); }
-  };
-
-  const markNotificationRead = async (id) => {
-    try {
-      const token = localStorage.getItem('hb_token');
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications/${id}/read`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      loadNotifications();
-    } catch (err) { console.error(err); }
-  };
-
-  const markAllRead = async () => {
-    try {
-      const token = localStorage.getItem('hb_token');
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications/read-all`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      loadNotifications();
-    } catch (err) { console.error(err); }
-  };
-
-  // Poll pending deposit
-  useEffect(() => {
-    const pending = depositRequests.find(r => ['pending', 'instructions_sent', 'awaiting_proof'].includes(r.status));
-    if (!pending) {
-      if (depositPollInterval.current) clearInterval(depositPollInterval.current);
-      return;
+      const res = await donationApi.getCreatorPaymentMethod();
+      if (res?.payment_method) setPaymentMethod(res.payment_method);
+    } catch (err) {
+      console.warn('Failed to load payment method:', err.message);
     }
-    let lastStatus = pending.status;
-    if (depositPollInterval.current) clearInterval(depositPollInterval.current);
-    depositPollInterval.current = setInterval(async () => {
-      try {
-        const res = await walletApi.getDepositRequestById(pending.id);
-        const updated = res.request;
-        if (updated && updated.status !== lastStatus) {
-          if (updated.status === 'instructions_sent') showToast(`Payment instructions for deposit #${pending.id} are now available.`);
-          else if (updated.status === 'approved') { showToast(`Deposit #${pending.id} approved! Wallet credited.`); refreshWallet(); loadData(); }
-          else if (updated.status === 'rejected') showToast(`Deposit #${pending.id} rejected.`, true);
-          lastStatus = updated.status;
-          setDepositRequests(prev => prev.map(r => r.id === pending.id ? updated : r));
-        }
-        if (updated?.status === 'approved' || updated?.status === 'rejected') clearInterval(depositPollInterval.current);
-      } catch (err) { console.warn(err); }
-    }, 3000);
-    return () => { if (depositPollInterval.current) clearInterval(depositPollInterval.current); };
-  }, [depositRequests, refreshWallet, showToast, loadData]);
-
-  // Poll withdrawals
-  useEffect(() => {
-    const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending');
-    if (pendingWithdrawals.length === 0) return;
-    const interval = setInterval(async () => {
-      try {
-        const res = await walletApi.getMyWithdrawals();
-        const newWithdrawals = res.withdrawals || [];
-        newWithdrawals.forEach(w => {
-          const old = withdrawals.find(ow => ow.id === w.id);
-          if (old && old.status !== w.status) {
-            if (w.status === 'approved') showToast(`Withdrawal #${w.id} approved!`);
-            if (w.status === 'rejected') showToast(`Withdrawal #${w.id} rejected.`, true);
-          }
-        });
-        setWithdrawals(newWithdrawals);
-      } catch (err) { console.warn(err); }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [withdrawals, showToast]);
-
-  // Periodic refresh
-  useEffect(() => {
-    if (walletRefreshInterval.current) clearInterval(walletRefreshInterval.current);
-    walletRefreshInterval.current = setInterval(() => { refreshWallet(); loadData(); }, 10000);
-    return () => { if (walletRefreshInterval.current) clearInterval(walletRefreshInterval.current); };
-  }, [refreshWallet]);
-
-  useEffect(() => {
-    if (currentUser) { loadData(); loadTransactions(); loadNotifications(); }
-  }, [currentUser]);
-
-  // Handlers
-  const handleRequestDeposit = async (e) => {
-    e.preventDefault();
-    const amt = toNumber(depositAmount);
-    if (amt < 1) { showToast('Amount must be at least $1', true); return; }
-    setDepositLoading(true);
-    try {
-      const res = await walletApi.requestDeposit({ amount: amt });
-      showToast(res.message);
-      setDepositAmount('');
-      await loadData();
-    } catch (err) { showToast(err.message, true); }
-    finally { setDepositLoading(false); }
   };
 
-  const handleUploadProof = async () => {
-    const pending = depositRequests.find(r => ['pending', 'instructions_sent'].includes(r.status));
-    if (!pending || !proofFile) return;
-    setProofUploading(true);
+  const savePaymentMethod = async (e) => {
+    e.preventDefault();
+    setLoadingPayment(true);
     try {
-      const fd = new FormData();
-      fd.append('proof', proofFile);
-      const res = await walletApi.uploadProof(pending.id, fd);
-      showToast(res.message);
-      setProofFile(null);
-      await loadData();
-    } catch (err) { showToast(err.message, true); }
-    finally { setProofUploading(false); }
+      await donationApi.saveCreatorPaymentMethod(paymentMethod);
+      showToast('Payment method saved');
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setLoadingPayment(false);
+    }
   };
 
-  const handleWithdraw = async (e) => {
-    e.preventDefault();
-    const amt = toNumber(withdrawAmount);
-    if (amt < 1) { showToast('Amount must be at least $1', true); return; }
-    if (amt > walletBalance) { showToast('Insufficient balance', true); return; }
-    if (!withdrawDetails.trim()) { showToast('Payment details required', true); return; }
-    setWithdrawLoading(true);
+  const handleUpdateProgress = async () => {
+    const newRaised = parseFloat(progressAmount);
+    if (isNaN(newRaised) || newRaised <= 0) { showToast('Enter a valid amount', true); return; }
     try {
-      const res = await walletApi.requestWithdrawal({
-        amount: amt,
-        payment_method: withdrawMethod,
-        payment_details: withdrawDetails,
-      });
-      showToast(res.message);
-      setWithdrawAmount('');
-      setWithdrawDetails('');
-      refreshWallet();
+      await donationApi.updateCampaignProgress(selectedCampaignId, { raised: newRaised });
+      showToast('Progress updated');
+      setProgressModalOpen(false);
       await loadData();
-    } catch (err) { showToast(err.message, true); }
-    finally { setWithdrawLoading(false); }
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  };
+
+  const handleDeleteCampaign = async (id) => {
+    if (!window.confirm('Delete this campaign permanently?')) return;
+    try {
+      await deleteCampaign(id);
+      showToast('Campaign deleted');
+      await loadData();
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  };
+
+  const handleRequestPayout = async () => {
+    const amount = parseFloat(prompt('Amount to withdraw (USD)', '100'));
+    if (!amount || amount <= 0) return;
+    const method = prompt('Payment method (bank, paypal, mobile_money):', 'bank');
+    if (!method) return;
+    const details = prompt('Payment details (account number/email/phone):', '');
+    if (!details) { showToast('Payment details required', true); return; }
+    try {
+      await donationApi.requestPayout({ amount, payment_method: method, payment_details: details });
+      showToast(`Withdrawal request of $${amount} submitted`);
+      await loadData();
+    } catch (err) {
+      showToast(err.message, true);
+    }
   };
 
   const handleLogout = () => { logout(); navigate('/'); };
-  const handleBrowseCampaigns = () => setActiveTab('donate');
-  const initials = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  const pendingDeposit = depositRequests.find(r => ['pending', 'instructions_sent', 'awaiting_proof'].includes(r.status));
-  const isVerified = currentUser?.is_verified === true;
 
-  const NotificationPanel = () => (
-    <div className="notification-panel">
-      <div className="notification-header">
-        <span>Notifications</span>
-        {unreadCount > 0 && <button className="db dba" style={{ fontSize: 10 }} onClick={markAllRead}>Mark all read</button>}
-      </div>
-      {notifications.length === 0 ? (
-        <div className="notification-empty">No notifications</div>
-      ) : (
-        notifications.map(notif => (
-          <div key={notif.id} className={`notification-item ${!notif.read ? 'unread' : ''}`} onClick={() => markNotificationRead(notif.id)}>
-            <div className="notification-dot" style={{ background: notif.type === 'error' ? 'var(--red)' : notif.type === 'warning' ? 'var(--amber)' : 'var(--green)' }} />
-            <div>
-              <div className="notification-text">{notif.message}</div>
-              <div className="notification-time">{new Date(notif.created_at).toLocaleTimeString()}</div>
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  );
+  const safeCampaigns = Array.isArray(myCampaigns) ? myCampaigns : [];
+  const safeDonations = Array.isArray(donations) ? donations : [];
+  const safePayoutRequests = Array.isArray(payoutRequests) ? payoutRequests : [];
+
+  const initials = (currentUser?.name || '?').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const totalRaised = safeCampaigns.reduce((sum, c) => sum + parseFloat(c.raised || 0), 0);
+  const activeCampaigns = safeCampaigns.filter(c => c.status === 'approved' || c.status === 'active').length;
+  const pendingPayouts = safePayoutRequests.filter(p => p.status === 'pending');
+  const pendingPayoutSum = pendingPayouts.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+  const isVerified = currentUser?.is_verified === true;
 
   return (
     <div className="shell">
@@ -495,224 +291,350 @@ export default function DonorDashboard() {
       <aside className="sidebar">
         <div className="sb-logo">
           <div className="logo-mark">
-            <div className="logo-icon"><Heart size={20} color="#fff" /></div>
-            <div><div className="logo-text">HopeBridge</div><div className="logo-sub">Donor Portal</div></div>
+            <div className="logo-icon"><Heart size={20} color="#fff" strokeWidth={2} /></div>
+            <div><div className="logo-text">HopeBridge</div><div className="logo-sub">Creator Studio</div></div>
           </div>
         </div>
-        <div className="sb-user">
-          <div className="user-av">{initials}</div>
+        <div className="sb-creator">
+          <div className="creator-av">{initials}</div>
           <div>
-            <div className="user-name">{currentUser?.name}{isVerified && <CheckCircle size={14} className="verified-badge" />}</div>
-            <div className="user-badge">Donor</div>
+            <div className="creator-name">{currentUser?.name} {isVerified && <CheckCircle size={14} style={{ color: '#378ADD', display: 'inline' }} />}</div>
+            <div className="creator-badge">Verified Creator</div>
           </div>
         </div>
         <nav className="sb-nav">
-          <div className="nav-sec">Main</div>
-          <button className={`nl ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}><LayoutDashboard size={18} /> Dashboard</button>
-          <button className={`nl ${activeTab === 'donations' ? 'active' : ''}`} onClick={() => setActiveTab('donations')}><DollarSign size={18} /> My Donations</button>
-          <button className={`nl ${activeTab === 'donate' ? 'active' : ''}`} onClick={() => setActiveTab('donate')}><Gift size={18} /> Donate Now</button>
+          <div className="nav-sec">Workspace</div>
+          <button className={`nl ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}>
+            <LayoutDashboard size={18} /> Dashboard
+          </button>
+          <button className={`nl ${activeTab === 'campaigns' ? 'active' : ''}`} onClick={() => setActiveTab('campaigns')}>
+            <Target size={18} /> My Campaigns
+            {safeCampaigns.length > 0 && <span className="nb">{safeCampaigns.length}</span>}
+          </button>
+          <button className={`nl ${activeTab === 'donations' ? 'active' : ''}`} onClick={() => setActiveTab('donations')}>
+            <Heart size={18} /> Donations
+          </button>
           <div className="nav-sec">Finance</div>
-          <button className={`nl ${activeTab === 'deposit' ? 'active' : ''}`} onClick={() => setActiveTab('deposit')}><Plus size={18} /> Deposit Funds</button>
-          <button className={`nl ${activeTab === 'withdraw' ? 'active' : ''}`} onClick={() => setActiveTab('withdraw')}><Banknote size={18} /> Withdraw Funds</button>
+          <button className={`nl ${activeTab === 'payouts' ? 'active' : ''}`} onClick={() => setActiveTab('payouts')}>
+            <Banknote size={18} /> Payouts
+            {pendingPayouts.length > 0 && <span className="nb">{pendingPayouts.length}</span>}
+          </button>
+          <button className={`nl ${activeTab === 'wallet' ? 'active' : ''}`} onClick={() => setActiveTab('wallet')}>
+            <Wallet size={18} /> Wallet
+          </button>
           <div className="nav-sec">Account</div>
-          <button className={`nl ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setShowSettings(true)}><Settings size={18} /> Settings</button>
-          <button className="nl" onClick={() => setDarkMode(!darkMode)}>{darkMode ? <Sun size={18} /> : <Moon size={18} />}{darkMode ? 'Light Mode' : 'Dark Mode'}</button>
+          <button className={`nl ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setShowSettings(true)}>
+            <Settings size={18} /> Settings
+          </button>
+          <button className="nl" onClick={() => setDarkMode(!darkMode)}>
+            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            {darkMode ? 'Light Mode' : 'Dark Mode'}
+          </button>
         </nav>
         <div className="sb-footer">
-          <button className="nl" style={{ color: 'var(--red)' }} onClick={handleLogout}><LogOut size={18} /> Sign Out</button>
+          <button className="nl" style={{ color: 'var(--red)' }} onClick={handleLogout}>
+            <LogOut size={18} /> Sign Out
+          </button>
         </div>
       </aside>
 
+      {/* Main Content */}
       <div className="main">
-        {/* Desktop Topbar */}
         <div className="topbar">
           <div className="tb-title">
             {activeTab === 'overview' && 'Dashboard'}
-            {activeTab === 'donations' && 'My Donations'}
-            {activeTab === 'donate' && 'Make a Donation'}
-            {activeTab === 'deposit' && 'Deposit Funds'}
-            {activeTab === 'withdraw' && 'Withdraw Funds'}
+            {activeTab === 'campaigns' && 'My Campaigns'}
+            {activeTab === 'donations' && 'Donations'}
+            {activeTab === 'payouts' && 'Payouts'}
+            {activeTab === 'wallet' && 'Wallet'}
             {activeTab === 'settings' && 'Settings'}
           </div>
           <div className="tb-actions">
-            <div className="tb-btn" style={{ position: 'relative' }} onClick={() => setShowNotifications(!showNotifications)}>
+            <div className="tb-btn" onClick={() => showToast('Notifications coming soon')}>
               <Bell size={18} />
-              {unreadCount > 0 && <div className="notification-badge">{unreadCount > 9 ? '9+' : unreadCount}</div>}
             </div>
-            {showNotifications && <NotificationPanel />}
-            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}><LogOut size={18} style={{ stroke: 'var(--red)' }} /></button>
-            <div className="tb-btn" onClick={() => setShowSettings(true)}><div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--primary),var(--primary-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div></div>
+            <div className="tb-btn" onClick={() => setShowSettings(true)}>
+              <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff', fontSize: 12 }}>{initials}</div>
+            </div>
           </div>
         </div>
 
-        {/* Mobile Topbar */}
         <div className="mob-top">
-          <div className="mob-logo">HopeBridge</div>
-          <div className="tb-actions">
-            <div className="tb-btn" style={{ position: 'relative' }} onClick={() => setShowNotifications(!showNotifications)}><Bell size={18} />{unreadCount > 0 && <div className="notification-badge">{unreadCount > 9 ? '9+' : unreadCount}</div>}</div>
-            {showNotifications && <NotificationPanel />}
-            <button className="tb-btn" onClick={handleLogout} style={{ background: 'var(--red-l)', borderColor: 'var(--red)' }}><LogOut size={18} style={{ stroke: 'var(--red)' }} /></button>
-            <div className="tb-btn" onClick={() => setShowSettings(true)}><div style={{ width: 38, height: 38, background: 'linear-gradient(135deg,var(--primary),var(--primary-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff' }}>{initials}</div></div>
+          <div className="mob-logo" style={{ fontFamily: 'var(--fd)', fontSize: 18, fontWeight: 600 }}>HopeBridge</div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div className="tb-btn" onClick={() => showToast('Notifications coming soon')}>
+              <Bell size={18} />
+            </div>
+            <div className="tb-btn" onClick={() => setShowSettings(true)}>
+              <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg,var(--green),var(--green-d))', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', fontWeight: 700, color: '#fff', fontSize: 12 }}>{initials}</div>
+            </div>
           </div>
         </div>
 
         <div className="page">
-          {loadingData && <div style={{ padding: '8px 16px', background: 'var(--primary)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>Loading your data...</div>}
+          {loadingData && <div style={{ padding: '8px 16px', background: 'var(--green)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>Loading your data...</div>}
 
           {/* Overview Tab */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
-            {/* Quick Actions Grid (inspired by admin) */}
-            <div className="qg">
-              <button className="qb" onClick={() => setActiveTab('donate')}><div className="qi"><Heart size={20} /></div><span className="ql">Donate Now</span></button>
-              <button className="qb" onClick={() => setActiveTab('deposit')}><div className="qi"><Plus size={20} /></div><span className="ql">Deposit Funds</span></button>
-              <button className="qb" onClick={() => setActiveTab('withdraw')}><div className="qi"><Banknote size={20} /></div><span className="ql">Withdraw Funds</span></button>
-              <button className="qb" onClick={() => setActiveTab('donations')}><div className="qi"><DollarSign size={20} /></div><span className="ql">My Donations</span></button>
-              <button className="qb" onClick={() => setShowSettings(true)}><div className="qi"><Settings size={20} /></div><span className="ql">Settings</span></button>
-              <button className="qb qx" onClick={handleLogout}><div className="qi"><LogOut size={20} /></div><span className="ql">Logout</span></button>
-            </div>
-
-            {/* Stats Grid */}
             <div className="stats-grid">
-              <div className="sc" onClick={() => setActiveTab('deposit')}><div className="si"><Wallet size={22} /></div><div className="sv">${walletBalance.toLocaleString()}</div><div className="sl">Wallet Balance</div><div className="sd">Click to deposit →</div></div>
-              <div className="sc" onClick={() => setActiveTab('donations')}><div className="si"><DollarSign size={22} /></div><div className="sv">${totalDonated.toLocaleString()}</div><div className="sl">Total Donated</div><div className="sd">Click to view →</div></div>
-              <div className="sc" onClick={() => setActiveTab('donations')}><div className="si"><Heart size={22} /></div><div className="sv">{donations.length}</div><div className="sl">Donations Made</div><div className="sd">Click to view →</div></div>
-              <div className="sc" onClick={handleBrowseCampaigns}><div className="si"><Users size={22} /></div><div className="sv">{approvedCampaigns.length}</div><div className="sl">Active Campaigns</div><div className="sd">Click to donate →</div></div>
-            </div>
-
-            <div className="card">
-              <div className="card-h"><div className="card-t"><History size={18} /> Recent Donations</div><button className="card-a" onClick={() => setActiveTab('donations')}>View all <ArrowRight size={14} /></button></div>
-              <div className="card-b">
-                {donations.slice(0, 5).map(d => (
-                  <div key={d.id} className="cr">
-                    <div className="ci"><div className="cn">{d.campaign_title || `Campaign #${d.campaign_id}`}</div><div className="cm"><Calendar size={10} /> {new Date(d.created_at).toLocaleDateString()}</div></div>
-                    <div className="badge ba">+${toNumber(d.amount).toFixed(2)}</div>
-                  </div>
-                ))}
-                {donations.length === 0 && <div className="cr">No donations yet</div>}
+              <div className="sc">
+                <div className="si"><DollarSign size={18} /></div>
+                <div className="sv">${totalRaised.toLocaleString()}</div>
+                <div className="sl">Total raised</div>
+              </div>
+              <div className="sc">
+                <div className="si"><Target size={18} /></div>
+                <div className="sv">{activeCampaigns}</div>
+                <div className="sl">Active campaigns</div>
+              </div>
+              <div className="sc">
+                <div className="si"><Heart size={18} /></div>
+                <div className="sv">{safeDonations.length}</div>
+                <div className="sl">Total donations</div>
+              </div>
+              <div className="sc">
+                <div className="si"><Wallet size={18} /></div>
+                <div className="sv">${walletBalance.toLocaleString()}</div>
+                <div className="sl">Wallet balance</div>
               </div>
             </div>
 
             <div className="card">
-              <div className="card-h"><div className="card-t"><Target size={18} /> Support a Campaign</div><button className="card-a" onClick={handleBrowseCampaigns}>Browse all <ArrowRight size={14} /></button></div>
+              <div className="card-h">
+                <div className="card-t"><History size={18} /> Recent Donations</div>
+                <button className="card-a" onClick={() => setActiveTab('donations')}>View all <ArrowRight size={14} /></button>
+              </div>
               <div className="card-b">
-                {approvedCampaigns.slice(0, 3).map(c => (
+                {safeDonations.slice(0, 3).map(d => (
+                  <div key={d.id} className="cr">
+                    <div className="ci">
+                      <div className="cn">{d.donor_name || 'Anonymous'}</div>
+                      <div className="cm">{d.campaign_title}</div>
+                    </div>
+                    <div className="badge ba">+${parseFloat(d.amount || 0).toFixed(2)}</div>
+                    <div style={{ fontSize: 11, color: 'var(--txt-3)' }}>{new Date(d.created_at).toLocaleDateString()}</div>
+                  </div>
+                ))}
+                {safeDonations.length === 0 && <div className="cr" style={{ color: 'var(--txt-3)' }}>No donations yet</div>}
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="card-h">
+                <div className="card-t"><Target size={18} /> Active Campaigns</div>
+                <button className="card-a" onClick={() => setActiveTab('campaigns')}>Manage →</button>
+              </div>
+              <div className="card-b">
+                {safeCampaigns.filter(c => c.status === 'approved' || c.status === 'active').slice(0, 3).map(c => (
                   <div key={c.id} className="cr">
                     <div className="ci">
                       <div className="cn">{c.title}</div>
-                      <div className="cm">${toNumber(c.raised).toLocaleString()} raised of ${toNumber(c.goal).toLocaleString()}</div>
-                      <div className="pb"><div className="pf" style={{ width: `${(toNumber(c.raised) / toNumber(c.goal)) * 100}%` }}></div></div>
+                      <div className="cm">${parseFloat(c.raised || 0).toLocaleString()} / ${parseFloat(c.goal).toLocaleString()}</div>
+                      <div className="pb"><div className="pf" style={{ width: `${Math.min(((c.raised || 0) / c.goal) * 100, 100)}%` }}></div></div>
                     </div>
-                    <button className="db dba" onClick={handleBrowseCampaigns}>Donate</button>
+                    <button className="db dba" onClick={() => { setSelectedCampaignId(c.id); setProgressModalOpen(true); }}>Update</button>
                   </div>
                 ))}
+                {safeCampaigns.filter(c => c.status === 'approved' || c.status === 'active').length === 0 && (
+                  <div className="cr" style={{ color: 'var(--txt-3)' }}>No active campaigns</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Campaigns Tab */}
+          <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ fontFamily: 'var(--fd)', fontSize: 20 }}>My Campaigns</div>
+              <button className="btn btn-g" onClick={() => { setEditCampaign(null); setModalOpen(true); }}><Plus size={16} /> New Campaign</button>
+            </div>
+            <div className="card">
+              <div className="card-b" style={{ padding: 0 }}>
+                <table className="ut">
+                  <thead>
+                    <tr>
+                      <th>Campaign</th><th>Goal</th><th>Raised</th><th>Progress</th><th>Status</th><th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {safeCampaigns.length === 0 && (
+                      <tr><td colSpan="6" style={{ textAlign: 'center', color: 'var(--txt-3)', padding: 24 }}>No campaigns yet</td></tr>
+                    )}
+                    {safeCampaigns.map(c => {
+                      const percent = Math.min(((c.raised || 0) / c.goal) * 100, 100);
+                      return (
+                        <tr key={c.id}>
+                          <td>
+                            <strong>{c.title}</strong>
+                            <div style={{ fontSize: 11, color: 'var(--txt-3)' }}>Created {new Date(c.created_at).toLocaleDateString()}</div>
+                          </td>
+                          <td>${parseFloat(c.goal).toLocaleString()}</td>
+                          <td>${parseFloat(c.raised || 0).toLocaleString()}</td>
+                          <td>
+                            <div className="pb" style={{ width: 100 }}><div className="pf" style={{ width: `${percent}%` }}></div></div>
+                            {Math.round(percent)}%
+                          </td>
+                          <td><span className="badge ba">{c.status}</span></td>
+                          <td>
+                            <button className="db dba" onClick={() => { setSelectedCampaignId(c.id); setProgressModalOpen(true); }}>Progress</button>
+                            <button className="db dbv" onClick={() => { setEditCampaign(c); setEditModalOpen(true); }}>Edit</button>
+                            <button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}>Delete</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
 
           {/* Donations Tab */}
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
-            <div className="card"><div className="card-h"><div className="card-t"><DollarSign size={18} /> All Donations</div></div><div className="card-b" style={{ padding: 0 }}>
-              <table className="ut"><thead><tr><th>Campaign</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead><tbody>
-                {donations.map(d => <tr key={d.id}><td>{d.campaign_title || `Campaign #${d.campaign_id}`}</td><td>${toNumber(d.amount).toFixed(2)}</td><td>{new Date(d.created_at).toLocaleDateString()}</td><td><span className="badge ba">{d.escrow_status || 'held'}</span></td></tr>)}
-                {donations.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: '40px' }}>No donations yet</td></tr>}
-              </tbody></table>
-            </div></div>
-          </div>
-
-          {/* Donate Tab */}
-          <div className={`ps ${activeTab === 'donate' ? 'active' : ''}`}>
-            <div className="card"><div className="card-h"><div className="card-t"><Gift size={18} /> Make a Donation</div></div><div className="card-b"><DonationForm /></div></div>
-          </div>
-
-          {/* Deposit Tab (separate) */}
-          <div className={`ps ${activeTab === 'deposit' ? 'active' : ''}`}>
             <div className="card">
-              <div className="card-h"><div className="card-t"><Plus size={18} /> Deposit Funds</div></div>
+              <div className="card-h"><div className="card-t"><Heart size={18} /> Donations Received</div></div>
+              <div className="card-b" style={{ padding: 0 }}>
+                <table className="ut">
+                  <thead>
+                    <tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Date</th></tr>
+                  </thead>
+                  <tbody>
+                    {safeDonations.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: 24 }}>No donations yet</td></tr>}
+                    {safeDonations.map(d => (
+                      <tr key={d.id}>
+                        <td>{d.donor_name || 'Anonymous'}</td>
+                        <td>{d.campaign_title}</td>
+                        <td>${parseFloat(d.amount || 0).toFixed(2)}</td>
+                        <td>{new Date(d.created_at).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Payouts Tab */}
+          <div className={`ps ${activeTab === 'payouts' ? 'active' : ''}`}>
+            <div className="card">
+              <div className="card-h"><div className="card-t"><Banknote size={18} /> Available Balance & Withdrawals</div></div>
               <div className="card-b">
-                {pendingDeposit ? (
-                  <div>
-                    <div style={{ background: '#e3f2fd', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                      <div><strong>Pending Deposit #{pendingDeposit.id}</strong> – ${pendingDeposit.amount}</div>
-                      <div>Status: <span style={{ color: statusColor(pendingDeposit.status) }}>{statusLabel(pendingDeposit.status)}</span></div>
-                      {pendingDeposit.admin_instructions && <div style={{ marginTop: 12, background: '#dbeafe', padding: 12, borderRadius: 8 }}><strong>Instructions:</strong><br/>{pendingDeposit.admin_instructions}</div>}
-                    </div>
-                    {(pendingDeposit.status === 'pending' || pendingDeposit.status === 'instructions_sent') && !pendingDeposit.proof_image_url && (
-                      <>
-                        <input type="file" ref={proofInputRef} accept="image/*" style={{ display: 'none' }} onChange={e => setProofFile(e.target.files[0])} />
-                        {proofFile ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Image size={16} /> {proofFile.name}<button className="db dbr" onClick={() => setProofFile(null)}>Remove</button></div>
-                        ) : (
-                          <button className="db dba" onClick={() => proofInputRef.current?.click()}><Upload size={12} /> Select Proof Image</button>
-                        )}
-                        {proofFile && <button className="btn btn-g" onClick={handleUploadProof} disabled={proofUploading} style={{ marginTop: 12 }}>{proofUploading ? 'Uploading...' : <><Upload size={14} /> Upload Proof</>}</button>}
-                      </>
-                    )}
-                    {pendingDeposit.status === 'awaiting_proof' && <div><CheckCircle size={14} /> Proof submitted, waiting for admin verification.</div>}
+                <div className="stats-grid" style={{ marginBottom: 20 }}>
+                  <div className="sc">
+                    <div className="sv">${Math.max(walletBalance - pendingPayoutSum, 0).toLocaleString()}</div>
+                    <div className="sl">Ready to withdraw</div>
                   </div>
-                ) : (
-                  <form onSubmit={handleRequestDeposit}>
-                    <label className="fl">Amount (USD)</label>
-                    <input type="number" min="1" step="0.01" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} required className="fi" placeholder="Min $1" />
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>{[20, 50, 100, 200, 500].map(a => <button key={a} type="button" onClick={() => setDepositAmount(a)} style={{ padding: '6px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6 }}>${a}</button>)}</div>
-                    <button type="submit" className="btn btn-g" disabled={depositLoading}>{depositLoading ? 'Submitting...' : <><Send size={14} /> Request Deposit</>}</button>
-                  </form>
-                )}
+                  <div className="sc">
+                    <div className="sv">${totalEarned.toLocaleString()}</div>
+                    <div className="sl">Total earned (all time)</div>
+                  </div>
+                </div>
+                <button className="btn btn-g" onClick={handleRequestPayout}>Request Withdrawal</button>
+                <hr style={{ margin: '20px 0', borderColor: 'var(--border)' }} />
+                <strong>Recent payout requests</strong>
+                {safePayoutRequests.length === 0 && <div style={{ padding: '10px 0', color: 'var(--txt-3)' }}>No payout requests yet</div>}
+                {safePayoutRequests.map(p => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+                    <span>${parseFloat(p.amount || 0).toFixed(2)} · {new Date(p.created_at).toLocaleDateString()}</span>
+                    <span className={`badge ${p.status === 'pending' ? 'bp' : p.status === 'rejected' ? 'bx' : 'ba'}`}>{p.status}</span>
+                  </div>
+                ))}
               </div>
-            </div>
-            <div className="card">
-              <div className="card-h"><div className="card-t"><History size={18} /> Transaction History</div></div>
-              <div className="card-b"><TransactionHistory transactions={transactions} loading={transactionsLoading} onRefresh={loadTransactions} /></div>
             </div>
           </div>
 
-          {/* Withdraw Tab (separate) */}
-          <div className={`ps ${activeTab === 'withdraw' ? 'active' : ''}`}>
+          {/* Wallet Tab */}
+          <div className={`ps ${activeTab === 'wallet' ? 'active' : ''}`}>
             <div className="card">
-              <div className="card-h"><div className="card-t"><Banknote size={18} /> Withdraw Funds</div></div>
+              <div className="card-h"><div className="card-t"><Wallet size={18} /> Creator Wallet</div></div>
               <div className="card-b">
-                <div style={{ marginBottom: 12, background: '#fef9c3', padding: 12, borderRadius: 8 }}>Available: <strong>${walletBalance.toFixed(2)}</strong></div>
-                <form onSubmit={handleWithdraw}>
-                  <label className="fl">Amount (USD)</label>
-                  <input type="number" min="1" step="0.01" max={walletBalance} value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} required className="fi" />
-                  <label className="fl">Payment Method</label>
-                  <select className="fi" value={withdrawMethod} onChange={e => setWithdrawMethod(e.target.value)}>
-                    <option value="bank"><Landmark size={14} /> Bank Transfer</option>
-                    <option value="mobile_money"><Smartphone size={14} /> Mobile Money</option>
-                    <option value="paypal"><CreditCard size={14} /> PayPal</option>
-                  </select>
-                  <label className="fl">Payment Details</label>
-                  <textarea className="fi" rows="2" placeholder={withdrawMethod === 'bank' ? 'Account name, number, bank name' : withdrawMethod === 'mobile_money' ? 'Phone number & network' : 'PayPal email'} value={withdrawDetails} onChange={e => setWithdrawDetails(e.target.value)} required />
-                  <button type="submit" className="btn btn-g" disabled={withdrawLoading}>{withdrawLoading ? 'Submitting...' : <><Send size={14} /> Request Withdrawal</>}</button>
-                </form>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                  <span>Current balance</span><strong>${walletBalance.toLocaleString()}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                  <span>Pending payouts</span><strong>${pendingPayoutSum.toLocaleString()}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0' }}>
+                  <span>Available to withdraw</span><strong>${Math.max(walletBalance - pendingPayoutSum, 0).toLocaleString()}</strong>
+                </div>
+                <button className="btn btn-g" style={{ marginTop: 12 }} onClick={() => showToast('Transaction history coming soon')}>View Statement</button>
               </div>
-            </div>
-            <div className="card">
-              <div className="card-h"><div className="card-t"><History size={18} /> Transaction History</div></div>
-              <div className="card-b"><TransactionHistory transactions={transactions} loading={transactionsLoading} onRefresh={loadTransactions} /></div>
             </div>
           </div>
 
-          {/* Settings (modal, no blur) */}
-          {showSettings && (
-            <div className="hb-modal-bd" onClick={() => setShowSettings(false)}>
-              <div className="hb-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: 0 }}>
-                <ProfileSettings onClose={() => setShowSettings(false)} userRole="donor" />
-              </div>
-            </div>
-          )}
+          {/* Settings Tab */}
+          <div className={`ps ${activeTab === 'settings' ? 'active' : ''}`}>
+            <ProfileSettings userRole="creator" />
+          </div>
         </div>
       </div>
 
       {/* Mobile Bottom Nav */}
       <nav className="bnav">
         <div className="bnav-inner">
-          <button className={`bni ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')}><LayoutDashboard size={20} /><span>Home</span></button>
-          <button className={`bni ${activeTab === 'donations' ? 'active' : ''}`} onClick={() => setActiveTab('donations')}><DollarSign size={20} /><span>Donations</span></button>
-          <button className={`bni ${activeTab === 'donate' ? 'active' : ''}`} onClick={() => setActiveTab('donate')}><Gift size={20} /><span>Donate</span></button>
-          <button className={`bni ${activeTab === 'deposit' ? 'active' : ''}`} onClick={() => setActiveTab('deposit')}><Plus size={20} /><span>Deposit</span></button>
-          <button className={`bni ${activeTab === 'withdraw' ? 'active' : ''}`} onClick={() => setActiveTab('withdraw')}><Banknote size={20} /><span>Withdraw</span></button>
+          {['overview', 'campaigns', 'donations', 'wallet'].map(tab => (
+            <button key={tab} className={`bni ${activeTab === tab ? 'active' : ''}`} onClick={() => setActiveTab(tab)}>
+              <div className="bni-icon">
+                {tab === 'overview' && <LayoutDashboard size={20} />}
+                {tab === 'campaigns' && <Target size={20} />}
+                {tab === 'donations' && <Heart size={20} />}
+                {tab === 'wallet' && <Wallet size={20} />}
+              </div>
+              <span className="bni-lbl">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+            </button>
+          ))}
         </div>
       </nav>
+
+      {/* FAB Button */}
+      <button className="fab" onClick={() => { setEditCampaign(null); setModalOpen(true); }}>
+        <Plus size={24} color="#fff" />
+      </button>
+
+      {/* Progress Update Modal */}
+      {progressModalOpen && (
+        <div className="modal-bd" onClick={() => setProgressModalOpen(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-t">Update Campaign Progress</div>
+            <div className="modal-s">Enter the new total raised amount</div>
+            <input className="fi" type="number" placeholder="New raised amount (USD)" value={progressAmount} onChange={e => setProgressAmount(e.target.value)} />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-gh" onClick={() => setProgressModalOpen(false)}>Cancel</button>
+              <button className="btn btn-g" onClick={handleUpdateProgress}>Update</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Campaign Modal */}
+      {modalOpen && (
+        <CampaignModal
+          campaign={null}
+          onClose={() => { setModalOpen(false); loadData(); }}
+        />
+      )}
+
+      {/* Edit Campaign Modal */}
+      {editModalOpen && editCampaign && (
+        <CampaignModal
+          campaign={editCampaign}
+          onClose={() => { setEditModalOpen(false); setEditCampaign(null); loadData(); }}
+        />
+      )}
+
+      {/* Donations Modal */}
+      {viewDonations && (
+        <DonationsModal campaign={viewDonations} onClose={() => setViewDonations(null)} />
+      )}
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="modal-bd" onClick={() => setShowSettings(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: 0 }}>
+            <ProfileSettings onClose={() => setShowSettings(false)} userRole="creator" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
