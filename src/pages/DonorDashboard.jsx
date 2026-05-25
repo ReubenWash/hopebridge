@@ -860,13 +860,13 @@ export default function DonorDashboard() {
       </nav>
 
       {/* Settings Modal */}
-      {showSettings && (
-        <div className="modal-bd" onClick={() => setShowSettings(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: 0 }}>
-            <ProfileSettings onClose={() => setShowSettings(false)} userRole="donor" />
-          </div>
-        </div>
-      )}
+{showSettings && (
+  <div className="modal-bd" onClick={() => setShowSettings(false)}>
+    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: 0, background: 'var(--surface)', borderRadius: 'var(--r-xl)' }}>
+      <ProfileSettings onClose={() => setShowSettings(false)} userRole="donor" />
+    </div>
+  </div>
+)}
     </div>
   );
 }
