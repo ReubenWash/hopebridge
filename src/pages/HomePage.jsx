@@ -150,7 +150,7 @@ export default function HomePage() {
               <button className="btn-hero-primary" onClick={() => scrollTo('donate')}><i className="fas fa-hand-holding-heart"></i> Donate Now</button>
               <button className="btn-hero-outline" onClick={() => scrollTo('causes')}><i className="fas fa-search"></i> Browse Causes</button>
             </div>
-          </div>
+          
 
             <div className="hero-card">
               <div className="hero-card-label">Total Raised</div>
@@ -167,7 +167,7 @@ export default function HomePage() {
                 <div key={l} className="mini-card"><div className="mini-card-num">{n}</div><div className="mini-card-lbl">{l}</div></div>
               ))}
             </div>
-          </div>
+          
         </div>
       </section>
 
