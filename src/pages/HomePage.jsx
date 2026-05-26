@@ -151,7 +151,7 @@ export default function HomePage() {
               <button className="btn-hero-outline" onClick={() => scrollTo('causes')}><i className="fas fa-search"></i> Browse Causes</button>
             </div>
           </div>
-          <!-- The hero-visual section (card + mini-cards) has been removed as requested -->
+          {/* The hero-visual section (card + mini-cards) has been removed as requested */}
         </div>
       </section>
 
