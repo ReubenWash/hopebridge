@@ -139,12 +139,108 @@ const injectStyles = () => {
     .cp-creator-nm { font-weight: 700; font-size: 15px; }
     .cp-creator-since { font-size: 12px; color: var(--txt-3); margin-top: 2px; }
 
-    /* Contact Modal */
-    .cp-modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; }
-    .cp-modal { background: var(--surface); border-radius: var(--r-lg); max-width: 500px; width: 90%; padding: 24px; box-shadow: var(--sh-lg); }
-    .cp-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .cp-modal-header h3 { font-family: 'Raleway', sans-serif; font-size: 1.2rem; font-weight: 700; }
-    .cp-modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--txt-3); line-height: 1; }
+    /* Contact Modal - FIXED LAYOUT */
+    .cp-modal-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .cp-modal {
+      background: var(--surface);
+      border-radius: var(--r-lg);
+      max-width: 500px;
+      width: 90%;
+      padding: 28px;
+      box-shadow: var(--sh-lg);
+      border: 1px solid var(--border);
+    }
+    .cp-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cp-modal-header h3 {
+      font-family: 'Raleway', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin: 0;
+      color: var(--txt);
+    }
+    .cp-modal-close {
+      background: none;
+      border: none;
+      font-size: 26px;
+      cursor: pointer;
+      color: var(--txt-3);
+      line-height: 1;
+      transition: color var(--tr);
+      padding: 0 8px;
+    }
+    .cp-modal-close:hover {
+      color: var(--txt);
+    }
+    /* Form field styles */
+    .cp-modal .form-group {
+      margin-bottom: 16px;
+    }
+    .cp-modal .fl {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--txt-2);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .cp-modal .fi {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: 'Open Sans', sans-serif;
+      font-size: 14px;
+      background: var(--surface);
+      color: var(--txt);
+      transition: all var(--tr);
+    }
+    .cp-modal .fi:focus {
+      outline: none;
+      border-color: var(--sage);
+      box-shadow: 0 0 0 2px rgba(74,124,89,0.2);
+    }
+    .cp-modal textarea.fi {
+      resize: vertical;
+      min-height: 100px;
+    }
+    .cp-modal .cp-donate-btn {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--sage);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all var(--tr);
+      margin-top: 8px;
+    }
+    .cp-modal .cp-donate-btn:hover:not(:disabled) {
+      background: var(--sage-d);
+      transform: translateY(-1px);
+    }
+    .cp-modal .cp-donate-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
 
     /* Share panel */
     .cp-share-panel { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #fff; border-radius: 40px; box-shadow: var(--sh-lg); padding: 12px 20px; display: flex; align-items: center; gap: 16px; z-index: 500; border: 1px solid var(--border); }
@@ -171,6 +267,12 @@ const injectStyles = () => {
       .cp-gallery { grid-template-columns: repeat(2, 1fr); }
       .cp-tabs { gap: 2px; }
       .cp-tab { padding: 7px 10px; font-size: 12px; }
+      .cp-modal {
+        padding: 20px;
+      }
+      .cp-modal .fi {
+        padding: 10px 12px;
+      }
     }
   `;
   document.head.appendChild(el);
