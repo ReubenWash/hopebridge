@@ -73,7 +73,7 @@ export default function HomePage() {
     }
   }
 
-  // Refresh campaigns when tab becomes visible (for Problem 4)
+  // Refresh campaigns when tab becomes visible
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
@@ -84,7 +84,7 @@ export default function HomePage() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [loadCampaigns])
 
-  // Poll campaigns every 30 seconds (for Problem 4)
+  // Poll campaigns every 30 seconds
   useEffect(() => {
     if (campaignsPollRef.current) clearInterval(campaignsPollRef.current)
     campaignsPollRef.current = setInterval(loadCampaigns, 30000)
@@ -150,24 +150,8 @@ export default function HomePage() {
               <button className="btn-hero-primary" onClick={() => scrollTo('donate')}><i className="fas fa-hand-holding-heart"></i> Donate Now</button>
               <button className="btn-hero-outline" onClick={() => scrollTo('causes')}><i className="fas fa-search"></i> Browse Causes</button>
             </div>
-          
-
-            <div className="hero-card">
-              <div className="hero-card-label">Total Raised</div>
-              <div className="hero-card-value">${totalFunds.toLocaleString()}</div>
-              <div style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.5)', marginTop: 4 }}>Across all active campaigns</div>
-            </div>
-            <div className="mini-cards">
-              {[
-                [platformContent.impact_stats.program_efficiency || '89%', 'Efficiency'],
-                [platformContent.impact_stats.lives_impacted || '14K+', 'Lives'],
-                [platformContent.impact_stats.projects_funded || '120+', 'Projects'],
-                [platformContent.impact_stats.transparency || '100%', 'Transparent']
-              ].map(([n, l]) => (
-                <div key={l} className="mini-card"><div className="mini-card-num">{n}</div><div className="mini-card-lbl">{l}</div></div>
-              ))}
-            </div>
-          
+          </div>
+          <!-- The hero-visual section (card + mini-cards) has been removed as requested -->
         </div>
       </section>
 
