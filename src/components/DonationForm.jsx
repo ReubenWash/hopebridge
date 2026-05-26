@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { walletApi } from '../services/api';
-import { CreditCard, Smartphone, Building2, Wallet as WalletIcon, Bitcoin, Send, Clock, CheckCircle, AlertCircle, X, ArrowLeft, Upload, Calendar, Heart, Users } from 'lucide-react';
+import { CreditCard, Smartphone, Building2, Wallet as WalletIcon, Bitcoin, Send, Clock, CheckCircle, AlertCircle, X, ArrowLeft, Upload, ChevronDown, Search } from 'lucide-react';
 
 const AMOUNT_PRESETS = [10, 25, 50, 100, 250];
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -30,6 +30,22 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
   const [guestLoading, setGuestLoading] = useState(false);
   const [guestError, setGuestError] = useState(null);
   const [pollingInterval, setPollingInterval] = useState(null);
+  
+  // Campaign dropdown state
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [campaignSearch, setCampaignSearch] = useState('');
+  const dropdownRef = useRef(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (currentUser) {
@@ -268,66 +284,116 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
     { value: 'western_union', label: 'Western Union', icon: <Send size={16} /> }
   ];
 
-  // Helper to format percentage
-  const getCampaignProgress = (campaign) => {
+  const selectedCampaign = approvedCampaigns.find(c => c.id === campaignId);
+  const filteredCampaigns = approvedCampaigns.filter(c =>
+    c.title.toLowerCase().includes(campaignSearch.toLowerCase()) ||
+    (c.category && c.category.toLowerCase().includes(campaignSearch.toLowerCase()))
+  );
+
+  // Helper to format progress
+  const getProgress = (campaign) => {
     if (!campaign.goal || campaign.goal === 0) return 0;
     return Math.min(((campaign.raised || 0) / campaign.goal) * 100, 100);
   };
 
-  // Helper to format campaign stat
-  const formatCampaignStats = (campaign) => {
+  const getRaisedText = (campaign) => {
     const raised = (campaign.raised || 0).toLocaleString();
     const goal = (campaign.goal || 0).toLocaleString();
     return `$${raised} raised of $${goal}`;
   };
 
-  // Campaign selection using radio cards (no images)
-  const CampaignSelection = () => (
-    <div className="campaign-selection-modern">
-      <label className="form-label-modern">Select a Campaign to Support</label>
-      <div className="campaign-radio-list">
-        {approvedCampaigns.map(camp => {
-          const progress = getCampaignProgress(camp);
-          const isSelected = campaignId === camp.id;
-          return (
-            <div
-              key={camp.id}
-              className={`campaign-radio-card ${isSelected ? 'selected' : ''}`}
-              onClick={() => setCampaignId(camp.id)}
-            >
-              <div className="radio-indicator">
-                <div className={`radio-circle ${isSelected ? 'checked' : ''}`}>
-                  {isSelected && <div className="radio-dot" />}
-                </div>
-              </div>
-              <div className="campaign-radio-info">
-                <div className="campaign-title-row">
-                  <span className="campaign-title">{camp.title}</span>
-                  {camp.category && <span className="campaign-category-badge">{camp.category}</span>}
-                </div>
-                <div className="campaign-stats-row">
-                  <span className="campaign-stats-text">{formatCampaignStats(camp)}</span>
-                </div>
-                <div className="campaign-progress-bar">
-                  <div className="campaign-progress-fill" style={{ width: `${progress}%` }} />
-                </div>
-              </div>
+  // Custom Campaign Dropdown Component (inside the form)
+  const CampaignDropdown = () => (
+    <div className="campaign-dropdown-modern" ref={dropdownRef}>
+      <div className="dropdown-trigger" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+        {selectedCampaign ? (
+          <div className="selected-campaign-info">
+            <div className="selected-campaign-title">{selectedCampaign.title}</div>
+            <div className="selected-campaign-stats">
+              {selectedCampaign.category && <span className="selected-category">{selectedCampaign.category}</span>}
+              <span>{getRaisedText(selectedCampaign)}</span>
             </div>
-          );
-        })}
-        {approvedCampaigns.length === 0 && (
-          <div className="no-campaigns-message">No active campaigns available at the moment.</div>
+            <div className="progress-bar-mini">
+              <div className="progress-fill-mini" style={{ width: `${getProgress(selectedCampaign)}%` }} />
+            </div>
+          </div>
+        ) : (
+          <span className="placeholder-text">Select a campaign to support</span>
         )}
+        <ChevronDown size={18} className={`dropdown-chevron ${isDropdownOpen ? 'open' : ''}`} />
       </div>
+      
+      {isDropdownOpen && (
+        <div className="dropdown-menu">
+          <div className="dropdown-search">
+            <Search size={14} />
+            <input
+              type="text"
+              placeholder="Search campaigns..."
+              value={campaignSearch}
+              onChange={(e) => setCampaignSearch(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="dropdown-options">
+            {filteredCampaigns.length === 0 ? (
+              <div className="no-options">No campaigns found</div>
+            ) : (
+              filteredCampaigns.map(camp => {
+                const progress = getProgress(camp);
+                const isSelected = campaignId === camp.id;
+                return (
+                  <div
+                    key={camp.id}
+                    className={`dropdown-option ${isSelected ? 'selected' : ''}`}
+                    onClick={() => {
+                      setCampaignId(camp.id);
+                      setIsDropdownOpen(false);
+                      setCampaignSearch('');
+                    }}
+                  >
+                    <div className="option-info">
+                      <div className="option-title-row">
+                        <span className="option-title">{camp.title}</span>
+                        {camp.category && <span className="option-category">{camp.category}</span>}
+                      </div>
+                      <div className="option-stats">{getRaisedText(camp)}</div>
+                      <div className="progress-bar-option">
+                        <div className="progress-fill-option" style={{ width: `${progress}%` }} />
+                      </div>
+                    </div>
+                    {isSelected && <div className="check-icon">✓</div>}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 
-  // Helper for when no campaign is preselected
+  // Render campaign selection when no campaign preselected (for logged in user)
   if (!campaignId && !propCampaignId && approvedCampaigns.length > 0 && donationMode !== 'guest') {
-    return <CampaignSelection />;
+    return (
+      <div className="donation-card-modern">
+        <div className="campaign-selection-header">
+          <h3>Start Your Donation</h3>
+          <p>Choose a campaign you'd like to support</p>
+        </div>
+        <CampaignDropdown />
+        {campaignId && (
+          <div className="continue-button-wrapper">
+            <button className="btn-primary btn-full" onClick={() => setCampaignId(campaignId)}>
+              Continue to Donation
+            </button>
+          </div>
+        )}
+      </div>
+    );
   }
 
-  // Guest donation flows (unchanged in logic, only styling)
+  // Guest donation flows (same logic, but now uses the same dropdown style)
   if (donationMode === 'guest' && guestStep === 2) {
     return (
       <div className="donation-card-modern">
@@ -435,18 +501,12 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
     return (
       <div className="donation-card-modern text-center">
         <div className="auth-buttons">
-          <button className="btn-primary" onClick={() => openAuth('login')}>
-            Login
-          </button>
-          <button className="btn-outline" onClick={() => { resetGuestDonation(); setDonationMode('guest'); setGuestStep(1); }}>
-            Donate as Guest
-          </button>
+          <button className="btn-primary" onClick={() => openAuth('login')}>Login</button>
+          <button className="btn-outline" onClick={() => { resetGuestDonation(); setDonationMode('guest'); setGuestStep(1); }}>Donate as Guest</button>
         </div>
         <p className="signup-prompt">
           Don't have an account?{' '}
-          <button onClick={() => openAuth('register', 'donor')} className="link-button">
-            Sign up
-          </button>
+          <button onClick={() => openAuth('register', 'donor')} className="link-button">Sign up</button>
         </p>
       </div>
     );
@@ -463,20 +523,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
         <form onSubmit={handleGuestRequestDonation}>
           <div className="form-group-modern">
             <label className="form-label-modern">Select Campaign *</label>
-            <select
-              className="select-modern"
-              value={campaignId}
-              onChange={(e) => setCampaignId(e.target.value)}
-              required
-              disabled={!!propCampaignId}
-            >
-              <option value="">-- Choose a campaign --</option>
-              {approvedCampaigns.map((camp) => (
-                <option key={camp.id} value={camp.id}>
-                  {camp.title}
-                </option>
-              ))}
-            </select>
+            <CampaignDropdown />
           </div>
 
           <div className="form-group-modern">
@@ -566,7 +613,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
     );
   }
 
-  // Logged in user – wallet donation form with campaign radio list
+  // Logged in user – wallet donation form with campaign dropdown
   return (
     <div className="donation-card-modern">
       <div className="wallet-balance-badge">
@@ -577,40 +624,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
       <form onSubmit={handleWalletDonation}>
         <div className="form-group-modern">
           <label className="form-label-modern">Select Campaign *</label>
-          <div className="campaign-radio-list compact">
-            {approvedCampaigns.map(camp => {
-              const progress = getCampaignProgress(camp);
-              const isSelected = campaignId === camp.id;
-              return (
-                <div
-                  key={camp.id}
-                  className={`campaign-radio-card ${isSelected ? 'selected' : ''}`}
-                  onClick={() => setCampaignId(camp.id)}
-                >
-                  <div className="radio-indicator">
-                    <div className={`radio-circle ${isSelected ? 'checked' : ''}`}>
-                      {isSelected && <div className="radio-dot" />}
-                    </div>
-                  </div>
-                  <div className="campaign-radio-info">
-                    <div className="campaign-title-row">
-                      <span className="campaign-title">{camp.title}</span>
-                      {camp.category && <span className="campaign-category-badge">{camp.category}</span>}
-                    </div>
-                    <div className="campaign-stats-row">
-                      <span className="campaign-stats-text">{formatCampaignStats(camp)}</span>
-                    </div>
-                    <div className="campaign-progress-bar">
-                      <div className="campaign-progress-fill" style={{ width: `${progress}%` }} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            {approvedCampaigns.length === 0 && (
-              <div className="no-campaigns-message">No active campaigns available.</div>
-            )}
-          </div>
+          <CampaignDropdown />
         </div>
 
         <div className="form-group-modern">
