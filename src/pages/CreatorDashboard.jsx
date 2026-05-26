@@ -795,7 +795,10 @@ export default function CreatorDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {safeCampaigns.length === 0 && <td><td colSpan="6" style={{ textAlign: 'center', padding: 24 }}>No campaigns yet</td><//>}
+                      
+
+                      {safeCampaigns.length === 0 && <tr><td colSpan="6" style={{ textAlign: 'center', padding: 24 }}>No campaigns yet</td></tr>}
+                      
                       {safeCampaigns.map(c => {
                         const percent = Math.min(((c.raised || 0) / c.goal) * 100, 100);
                         return (
@@ -834,7 +837,11 @@ export default function CreatorDashboard() {
                       {safeDonations.map(d => (
                         <tr key={d.id}><td>{d.donor_name || 'Anonymous'}</td><td>{d.campaign_title}</td><td>${parseFloat(d.amount || 0).toFixed(2)}</td><td>{new Date(d.created_at).toLocaleDateString()}</td></tr>
                       ))}
-                      {safeDonations.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: 24 }}>No donations yet</td>//}
+                      
+
+
+                     {safeDonations.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: 24 }}>No donations yet</td></tr>}
+                      
                     </tbody>
                   </table>
                 </div>
