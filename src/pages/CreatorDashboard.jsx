@@ -15,13 +15,11 @@ import {
   Download, PiggyBank
 } from 'lucide-react';
 
-// ---------- Helper Functions ----------
 const toNumber = (val, fallback = 0) => {
   const num = parseFloat(val);
   return isNaN(num) ? fallback : num;
 };
 
-// ---------- Global Style Injection ----------
 let stylesInjected = false;
 const injectStyles = () => {
   if (stylesInjected) return;
@@ -44,7 +42,6 @@ const injectStyles = () => {
       --sh-sm: 0 1px 3px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.02);
       --sh-md: 0 4px 12px rgba(0,0,0,0.08);
       --sh-lg: 0 12px 32px rgba(0,0,0,0.12);
-      --fd: 'Instrument Serif', Georgia, serif; --fb: 'DM Sans', sans-serif;
       --tr: 0.2s ease;
     }
     body.dark-mode {
@@ -83,7 +80,6 @@ const injectStyles = () => {
     .ps { display: none; }
     .ps.active { display: block; }
     
-    /* Stats Cards */
     .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 28px; }
     .sc { background: var(--surface); border-radius: var(--r-lg); padding: 22px 18px; box-shadow: var(--sh-sm); cursor: pointer; transition: all 0.25s ease; border: 1px solid var(--border); }
     .sc:hover { transform: translateY(-3px); box-shadow: var(--sh-md); border-color: var(--primary); }
@@ -92,7 +88,6 @@ const injectStyles = () => {
     .sv { font-family: 'Raleway', sans-serif; font-size: 32px; line-height: 1.1; font-weight: 800; margin-bottom: 4px; color: var(--txt); }
     .sl { font-size: 13px; color: var(--txt-2); font-weight: 500; }
     
-    /* Quick Actions Grid */
     .qg { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 28px; }
     .qb { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 16px 8px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s; }
     .qb:hover { transform: translateY(-2px); box-shadow: var(--sh-md); border-color: var(--primary); }
@@ -101,7 +96,6 @@ const injectStyles = () => {
     .qb.qx .qi { background: var(--red-l); color: var(--red); }
     .qb.qx .ql { color: var(--red); }
     
-    /* Cards */
     .card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--sh-sm); overflow: hidden; margin-bottom: 24px; border: 1px solid var(--border); }
     .card-h { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
     .card-t { font-family: 'Raleway', sans-serif; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--txt); }
@@ -119,13 +113,10 @@ const injectStyles = () => {
     .cm { font-size: 11px; color: var(--txt-3); margin-top: 2px; display: flex; align-items: center; gap: 4px; }
     .pb { height: 4px; background: var(--bg); border-radius: 2px; margin-top: 6px; overflow: hidden; }
     .pf { height: 100%; background: var(--primary); border-radius: 2px; }
-
-    /* Table – desktop scrollable, mobile wraps */
     .ut { width: 100%; border-collapse: collapse; }
     .ut th { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--txt-3); text-align: left; padding: 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); white-space: nowrap; }
     .ut td { padding: 14px 12px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--txt); }
     .ut-wrap { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
     .db { padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all var(--tr); }
     .dba { background: var(--green-l); color: var(--green-d); }
     .dbr { background: var(--red-l); color: var(--red); }
@@ -136,22 +127,21 @@ const injectStyles = () => {
     .btn-gh { background: var(--surface-2); border: 1px solid var(--border); color: var(--txt-2); }
     .fi { width: 100%; padding: 10px 12px; border: 1px solid var(--border-2); border-radius: var(--r-sm); margin-bottom: 16px; font-family: 'Open Sans', sans-serif; background: var(--surface); color: var(--txt); }
     .fl { font-size: 12px; font-weight: 700; color: var(--txt-2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; display: block; }
-    
-    /* ── Modal fix: NO blur, NO filter on backdrop ── */
-    .modal-bd {
+
+    /* ── Creator-scoped modal classes (avoids conflict with CampaignModal/DonationsModal/ProfileSettings) ── */
+    .cr-modal-bd {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.55);
+      background: rgba(0,0,0,0.6);
       z-index: 9999;
       display: flex;
       align-items: center;
       justify-content: center;
-      /* explicitly kill any blur/filter */
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      filter: none;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      filter: none !important;
     }
-    .modal {
+    .cr-modal {
       background: var(--surface);
       border-radius: var(--r-xl);
       padding: 28px;
@@ -159,14 +149,13 @@ const injectStyles = () => {
       max-width: 560px;
       max-height: 90vh;
       overflow-y: auto;
-      /* ensure modal itself has no filter */
-      filter: none;
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      filter: none !important;
     }
-    .modal-t { font-family: 'Raleway', sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; color: var(--txt); }
-    .modal-s { font-size: 13px; color: var(--txt-2); margin-bottom: 20px; }
-    
+    .cr-modal-t { font-family: 'Raleway', sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; color: var(--txt); }
+    .cr-modal-s { font-size: 13px; color: var(--txt-2); margin-bottom: 20px; }
+
     /* Notifications Panel */
     .notif-panel { position: absolute; top: 50px; right: 0; width: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--sh-lg); z-index: 1000; max-height: 480px; overflow-y: auto; }
     .notif-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
@@ -176,70 +165,29 @@ const injectStyles = () => {
     .notif-text { font-size: 13px; color: var(--txt); line-height: 1.4; }
     .notif-time { font-size: 11px; color: var(--txt-3); margin-top: 3px; }
 
-    /* ── Desktop: hide mobile chrome ── */
-    .mob-top { display: none; }
-    .bnav { display: none; }
-    .fab { display: none; }
-
-    /* ── Mobile overrides ── */
+    /* Hide mobile chrome on desktop */
+    .mob-top, .bnav, .fab { display: none !important; }
+    @media (min-width: 769px) {
+      .mob-top, .bnav, .fab { display: none !important; }
+    }
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main { margin-left: 0; max-width: 100%; }
-      /* hide desktop topbar on mobile */
-      .topbar { display: none; }
-      /* show mobile topbar */
-      .mob-top {
-        display: flex;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        background: var(--surface);
-        border-bottom: 1px solid var(--border);
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 16px;
-        height: 58px;
-      }
+      .topbar { display: none !important; }
+      .mob-top { display: flex !important; position: sticky; top: 0; z-index: 100; background: var(--surface); border-bottom: 1px solid var(--border); align-items: center; justify-content: space-between; padding: 0 16px; height: 58px; }
       .mob-logo { font-family: 'Raleway', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--primary); }
-      .bnav {
-        display: block;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 68px;
-        background: var(--surface);
-        border-top: 1px solid var(--border);
-        z-index: 200;
-      }
+      .bnav { display: block !important; position: fixed; bottom: 0; left: 0; right: 0; height: 68px; background: var(--surface); border-top: 1px solid var(--border); z-index: 200; }
       .bnav-inner { display: flex; justify-content: space-around; align-items: center; height: 100%; }
       .bni { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; border: none; cursor: pointer; color: var(--txt-3); font-size: 10px; font-weight: 600; transition: color var(--tr); }
       .bni.active { color: var(--primary); }
       .bni svg { width: 20px; height: 20px; stroke: currentColor; }
-      .fab {
-        display: flex;
-        position: fixed;
-        bottom: 80px;
-        right: 16px;
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
-        background: var(--primary);
-        border: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        cursor: pointer;
-        z-index: 150;
-        align-items: center;
-        justify-content: center;
-        transition: transform var(--tr);
-      }
+      .fab { display: flex !important; position: fixed; bottom: 80px; right: 16px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; z-index: 150; align-items: center; justify-content: center; transition: transform var(--tr); }
       .page { padding: 16px; padding-bottom: 90px; }
       .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
       .qg { grid-template-columns: repeat(3, 1fr); gap: 8px; }
       .sc { padding: 16px; }
       .sv { font-size: 26px; }
       .card-b { padding: 12px 16px; }
-      /* Mobile table: scrollable container, cells wrap */
       .ut-wrap { width: 100%; }
       .ut th { white-space: nowrap; font-size: 10px; padding: 10px 8px; }
       .ut td { white-space: normal; word-break: break-word; font-size: 12px; padding: 10px 8px; }
@@ -249,29 +197,22 @@ const injectStyles = () => {
   document.head.appendChild(styleEl);
 };
 
-// --- Transaction History Component ---
 function TransactionHistory({ transactions, loading, onRefresh }) {
   const [showAll, setShowAll] = useState(false);
   const displayTransactions = showAll ? transactions : transactions.slice(0, 10);
-  
   if (loading) return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt-3)' }}>Loading transactions...</div>;
   if (!transactions || transactions.length === 0) return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--txt-3)' }}>No transactions yet</div>;
-  
   return (
     <div>
       <div className="ut-wrap">
         <table className="ut">
-          <thead>
-            <tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th></tr>
-          </thead>
+          <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead>
           <tbody>
             {displayTransactions.map(tx => (
               <tr key={tx.id}>
                 <td>{new Date(tx.created_at).toLocaleDateString()}</td>
                 <td>{tx.description || tx.type.replace('_', ' ').toUpperCase()}</td>
-                <td><span style={{ color: tx.amount > 0 ? 'var(--primary)' : 'var(--red)', fontWeight: 600 }}>
-                  {tx.amount > 0 ? '+' : ''}{toNumber(tx.amount).toFixed(2)}
-                </span></td>
+                <td><span style={{ color: tx.amount > 0 ? 'var(--primary)' : 'var(--red)', fontWeight: 600 }}>{tx.amount > 0 ? '+' : ''}{toNumber(tx.amount).toFixed(2)}</span></td>
                 <td><span className="badge ba">{tx.status || 'completed'}</span></td>
               </tr>
             ))}
@@ -280,8 +221,7 @@ function TransactionHistory({ transactions, loading, onRefresh }) {
       </div>
       {transactions.length > 10 && (
         <button className="card-a" onClick={() => setShowAll(!showAll)} style={{ marginTop: 12 }}>
-          {showAll ? 'Show less' : `View all (${transactions.length})`}
-          <ChevronRight size={12} />
+          {showAll ? 'Show less' : `View all (${transactions.length})`}<ChevronRight size={12} />
         </button>
       )}
       <button className="card-a" onClick={onRefresh} style={{ marginTop: 8 }}><RefreshCw size={12} /> Refresh</button>
@@ -289,11 +229,11 @@ function TransactionHistory({ transactions, loading, onRefresh }) {
   );
 }
 
-// --- Withdrawal Modal Component ---
 function WithdrawalModal({ isOpen, onClose, onSubmit, balance, savedPaymentMethod, showToast }) {
   const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState(savedPaymentMethod?.paypal_email ? 'paypal' : 
-                                                      savedPaymentMethod?.account_number ? 'bank' : 'mobile_money');
+  const [paymentMethod, setPaymentMethod] = useState(
+    savedPaymentMethod?.paypal_email ? 'paypal' : savedPaymentMethod?.account_number ? 'bank' : 'mobile_money'
+  );
   const [details, setDetails] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -308,21 +248,16 @@ function WithdrawalModal({ isOpen, onClose, onSubmit, balance, savedPaymentMetho
     setLoading(true);
     try {
       await onSubmit(amt, paymentMethod, details);
-      setAmount('');
-      setDetails('');
-      onClose();
-    } catch (err) {
-      showToast(err.message, true);
-    } finally {
-      setLoading(false);
-    }
+      setAmount(''); setDetails(''); onClose();
+    } catch (err) { showToast(err.message, true); }
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="modal-bd" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-t">Request Withdrawal</div>
-        <div className="modal-s">Available balance: <strong>${balance.toFixed(2)}</strong></div>
+    <div className="cr-modal-bd" onClick={onClose}>
+      <div className="cr-modal" onClick={e => e.stopPropagation()}>
+        <div className="cr-modal-t">Request Withdrawal</div>
+        <div className="cr-modal-s">Available balance: <strong>${balance.toFixed(2)}</strong></div>
         <form onSubmit={handleSubmit}>
           <label className="fl">Amount (USD)</label>
           <input type="number" className="fi" value={amount} onChange={e => setAmount(e.target.value)} min="1" step="0.01" placeholder="Enter amount" required />
@@ -333,9 +268,8 @@ function WithdrawalModal({ isOpen, onClose, onSubmit, balance, savedPaymentMetho
             <option value="mobile_money">📱 Mobile Money</option>
           </select>
           <label className="fl">Payment Details</label>
-          <textarea className="fi" rows="3" value={details} onChange={e => setDetails(e.target.value)} 
-            placeholder={paymentMethod === 'bank' ? 'Account name, number, bank name' : 
-                        paymentMethod === 'paypal' ? 'PayPal email' : 'Phone number & network'} required />
+          <textarea className="fi" rows="3" value={details} onChange={e => setDetails(e.target.value)}
+            placeholder={paymentMethod === 'bank' ? 'Account name, number, bank name' : paymentMethod === 'paypal' ? 'PayPal email' : 'Phone number & network'} required />
           <div style={{ display: 'flex', gap: 10 }}>
             <button type="submit" className="btn btn-g" disabled={loading}>{loading ? 'Submitting...' : 'Request Withdrawal'}</button>
             <button type="button" className="btn btn-gh" onClick={onClose}>Cancel</button>
@@ -346,10 +280,8 @@ function WithdrawalModal({ isOpen, onClose, onSubmit, balance, savedPaymentMetho
   );
 }
 
-// --- Main CreatorDashboard ---
 export default function CreatorDashboard() {
   injectStyles();
-
   const { currentUser, myCampaigns, loadMyCampaigns, deleteCampaign, logout, showToast } = useApp();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
@@ -363,23 +295,14 @@ export default function CreatorDashboard() {
   const [darkMode, setDarkMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
-
   const [donations, setDonations] = useState([]);
   const [payoutRequests, setPayoutRequests] = useState([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [totalEarned, setTotalEarned] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState({
-    paypal_email: '',
-    account_name: '',
-    account_number: '',
-    bank_name: '',
-  });
-  const [loadingPayment, setLoadingPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState({ paypal_email: '', account_name: '', account_number: '', bank_name: '' });
   const [loadingData, setLoadingData] = useState(true);
-  
-  // Notifications
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
@@ -393,19 +316,13 @@ export default function CreatorDashboard() {
   useEffect(() => {
     if (!currentUser) { navigate('/'); return; }
     if (currentUser.role !== 'creator') { navigate('/'); return; }
-    loadData();
-    loadPaymentMethod();
-    loadTransactions();
-    loadNotifications();
-    
+    loadData(); loadPaymentMethod(); loadTransactions(); loadNotifications();
     const interval = setInterval(loadNotifications, 30000);
     return () => clearInterval(interval);
   }, [currentUser]);
 
   useEffect(() => {
-    const handler = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifPanel(false);
-    };
+    const handler = (e) => { if (notifRef.current && !notifRef.current.contains(e.target)) setShowNotifPanel(false); };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
@@ -420,51 +337,36 @@ export default function CreatorDashboard() {
       try { const raw = await donationApi.getMyPayoutRequests(); payRes = { requests: Array.isArray(raw) ? raw : raw?.requests || [] }; } catch {}
       let walletRes = { balance: 0, total_earned: 0 };
       try { const raw = await donationApi.getCreatorWallet(); walletRes = { balance: parseFloat(raw?.balance ?? 0), total_earned: parseFloat(raw?.total_earned ?? 0) }; } catch {}
-      setDonations(donRes.donations);
-      setPayoutRequests(payRes.requests);
-      setWalletBalance(walletRes.balance);
-      setTotalEarned(walletRes.total_earned);
+      setDonations(donRes.donations); setPayoutRequests(payRes.requests);
+      setWalletBalance(walletRes.balance); setTotalEarned(walletRes.total_earned);
     } catch (err) { showToast('Error loading data', true); }
     finally { setLoadingData(false); }
   };
 
   const loadTransactions = async () => {
     setTransactionsLoading(true);
-    try {
-      const res = await walletApi.getTransactions();
-      setTransactions(res.transactions || []);
-    } catch (err) { console.warn('Failed to load transactions:', err); }
+    try { const res = await walletApi.getTransactions(); setTransactions(res.transactions || []); }
+    catch (err) { console.warn('Failed to load transactions:', err); }
     finally { setTransactionsLoading(false); }
   };
 
   const loadPaymentMethod = async () => {
-    try {
-      const res = await donationApi.getCreatorPaymentMethod();
-      if (res?.payment_method) setPaymentMethod(res.payment_method);
-    } catch (err) { console.warn(err); }
+    try { const res = await donationApi.getCreatorPaymentMethod(); if (res?.payment_method) setPaymentMethod(res.payment_method); }
+    catch (err) { console.warn(err); }
   };
 
   const loadNotifications = async () => {
     try {
       const token = localStorage.getItem('hb_token');
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unread_count || 0);
-      }
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) { const data = await res.json(); setNotifications(data.notifications || []); setUnreadCount(data.unread_count || 0); }
     } catch (err) { console.error(err); }
   };
 
   const markNotificationRead = async (id) => {
     try {
       const token = localStorage.getItem('hb_token');
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications/${id}/read`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications/${id}/read`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
       loadNotifications();
     } catch (err) { console.error(err); }
   };
@@ -472,10 +374,7 @@ export default function CreatorDashboard() {
   const markAllRead = async () => {
     try {
       const token = localStorage.getItem('hb_token');
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications/read-all`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/notifications/read-all`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
       loadNotifications();
     } catch (err) { console.error(err); }
   };
@@ -485,25 +384,19 @@ export default function CreatorDashboard() {
     if (isNaN(newRaised) || newRaised <= 0) { showToast('Enter a valid amount', true); return; }
     try {
       await donationApi.updateCampaignProgress(selectedCampaignId, { raised: newRaised });
-      showToast('Progress updated');
-      setProgressModalOpen(false);
-      await loadData();
+      showToast('Progress updated'); setProgressModalOpen(false); await loadData();
     } catch (err) { showToast(err.message, true); }
   };
 
   const handleDeleteCampaign = async (id) => {
     if (!window.confirm('Delete this campaign permanently?')) return;
-    try {
-      await deleteCampaign(id);
-      showToast('Campaign deleted');
-      await loadData();
-    } catch (err) { showToast(err.message, true); }
+    try { await deleteCampaign(id); showToast('Campaign deleted'); await loadData(); }
+    catch (err) { showToast(err.message, true); }
   };
 
-  const handleRequestPayout = async (amount, paymentMethod, details) => {
-    await donationApi.requestPayout({ amount, payment_method: paymentMethod, payment_details: details });
-    showToast(`Withdrawal request of $${amount} submitted`);
-    await loadData();
+  const handleRequestPayout = async (amount, pm, details) => {
+    await donationApi.requestPayout({ amount, payment_method: pm, payment_details: details });
+    showToast(`Withdrawal request of $${amount} submitted`); await loadData();
   };
 
   const handleLogout = () => { logout(); navigate('/'); };
@@ -539,10 +432,7 @@ export default function CreatorDashboard() {
         notifications.map(n => (
           <div key={n.id} className={`notif-item ${!n.read ? 'unread' : ''}`} onClick={() => markNotificationRead(n.id)}>
             <div className="notif-dot" style={{ background: n.type === 'error' ? 'var(--red)' : n.type === 'warning' ? 'var(--amber)' : 'var(--primary)' }} />
-            <div>
-              <div className="notif-text">{n.message}</div>
-              <div className="notif-time">{n.time}</div>
-            </div>
+            <div><div className="notif-text">{n.message}</div><div className="notif-time">{n.time}</div></div>
           </div>
         ))
       )}
@@ -551,7 +441,6 @@ export default function CreatorDashboard() {
 
   return (
     <div className="shell">
-      {/* Sidebar */}
       <aside className="sidebar">
         <div className="sb-logo">
           <div className="logo-mark">
@@ -583,9 +472,8 @@ export default function CreatorDashboard() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="main">
-        {/* Desktop topbar – hidden on mobile via CSS */}
+        {/* Desktop topbar */}
         <div className="topbar">
           <div className="tb-title">
             {activeTab === 'overview' && 'Dashboard'}
@@ -609,7 +497,7 @@ export default function CreatorDashboard() {
           </div>
         </div>
 
-        {/* Mobile topbar – hidden on desktop via CSS */}
+        {/* Mobile topbar */}
         <div className="mob-top">
           <div className="mob-logo">HopeBridge</div>
           <div style={{ display: 'flex', gap: 12 }}>
@@ -626,7 +514,7 @@ export default function CreatorDashboard() {
         <div className="page">
           {loadingData && <div style={{ padding: '8px 16px', background: 'var(--primary)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>Loading your data...</div>}
 
-          {/* Overview Tab */}
+          {/* Overview */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
             <div className="qg">
               <button className="qb" onClick={() => handleQuickAction('campaigns')}><div className="qi"><Target size={20} /></div><span className="ql">My Campaigns</span></button>
@@ -669,7 +557,7 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Campaigns Tab */}
+          {/* Campaigns */}
           <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
               <div style={{ fontFamily: 'Raleway', fontSize: '1.3rem', fontWeight: 700 }}>My Campaigns</div>
@@ -707,7 +595,7 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Donations Tab */}
+          {/* Donations */}
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t"><Heart size={18} /> Donations Received</div></div>
@@ -717,12 +605,7 @@ export default function CreatorDashboard() {
                     <thead><tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Date</th></tr></thead>
                     <tbody>
                       {safeDonations.map(d => (
-                        <tr key={d.id}>
-                          <td>{d.donor_name || 'Anonymous'}</td>
-                          <td>{d.campaign_title}</td>
-                          <td>${parseFloat(d.amount || 0).toFixed(2)}</td>
-                          <td>{new Date(d.created_at).toLocaleDateString()}</td>
-                        </tr>
+                        <tr key={d.id}><td>{d.donor_name || 'Anonymous'}</td><td>{d.campaign_title}</td><td>${parseFloat(d.amount || 0).toFixed(2)}</td><td>{new Date(d.created_at).toLocaleDateString()}</td></tr>
                       ))}
                       {safeDonations.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: 24 }}>No donations yet</td></tr>}
                     </tbody>
@@ -732,7 +615,7 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Payouts Tab */}
+          {/* Payouts */}
           <div className={`ps ${activeTab === 'payouts' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t"><Banknote size={18} /> Available Balance & Withdrawals</div></div>
@@ -755,7 +638,7 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Wallet Tab */}
+          {/* Wallet */}
           <div className={`ps ${activeTab === 'wallet' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t"><Wallet size={18} /> Creator Wallet</div></div>
@@ -768,9 +651,7 @@ export default function CreatorDashboard() {
             </div>
             <div className="card">
               <div className="card-h"><div className="card-t"><History size={18} /> Transaction History</div></div>
-              <div className="card-b">
-                <TransactionHistory transactions={transactions} loading={transactionsLoading} onRefresh={loadTransactions} />
-              </div>
+              <div className="card-b"><TransactionHistory transactions={transactions} loading={transactionsLoading} onRefresh={loadTransactions} /></div>
             </div>
           </div>
 
@@ -789,15 +670,15 @@ export default function CreatorDashboard() {
         </div>
       </nav>
 
-      {/* FAB Button */}
+      {/* FAB */}
       <button className="fab" onClick={() => { setEditCampaign(null); setModalOpen(true); }}><Plus size={24} color="#fff" /></button>
 
-      {/* Modals */}
+      {/* Progress Modal – uses cr-modal-bd */}
       {progressModalOpen && (
-        <div className="modal-bd" onClick={() => setProgressModalOpen(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-t">Update Campaign Progress</div>
-            <div className="modal-s">Enter the new total raised amount</div>
+        <div className="cr-modal-bd" onClick={() => setProgressModalOpen(false)}>
+          <div className="cr-modal" onClick={e => e.stopPropagation()}>
+            <div className="cr-modal-t">Update Campaign Progress</div>
+            <div className="cr-modal-s">Enter the new total raised amount</div>
             <input className="fi" type="number" placeholder="New raised amount (USD)" value={progressAmount} onChange={e => setProgressAmount(e.target.value)} />
             <div style={{ display: 'flex', gap: 10 }}>
               <button className="btn btn-gh" onClick={() => setProgressModalOpen(false)}>Cancel</button>
@@ -807,22 +688,24 @@ export default function CreatorDashboard() {
         </div>
       )}
 
-      {modalOpen && <CampaignModal campaign={null} onClose={() => { setModalOpen(false); loadData(); }} />}
-      {editModalOpen && editCampaign && <CampaignModal campaign={editCampaign} onClose={() => { setEditModalOpen(false); setEditCampaign(null); loadData(); }} />}
-      {viewDonations && <DonationsModal campaign={viewDonations} onClose={() => setViewDonations(null)} />}
-
+      {/* Settings Modal – uses cr-modal-bd */}
       {showSettings && (
-        <div className="modal-bd" onClick={() => setShowSettings(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: 0 }}>
+        <div className="cr-modal-bd" onClick={() => setShowSettings(false)}>
+          <div className="cr-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: 0 }}>
             <ProfileSettings onClose={() => setShowSettings(false)} userRole="creator" />
           </div>
         </div>
       )}
 
-      <WithdrawalModal 
-        isOpen={showWithdrawalModal} 
-        onClose={() => setShowWithdrawalModal(false)} 
-        onSubmit={handleRequestPayout} 
+      {/* Third-party modals – these render their own backdrop */}
+      {modalOpen && <CampaignModal campaign={null} onClose={() => { setModalOpen(false); loadData(); }} />}
+      {editModalOpen && editCampaign && <CampaignModal campaign={editCampaign} onClose={() => { setEditModalOpen(false); setEditCampaign(null); loadData(); }} />}
+      {viewDonations && <DonationsModal campaign={viewDonations} onClose={() => setViewDonations(null)} />}
+
+      <WithdrawalModal
+        isOpen={showWithdrawalModal}
+        onClose={() => setShowWithdrawalModal(false)}
+        onSubmit={handleRequestPayout}
         balance={walletBalance - pendingPayoutSum}
         savedPaymentMethod={paymentMethod}
         showToast={showToast}
