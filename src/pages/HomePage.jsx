@@ -151,13 +151,7 @@ export default function HomePage() {
               <button className="btn-hero-outline" onClick={() => scrollTo('causes')}><i className="fas fa-search"></i> Browse Causes</button>
             </div>
           </div>
-          <div className="hero-visual">
-            <div className="hero-card">
-              <div className="hero-card-label">Total Raised</div>
-              <div className="hero-card-value">${totalFunds.toLocaleString()}</div>
-              <div style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.5)', marginTop: 4 }}>Across all active campaigns</div>
-            </div>
-            <div className="mini-cards">
+         
               {[
                 [platformContent.impact_stats.program_efficiency || '89%', 'Efficiency'],
                 [platformContent.impact_stats.lives_impacted || '14K+', 'Lives'],
