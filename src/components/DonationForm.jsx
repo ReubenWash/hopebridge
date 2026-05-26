@@ -1,13 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
-import { walletApi } from '../services/api';
-import { CreditCard, Smartphone, Building2, Wallet as WalletIcon, Bitcoin, Send, Clock, CheckCircle, AlertCircle, X, ArrowLeft, Upload, ChevronDown, Search } from 'lucide-react';
+import { walletApi, campaignApi } from '../services/api';
+import { CreditCard, Smartphone, Building2, Wallet as WalletIcon, Bitcoin, Send, Clock, CheckCircle, AlertCircle, X, ArrowLeft, Upload, ChevronDown, Search, Loader2 } from 'lucide-react';
+
 
 const AMOUNT_PRESETS = [10, 25, 50, 100, 250];
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export default function DonationForm({ campaignId: propCampaignId, onSuccess }) {
-  const { currentUser, approvedCampaigns, loadCampaigns, walletBalance, refreshWallet, showToast, openAuth } = useApp();
+  const { currentUser, walletBalance, refreshWallet, showToast, openAuth } = useApp();
+  
+  // Local campaign loading state
+  const [campaigns, setCampaigns] = useState([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(true);
+  const [campaignsError, setCampaignsError] = useState(null);
 
   const [campaignId, setCampaignId] = useState(propCampaignId || '');
   const [donorName, setDonorName] = useState('');
@@ -36,6 +42,30 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
   const [campaignSearch, setCampaignSearch] = useState('');
   const dropdownRef = useRef(null);
 
+  // Load campaigns directly on mount
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      setCampaignsLoading(true);
+      setCampaignsError(null);
+      try {
+        const res = await campaignApi.getAll({ status: 'approved' });
+        const campaignsList = res.campaigns || [];
+        setCampaigns(campaignsList);
+        if (propCampaignId && campaignsList.length > 0) {
+          const found = campaignsList.find(c => c.id === propCampaignId);
+          if (found) setCampaignId(propCampaignId);
+        }
+      } catch (err) {
+        console.error('Failed to load campaigns:', err);
+        setCampaignsError(err.message || 'Could not load campaigns');
+        showToast('Could not load campaigns', true);
+      } finally {
+        setCampaignsLoading(false);
+      }
+    };
+    fetchCampaigns();
+  }, [propCampaignId]);
+
   // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -53,11 +83,6 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
       setDonorEmail(currentUser.email || '');
       setDonationMode('login');
     }
-    loadCampaigns();
-    
-    return () => {
-      if (pollingInterval) clearInterval(pollingInterval);
-    };
   }, [currentUser]);
 
   useEffect(() => {
@@ -248,7 +273,9 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
       showToast('Donation successful! Thank you for your support.');
       
       if (refreshWallet) refreshWallet();
-      loadCampaigns();
+      // Refresh campaigns list to update raised amounts
+      const res = await campaignApi.getAll({ status: 'approved' });
+      setCampaigns(res.campaigns || []);
       
       setCampaignId(propCampaignId || '');
       setMessage('');
@@ -284,13 +311,12 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
     { value: 'western_union', label: 'Western Union', icon: <Send size={16} /> }
   ];
 
-  const selectedCampaign = approvedCampaigns.find(c => c.id === campaignId);
-  const filteredCampaigns = approvedCampaigns.filter(c =>
+  const selectedCampaign = campaigns.find(c => c.id === campaignId);
+  const filteredCampaigns = campaigns.filter(c =>
     c.title.toLowerCase().includes(campaignSearch.toLowerCase()) ||
     (c.category && c.category.toLowerCase().includes(campaignSearch.toLowerCase()))
   );
 
-  // Helper to format progress
   const getProgress = (campaign) => {
     if (!campaign.goal || campaign.goal === 0) return 0;
     return Math.min(((campaign.raised || 0) / campaign.goal) * 100, 100);
@@ -302,7 +328,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
     return `$${raised} raised of $${goal}`;
   };
 
-  // Custom Campaign Dropdown Component (inside the form)
+  // Campaign Dropdown Component
   const CampaignDropdown = () => (
     <div className="campaign-dropdown-modern" ref={dropdownRef}>
       <div className="dropdown-trigger" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
@@ -373,8 +399,42 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
     </div>
   );
 
+  // Loading state while campaigns are being fetched
+  if (campaignsLoading) {
+    return (
+      <div className="donation-card-modern text-center">
+        <Loader2 size={40} className="spinner-icon" />
+        <p>Loading campaigns...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (campaignsError) {
+    return (
+      <div className="donation-card-modern text-center">
+        <AlertCircle size={40} className="error-icon" />
+        <p>Failed to load campaigns. Please try again.</p>
+        <button className="btn-secondary" onClick={() => window.location.reload()}>
+          Refresh
+        </button>
+      </div>
+    );
+  }
+
+  // No campaigns available
+  if (campaigns.length === 0) {
+    return (
+      <div className="donation-card-modern text-center">
+        <Heart size={40} className="info-icon" />
+        <p>No active campaigns available at the moment.</p>
+        <p style={{ fontSize: '0.85rem', color: 'var(--txt-2)' }}>Check back soon for new causes to support!</p>
+      </div>
+    );
+  }
+
   // Render campaign selection when no campaign preselected (for logged in user)
-  if (!campaignId && !propCampaignId && approvedCampaigns.length > 0 && donationMode !== 'guest') {
+  if (!campaignId && !propCampaignId && donationMode !== 'guest') {
     return (
       <div className="donation-card-modern">
         <div className="campaign-selection-header">
@@ -384,7 +444,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
         <CampaignDropdown />
         {campaignId && (
           <div className="continue-button-wrapper">
-            <button className="btn-primary btn-full" onClick={() => setCampaignId(campaignId)}>
+            <button className="btn-primary btn-full" onClick={() => {}}>
               Continue to Donation
             </button>
           </div>
@@ -393,7 +453,7 @@ export default function DonationForm({ campaignId: propCampaignId, onSuccess }) 
     );
   }
 
-  // Guest donation flows (same logic, but now uses the same dropdown style)
+  // Guest donation flows (same as before, but now uses CampaignDropdown)
   if (donationMode === 'guest' && guestStep === 2) {
     return (
       <div className="donation-card-modern">
