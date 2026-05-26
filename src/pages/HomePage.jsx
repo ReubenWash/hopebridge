@@ -223,43 +223,58 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* DONATION FORM */}
+      {/* DONATION FORM – REDESIGNED UI */}
       <section id="donate" className="donation-section">
         <div className="container-inner">
           <div className="section-tag"><i className="fas fa-gift"></i> Make A Donation</div>
           <h2 className="section-title mb-0">Give <span className="accent">Today</span></h2>
           <div className="section-divider"></div>
-          <div className="donation-wrapper">
-            <div className="donation-info">
-              <h2>Your Generosity <span style={{ color: 'var(--primary)' }}>Transforms Lives</span></h2>
-              <p>Select a campaign, enter your details, and help make the world a better place.</p>
-              <div className="trust-items">
+          
+          <div className="donation-grid">
+            {/* Left: Information Card */}
+            <div className="donation-info-card">
+              <div className="info-header">
+                <h3>Your Generosity Changes Lives</h3>
+                <p>Every donation, big or small, creates real impact. Choose a campaign and make a difference today.</p>
+              </div>
+              
+              <div className="trust-items-modern">
                 {TRUST_ITEMS.map(t => (
-                  <div key={t.title} className="trust-item">
-                    <div className="trust-icon"><i className={`fas ${t.icon}`}></i></div>
-                    <div className="trust-text"><strong>{t.title}</strong><span>{t.desc}</span></div>
+                  <div key={t.title} className="trust-item-modern">
+                    <div className="trust-icon-modern">
+                      <i className={`fas ${t.icon}`}></i>
+                    </div>
+                    <div className="trust-text-modern">
+                      <strong>{t.title}</strong>
+                      <span>{t.desc}</span>
+                    </div>
                   </div>
                 ))}
               </div>
+
               {!currentUser && (
-                <div className="trust-item" style={{ background: 'rgba(232,83,30,.08)', marginTop: 20, borderRadius: 12 }}>
-                  <div className="trust-icon"><i className="fas fa-user-friends"></i></div>
-                  <div className="trust-text">
+                <div className="guest-notice">
+                  <i className="fas fa-user-friends"></i>
+                  <div>
                     <strong>Donate as Guest</strong>
-                    <span>No account needed! You can donate without creating an account.</span>
+                    <span>No account needed! Your donation will be processed securely.</span>
                   </div>
                 </div>
               )}
             </div>
-            <DonationForm 
-              key={donationKey}
-              campaignId={selectedCampaignId}
-              onSuccess={() => {
-                setSelectedCampaignId(null)
-                loadCampaigns()
-                showToast('Donation successful! Thank you for your support.', false)
-              }}
-            />
+
+            {/* Right: Donation Form */}
+            <div className="donation-form-wrapper">
+              <DonationForm 
+                key={donationKey}
+                campaignId={selectedCampaignId}
+                onSuccess={() => {
+                  setSelectedCampaignId(null)
+                  loadCampaigns()
+                  showToast('Donation successful! Thank you for your support.', false)
+                }}
+              />
+            </div>
           </div>
         </div>
       </section>
