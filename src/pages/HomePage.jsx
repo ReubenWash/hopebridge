@@ -135,11 +135,7 @@ export default function HomePage() {
                 <div className="hero-stat-num">{platformContent.impact_stats.active_projects || approvedCampaigns.length}</div>
                 <div className="hero-stat-lbl">Active Projects</div>
               </div>
-              <div className="hero-stat-divider"></div>
-              <div className="hero-stat-item">
-                <div className="hero-stat-num">{formatFunds(platformContent.impact_stats.funds_raised || totalFunds)}</div>
-                <div className="hero-stat-lbl">Funds Raised</div>
-              </div>
+              
               <div className="hero-stat-divider"></div>
               <div className="hero-stat-item">
                 <div className="hero-stat-num">{platformContent.impact_stats.transparency || '100%'}</div>
