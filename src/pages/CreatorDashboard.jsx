@@ -11,7 +11,7 @@ import {
   FileText, ArrowRight, ChevronRight, Calendar, Send, Upload, Image, 
   Gift, Banknote, History, RefreshCw, X, Menu, Sun, Moon, Target, 
   Landmark, Smartphone, Copy, ExternalLink, Star, Zap, Shield, Award,
-  MessageCircle, Eye, EyeOff, MapPin, Phone, Mail, User, Building,
+  MessageCircle, Eye, EyeOff, MapPin, Phone, Mail, User, Edit,  Building,
   Download, PiggyBank
 } from 'lucide-react';
 
