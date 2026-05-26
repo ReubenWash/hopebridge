@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import CauseCard from '../components/CauseCard'
@@ -28,20 +28,92 @@ export default function HomePage() {
   const [selectedCampaignId, setSelectedCampaignId] = useState(null)
   const [donationKey, setDonationKey] = useState(Date.now())
 
-  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
+  // Dynamic platform content (editable by admin)
+  const [platformContent, setPlatformContent] = useState({
+    hero_badge: 'Making A Real Difference',
+    hero_title: 'Every Contribution Builds A Brighter Tomorrow',
+    hero_subtitle: 'Join thousands of donors empowering education, healthcare, and clean water across the globe.',
+    impact_stats: {
+      active_projects: 0,
+      funds_raised: 0,
+      transparency: '100%',
+      program_efficiency: '89%',
+      lives_impacted: '14K+',
+      projects_funded: '120+'
+    },
+    social_links: {
+      facebook: '#',
+      twitter: '#',
+      instagram: '#',
+      linkedin: '#'
+    }
+  })
 
-  useEffect(() => { loadCampaigns() }, [])
+  const contentPollRef = useRef(null)
+  const campaignsPollRef = useRef(null)
+
+  // Load platform content from backend
+  const loadPlatformContent = async () => {
+    try {
+      const token = localStorage.getItem('hb_token')
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/content`, {
+        headers: { 'Authorization': token ? `Bearer ${token}` : {} }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setPlatformContent(prev => ({
+          ...prev,
+          ...data,
+          impact_stats: { ...prev.impact_stats, ...(data.impact_stats || {}) },
+          social_links: { ...prev.social_links, ...(data.social_links || {}) }
+        }))
+      }
+    } catch (err) {
+      console.error('Failed to load platform content:', err)
+    }
+  }
+
+  // Refresh campaigns when tab becomes visible (for Problem 4)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadCampaigns()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [loadCampaigns])
+
+  // Poll campaigns every 30 seconds (for Problem 4)
+  useEffect(() => {
+    if (campaignsPollRef.current) clearInterval(campaignsPollRef.current)
+    campaignsPollRef.current = setInterval(loadCampaigns, 30000)
+    return () => clearInterval(campaignsPollRef.current)
+  }, [loadCampaigns])
+
+  // Poll platform content every 30 seconds
+  useEffect(() => {
+    loadPlatformContent()
+    if (contentPollRef.current) clearInterval(contentPollRef.current)
+    contentPollRef.current = setInterval(loadPlatformContent, 30000)
+    return () => clearInterval(contentPollRef.current)
+  }, [])
+
+  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
 
   const handleDonateClick = (campaign) => {
     console.log('Donate clicked for campaign:', campaign?.title)
     console.log('Current user:', currentUser ? 'Logged in' : 'Guest')
-    
-    // Set the selected campaign ID for the donation form
     setSelectedCampaignId(campaign.id)
-    // Force DonationForm to re-render with new campaign
     setDonationKey(Date.now())
-    // Scroll to donation form
     scrollTo('donate')
+  }
+
+  // Helper to display funds raised in K format
+  const formatFunds = (fundsStr) => {
+    if (typeof fundsStr === 'string' && fundsStr.startsWith('$')) return fundsStr
+    if (typeof fundsStr === 'number') return `$${(fundsStr / 1000).toFixed(1)}K`
+    return fundsStr || '$0K'
   }
 
   return (
@@ -55,22 +127,22 @@ export default function HomePage() {
         </div>
         <div className="hero-inner">
           <div className="hero-content">
-            <div className="hero-badge"><i className="fas fa-star"></i> Making A Real Difference</div>
-            <h1>Every Contribution <br />Builds A Brighter <span className="highlight">Tomorrow</span></h1>
-            <p>Join thousands of donors empowering education, healthcare, and clean water across the globe.</p>
+            <div className="hero-badge"><i className="fas fa-star"></i> {platformContent.hero_badge}</div>
+            <h1>{platformContent.hero_title.split(' ').slice(0, -3).join(' ')} <br /> Builds A Brighter <span className="highlight">Tomorrow</span></h1>
+            <p>{platformContent.hero_subtitle}</p>
             <div className="hero-stats">
               <div className="hero-stat-item">
-                <div className="hero-stat-num">{approvedCampaigns.length}</div>
+                <div className="hero-stat-num">{platformContent.impact_stats.active_projects || approvedCampaigns.length}</div>
                 <div className="hero-stat-lbl">Active Projects</div>
               </div>
               <div className="hero-stat-divider"></div>
               <div className="hero-stat-item">
-                <div className="hero-stat-num">${(totalFunds / 1000).toFixed(1)}K</div>
+                <div className="hero-stat-num">{formatFunds(platformContent.impact_stats.funds_raised || totalFunds)}</div>
                 <div className="hero-stat-lbl">Funds Raised</div>
               </div>
               <div className="hero-stat-divider"></div>
               <div className="hero-stat-item">
-                <div className="hero-stat-num">100%</div>
+                <div className="hero-stat-num">{platformContent.impact_stats.transparency || '100%'}</div>
                 <div className="hero-stat-lbl">Transparent</div>
               </div>
             </div>
@@ -86,7 +158,12 @@ export default function HomePage() {
               <div style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.5)', marginTop: 4 }}>Across all active campaigns</div>
             </div>
             <div className="mini-cards">
-              {[['89%','Efficiency'],['14K+','Lives'],['120+','Projects'],['100%','Transparent']].map(([n,l]) => (
+              {[
+                [platformContent.impact_stats.program_efficiency || '89%', 'Efficiency'],
+                [platformContent.impact_stats.lives_impacted || '14K+', 'Lives'],
+                [platformContent.impact_stats.projects_funded || '120+', 'Projects'],
+                [platformContent.impact_stats.transparency || '100%', 'Transparent']
+              ].map(([n, l]) => (
                 <div key={l} className="mini-card"><div className="mini-card-num">{n}</div><div className="mini-card-lbl">{l}</div></div>
               ))}
             </div>
@@ -147,7 +224,12 @@ export default function HomePage() {
           <p>We operate with 100% transparency. Every cent is tracked and reported.</p>
           <button className="btn-hero-primary" onClick={() => scrollTo('donate')}><i className="fas fa-donate"></i> Donate Now</button>
           <div className="parallax-stats">
-            {[['89%','Program Efficiency'],['14K+','Lives Impacted'],['120+','Projects Funded'],['100%','Transparency']].map(([n,l]) => (
+            {[
+              [platformContent.impact_stats.program_efficiency || '89%', 'Program Efficiency'],
+              [platformContent.impact_stats.lives_impacted || '14K+', 'Lives Impacted'],
+              [platformContent.impact_stats.projects_funded || '120+', 'Projects Funded'],
+              [platformContent.impact_stats.transparency || '100%', 'Transparency']
+            ].map(([n, l]) => (
               <div key={l} className="pstat">
                 <div className="pstat-num"><span className="counter-accent">{n}</span></div>
                 <div className="pstat-lbl">{l}</div>
@@ -238,14 +320,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FOOTER */}
+      {/* FOOTER – dynamic social links */}
       <footer className="site-footer">
         <div className="footer-inner">
           <div>
             <div className="footer-logo"><i className="fas fa-heart"></i> HopeBridge</div>
             <p style={{ fontSize: '.88rem', lineHeight: 1.8, maxWidth: 240 }}>Empowering communities through transparent giving.</p>
             <div className="social-icons">
-              {['facebook-f','twitter','instagram','linkedin-in'].map(icon => (<a key={icon} href="#"><i className={`fab fa-${icon}`}></i></a>))}
+              {platformContent.social_links.facebook && (
+                <a href={platformContent.social_links.facebook} target="_blank" rel="noopener noreferrer"><i className="fab fa-facebook-f"></i></a>
+              )}
+              {platformContent.social_links.twitter && (
+                <a href={platformContent.social_links.twitter} target="_blank" rel="noopener noreferrer"><i className="fab fa-twitter"></i></a>
+              )}
+              {platformContent.social_links.instagram && (
+                <a href={platformContent.social_links.instagram} target="_blank" rel="noopener noreferrer"><i className="fab fa-instagram"></i></a>
+              )}
+              {platformContent.social_links.linkedin && (
+                <a href={platformContent.social_links.linkedin} target="_blank" rel="noopener noreferrer"><i className="fab fa-linkedin-in"></i></a>
+              )}
             </div>
           </div>
           <div>
