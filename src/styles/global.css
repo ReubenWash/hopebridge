@@ -1564,24 +1564,22 @@ body.dark-mode .small-btn.neutral {
 .toggle-switch input:checked + .toggle-slider:before {
   transform: translateX(24px);
 }
-/* Force remove blur from settings modals */
+/* ===== FORCE REMOVE BLUR FROM ALL MODAL BACKDROPS ===== */
 .modal-bd,
-.modal-bd *,
-.profile-settings-modal,
-.profile-settings-modal * {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-/* Force remove blur from all modals used by settings */
-.modal-bd,
-.modal-bd *,
 .hb-modal-bd,
-.hb-modal-bd *,
 .modal-overlay,
-.modal-overlay *,
-.auth-overlay,
-.auth-overlay * {
+.auth-overlay {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  background-color: rgba(0, 0, 0, 0.7) !important; /* solid dark overlay, no blur */
+  background: rgba(0, 0, 0, 0.75) !important; /* solid dark overlay, no blur */
+}
+
+/* Also ensure no blur on any parent element that might affect the modal */
+body,
+.shell,
+.main,
+.page,
+.ps {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
