@@ -378,6 +378,12 @@ export const adminApi = {
     const qs = new URLSearchParams(params || {}).toString()
     return request(`/admin/features/audit-logs${qs ? `?${qs}` : ''}`)
   },
+
+  // ============ GUEST DONATION PAYMENT INSTRUCTIONS ============
+  getPaymentInstructions: () => request('/admin/guest-payment-instructions'),
+  updatePaymentInstructions: (data) => request('/admin/guest-payment-instructions', {
+    method: 'PUT', body: JSON.stringify(data),
+  }),
 }
 
 // ── Public ────────────────────────────────────────────────────────

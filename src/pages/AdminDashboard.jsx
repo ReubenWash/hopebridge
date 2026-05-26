@@ -1159,6 +1159,11 @@ export default function AdminDashboard() {
   const [guestDonationFilter, setGuestDonationFilter] = useState('all');
   const [sendingInstructions, setSendingInstructions] = useState({});
 
+  // Payment instructions state (ADDED FOR PAYMENT INSTRUCTIONS)
+  const [paymentInstructions, setPaymentInstructions] = useState({});
+  const [loadingInstructions, setLoadingInstructions] = useState(false);
+  const [savingInstructions, setSavingInstructions] = useState(false);
+
   const [campaigns, setCampaigns] = useState([]);
   const [users, setUsers] = useState([]);
   const [donations, setDonations] = useState([]);
@@ -1272,11 +1277,38 @@ export default function AdminDashboard() {
     }
   };
 
+  // ADDED FOR PAYMENT INSTRUCTIONS: Fetch and save functions
+  const fetchPaymentInstructions = async () => {
+    setLoadingInstructions(true);
+    try {
+      const res = await adminApi.getPaymentInstructions();
+      setPaymentInstructions(res.instructions);
+    } catch (err) {
+      console.error('Failed to fetch payment instructions:', err);
+      showToast(err.message, true);
+    } finally {
+      setLoadingInstructions(false);
+    }
+  };
+
+  const savePaymentInstructions = async () => {
+    setSavingInstructions(true);
+    try {
+      await adminApi.updatePaymentInstructions({ instructions: paymentInstructions });
+      showToast('Payment instructions saved successfully');
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setSavingInstructions(false);
+    }
+  };
+
   useEffect(() => { 
     if (authChecked) { 
       fetchAll(); 
       fetchExtras();
       fetchGuestDonations();
+      fetchPaymentInstructions(); // ADDED FOR PAYMENT INSTRUCTIONS
     } 
   }, [authChecked]);
 
@@ -1930,7 +1962,42 @@ export default function AdminDashboard() {
                 <RefreshCw size={14} /> Refresh
               </button>
             </div>
-            
+
+            {/* ADDED FOR PAYMENT INSTRUCTIONS: Auto-Instruction Templates Card */}
+            <div className="card" style={{ marginBottom: 24 }}>
+              <div className="card-h">
+                <div className="card-t"><Settings size={18} /> Auto‑Instruction Templates (sent after 5 minutes)</div>
+              </div>
+              <div className="card-b">
+                {loadingInstructions ? (
+                  <div style={{ padding: 20, textAlign: 'center' }}>Loading templates...</div>
+                ) : (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginBottom: 20 }}>
+                      {Object.entries(paymentInstructions).map(([method, instruction]) => (
+                        <div key={method}>
+                          <label className="fl" style={{ textTransform: 'uppercase' }}>
+                            {method.replace('_', ' ')}
+                          </label>
+                          <textarea
+                            className="fi"
+                            rows="4"
+                            value={instruction}
+                            onChange={(e) => setPaymentInstructions(prev => ({ ...prev, [method]: e.target.value }))}
+                            placeholder={`Enter instructions for ${method}`}
+                            style={{ fontFamily: 'monospace', fontSize: 12 }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <button className="btn btn-g" onClick={savePaymentInstructions} disabled={savingInstructions}>
+                      {savingInstructions ? 'Saving...' : 'Save All Templates'}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
             <div className="card">
               <div className="card-b">
                 {/* Status filters */}
