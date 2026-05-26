@@ -750,28 +750,72 @@ function MassMailForm({ showToast }) {
   );
 }
 
-// ── ContentEditor ─────────────────────────────────
+// ── ContentEditor (UPDATED to show all impact stats) ──
 function ContentEditor({ content, onSave, showToast }) {
   const [local, setLocal] = useState(content);
   const [saving, setSaving] = useState(false);
   useEffect(() => setLocal(content), [content]);
+
   const upd = (f, v) => setLocal(p => ({ ...p, [f]: v }));
-  const updStat = (s, v) => setLocal(p => ({ ...p, impact_stats: { ...p.impact_stats, [s]: v } }));
-  const updSocial = (pl, v) => setLocal(p => ({ ...p, social_links: { ...p.social_links, [pl]: v } }));
+  const updStat = (s, v) => setLocal(p => ({
+    ...p,
+    impact_stats: { ...p.impact_stats, [s]: v }
+  }));
+  const updSocial = (pl, v) => setLocal(p => ({
+    ...p,
+    social_links: { ...p.social_links, [pl]: v }
+  }));
+
   const handleSave = async () => {
     setSaving(true);
-    try { await onSave(local); showToast('Content updated'); } catch (err) { showToast(err.message, true); } finally { setSaving(false); }
+    try {
+      await onSave(local);
+      showToast('Content updated');
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setSaving(false);
+    }
   };
+
   return (
     <div>
       <h5 style={{ marginBottom: 12, color: 'var(--txt)' }}>Hero Section</h5>
-      <label className="fl">Badge Text</label><input type="text" className="fi" value={local.hero_badge || ''} onChange={e => upd('hero_badge', e.target.value)} />
-      <label className="fl">Hero Title</label><input type="text" className="fi" value={local.hero_title || ''} onChange={e => upd('hero_title', e.target.value)} />
-      <label className="fl">Hero Subtitle</label><textarea className="fi" rows="2" value={local.hero_subtitle || ''} onChange={e => upd('hero_subtitle', e.target.value)} />
-      <h5 style={{ margin: '20px 0 12px', color: 'var(--txt)' }}>Impact Stats</h5>
-      <label className="fl">Total Raised</label><input type="text" className="fi" value={local.impact_stats?.raised || '$0'} onChange={e => updStat('raised', e.target.value)} />
-      <label className="fl">Campaigns</label><input type="text" className="fi" value={local.impact_stats?.campaigns || '0'} onChange={e => updStat('campaigns', e.target.value)} />
-      <label className="fl">Donors</label><input type="text" className="fi" value={local.impact_stats?.donors || '0'} onChange={e => updStat('donors', e.target.value)} />
+      <label className="fl">Badge Text</label>
+      <input type="text" className="fi" value={local.hero_badge || ''} onChange={e => upd('hero_badge', e.target.value)} />
+      <label className="fl">Hero Title</label>
+      <input type="text" className="fi" value={local.hero_title || ''} onChange={e => upd('hero_title', e.target.value)} />
+      <label className="fl">Hero Subtitle</label>
+      <textarea className="fi" rows="2" value={local.hero_subtitle || ''} onChange={e => upd('hero_subtitle', e.target.value)} />
+
+      <h5 style={{ margin: '20px 0 12px', color: 'var(--txt)' }}>Impact Stats (shown on homepage)</h5>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div>
+          <label className="fl">Active Projects</label>
+          <input type="text" className="fi" value={local.impact_stats?.active_projects || ''} onChange={e => updStat('active_projects', e.target.value)} placeholder="e.g., 24" />
+        </div>
+        <div>
+          <label className="fl">Funds Raised</label>
+          <input type="text" className="fi" value={local.impact_stats?.funds_raised || ''} onChange={e => updStat('funds_raised', e.target.value)} placeholder="e.g., $124,000" />
+        </div>
+        <div>
+          <label className="fl">Transparency</label>
+          <input type="text" className="fi" value={local.impact_stats?.transparency || ''} onChange={e => updStat('transparency', e.target.value)} placeholder="e.g., 100%" />
+        </div>
+        <div>
+          <label className="fl">Program Efficiency</label>
+          <input type="text" className="fi" value={local.impact_stats?.program_efficiency || ''} onChange={e => updStat('program_efficiency', e.target.value)} placeholder="e.g., 89%" />
+        </div>
+        <div>
+          <label className="fl">Lives Impacted</label>
+          <input type="text" className="fi" value={local.impact_stats?.lives_impacted || ''} onChange={e => updStat('lives_impacted', e.target.value)} placeholder="e.g., 14K+" />
+        </div>
+        <div>
+          <label className="fl">Projects Funded</label>
+          <input type="text" className="fi" value={local.impact_stats?.projects_funded || ''} onChange={e => updStat('projects_funded', e.target.value)} placeholder="e.g., 120+" />
+        </div>
+      </div>
+
       <h5 style={{ margin: '20px 0 12px', color: 'var(--txt)' }}>Social Links</h5>
       {['facebook', 'twitter', 'instagram', 'youtube', 'linkedin'].map(p => (
         <div key={p}>
@@ -779,6 +823,7 @@ function ContentEditor({ content, onSave, showToast }) {
           <input type="text" className="fi" value={local.social_links?.[p] || ''} onChange={e => updSocial(p, e.target.value)} placeholder={`https://${p}.com/...`} />
         </div>
       ))}
+
       <button className="btn btn-g" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Content'}</button>
     </div>
   );
