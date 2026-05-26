@@ -505,20 +505,16 @@ export default function CampaignProfile() {
 
   return (
     <div className="cp-wrap">
-      {/* Nav */}
+      {/* Nav – only Back and Share buttons, no brand, no donate button */}
       <nav className="cp-nav">
         <div className="cp-nav-left">
           <button className="cp-btn cp-btn-ghost" onClick={() => navigate(-1)}>
             <Icon d={ICO.back} size={15} /> Back
           </button>
-          <span className="cp-nav-brand">HopeBridge</span>
         </div>
         <div className="cp-nav-right">
           <button className="cp-btn cp-btn-outline" onClick={() => setShowShare(s => !s)}>
             <Icon d={ICO.share} size={15} /> Share
-          </button>
-          <button className="cp-btn cp-btn-sage" onClick={handleDonate} disabled={isFunded}>
-            <Icon d={ICO.heart} size={15} fill="#fff" /> {isFunded ? 'Funded ✓' : 'Donate'}
           </button>
         </div>
       </nav>
