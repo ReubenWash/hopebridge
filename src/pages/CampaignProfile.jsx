@@ -96,28 +96,6 @@ const injectStyles = () => {
     .cp-empty-icon { font-size: 36px; margin-bottom: 8px; }
     .cp-empty-txt { color: var(--txt-3); font-size: 14px; }
 
-    /* Donations */
-    .cp-don-summary { display: flex; gap: 24px; padding: 16px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
-    .cp-don-stat { display: flex; flex-direction: column; }
-    .cp-don-stat-val { font-family: 'Raleway', sans-serif; font-size: 1.6rem; font-weight: 800; color: var(--sage); }
-    .cp-don-stat-lbl { font-size: 12px; color: var(--txt-3); margin-top: 2px; }
-    .cp-don-list { display: flex; flex-direction: column; gap: 12px; }
-    .cp-don-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
-    .cp-don-item:last-child { border-bottom: none; }
-    .cp-don-av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--sage), var(--sage-d)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 15px; flex-shrink: 0; }
-    .cp-don-info { flex: 1; }
-    .cp-don-name { font-weight: 600; font-size: 14px; }
-    .cp-don-date { font-size: 11px; color: var(--txt-3); margin-top: 2px; }
-    .cp-don-msg { font-size: 13px; color: var(--txt-2); margin-top: 4px; font-style: italic; }
-    .cp-don-amount { font-weight: 700; color: var(--sage); font-size: 15px; white-space: nowrap; }
-
-    /* Updates */
-    .cp-update { padding: 16px 0; border-bottom: 1px solid var(--border); }
-    .cp-update:last-child { border-bottom: none; }
-    .cp-update-date { font-size: 11px; color: var(--txt-3); margin-bottom: 4px; }
-    .cp-update-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; }
-    .cp-update-body { font-size: 13.5px; color: var(--txt-2); line-height: 1.7; }
-
     /* Gallery */
     .cp-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .cp-gallery-img { border-radius: 10px; overflow: hidden; aspect-ratio: 1; cursor: pointer; transition: transform var(--tr); }
@@ -160,6 +138,13 @@ const injectStyles = () => {
     .cp-creator-av-lg { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--sage), var(--gold)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 18px; }
     .cp-creator-nm { font-weight: 700; font-size: 15px; }
     .cp-creator-since { font-size: 12px; color: var(--txt-3); margin-top: 2px; }
+
+    /* Contact Modal */
+    .cp-modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+    .cp-modal { background: var(--surface); border-radius: var(--r-lg); max-width: 500px; width: 90%; padding: 24px; box-shadow: var(--sh-lg); }
+    .cp-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .cp-modal-header h3 { font-family: 'Raleway', sans-serif; font-size: 1.2rem; font-weight: 700; }
+    .cp-modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--txt-3); line-height: 1; }
 
     /* Share panel */
     .cp-share-panel { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #fff; border-radius: 40px; box-shadow: var(--sh-lg); padding: 12px 20px; display: flex; align-items: center; gap: 16px; z-index: 500; border: 1px solid var(--border); }
@@ -220,10 +205,60 @@ const ICO = {
   shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
   trend: 'M23 6l-9.5 9.5-5-5L1 18M17 6h6v6',
   clock: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 6v6l4 2',
-  news: 'M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2',
   camera: 'M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2zM12 17a4 4 0 100-8 4 4 0 000 8z',
   mail: 'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zM22 6l-10 7L2 6',
   copy: 'M8 17.929H6c-1.105 0-2-.912-2-2.036V5.036C4 3.91 4.895 3 6 3h8c1.105 0 2 .911 2 2.036v1.866m-6 .17h8c1.105 0 2 .91 2 2.035v10.857C20 21.09 19.105 22 18 22h-8c-1.105 0-2-.911-2-2.036V9.107c0-1.124.895-2.036 2-2.036z',
+};
+
+// ── Contact Modal Component ──
+const ContactModal = ({ isOpen, onClose, campaign, onSubmit, showToast }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!name.trim() || !email.trim() || !message.trim()) {
+      showToast('All fields are required', true);
+      return;
+    }
+    setLoading(true);
+    try {
+      await onSubmit(campaign.id, { name, email, message });
+      showToast('Message sent to creator!');
+      onClose();
+      setName(''); setEmail(''); setMessage('');
+    } catch (err) {
+      showToast(err.message || 'Failed to send message', true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="cp-modal-bg" onClick={onClose}>
+      <div className="cp-modal" onClick={e => e.stopPropagation()}>
+        <div className="cp-modal-header">
+          <h3>Contact Creator</h3>
+          <button className="cp-modal-close" onClick={onClose}>×</button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <label className="fl" style={{ textAlign: 'left', marginBottom: 4 }}>Your Name</label>
+          <input type="text" className="fi" value={name} onChange={e => setName(e.target.value)} required style={{ marginBottom: 12 }} />
+          <label className="fl" style={{ textAlign: 'left', marginBottom: 4 }}>Your Email</label>
+          <input type="email" className="fi" value={email} onChange={e => setEmail(e.target.value)} required style={{ marginBottom: 12 }} />
+          <label className="fl" style={{ textAlign: 'left', marginBottom: 4 }}>Message</label>
+          <textarea className="fi" rows="4" value={message} onChange={e => setMessage(e.target.value)} required style={{ marginBottom: 16 }} />
+          <button type="submit" className="cp-donate-btn" disabled={loading} style={{ marginTop: 0 }}>
+            {loading ? 'Sending...' : 'Send Message'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 };
 
 export default function CampaignProfile() {
@@ -247,6 +282,7 @@ export default function CampaignProfile() {
   const [showDonate, setShowDonate] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -261,6 +297,7 @@ export default function CampaignProfile() {
       const campaignData = campRes.campaign;
       setCampaign(campaignData);
 
+      // Optional: still fetch donations/updates for sidebar stats, but not displayed in tabs
       const donRes = await donationApi.getCampaignDons(id).catch(() => ({ donations: [], total: 0 }));
       setDonations(donRes.donations || []);
       setTotal(donRes.total || 0);
@@ -316,6 +353,18 @@ export default function CampaignProfile() {
 
   const handleDonate = () => setShowDonate(true);
 
+  const handleContactSubmit = async (campaignId, data) => {
+    // Use campaignApi.contactCreator if you added it; otherwise direct fetch.
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/campaigns/${campaignId}/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Failed to send');
+    return result;
+  };
+
   if (loading) {
     return (
       <div className="cp-loading">
@@ -345,6 +394,12 @@ export default function CampaignProfile() {
   const daysLeft = Math.max(0, 30 - Math.floor((Date.now() - new Date(campaign.created_at)) / 86400000));
   const desc = campaign.description || '';
   const longDesc = desc.length > 480;
+
+  // Tabs: only Story and Gallery (if gallery exists)
+  const tabs = [
+    { key: 'story', label: 'Story', icon: ICO.info },
+    ...(gallery.length ? [{ key: 'gallery', label: 'Gallery', icon: ICO.camera }] : []),
+  ];
 
   return (
     <div className="cp-wrap">
@@ -399,12 +454,7 @@ export default function CampaignProfile() {
         {/* Left column */}
         <div className="cp-main cp-fade">
           <div className="cp-tabs">
-            {[
-              { key: 'story', label: 'Story', icon: ICO.info },
-              { key: 'donations', label: `Donations (${donations.length})`, icon: ICO.heart },
-              { key: 'updates', label: `Updates (${updates.length})`, icon: ICO.news },
-              ...(gallery.length ? [{ key: 'gallery', label: 'Gallery', icon: ICO.camera }] : []),
-            ].map(({ key, label, icon }) => (
+            {tabs.map(({ key, label, icon }) => (
               <button key={key} className={`cp-tab ${tab === key ? 'active' : ''}`} onClick={() => setTab(key)}>
                 <Icon d={icon} size={14} /> {label}
               </button>
@@ -432,66 +482,6 @@ export default function CampaignProfile() {
                 </>
               ) : (
                 <div className="cp-empty"><div className="cp-empty-icon">📝</div><div className="cp-empty-txt">No story added yet.</div></div>
-              )}
-            </div>
-          )}
-
-          {/* Donations */}
-          {tab === 'donations' && (
-            <div className="cp-card cp-fade">
-              <div className="cp-card-title">
-                <div className="cp-card-icon"><Icon d={ICO.heart} size={16} stroke="var(--sage)" /></div>
-                Supporters
-              </div>
-              {donations.length === 0 ? (
-                <div className="cp-empty"><div className="cp-empty-icon">💛</div><div className="cp-empty-txt">No donations yet — be the first!</div></div>
-              ) : (
-                <>
-                  <div className="cp-don-summary">
-                    <div className="cp-don-stat">
-                      <span className="cp-don-stat-val">${total.toLocaleString()}</span>
-                      <span className="cp-don-stat-lbl">Total Raised</span>
-                    </div>
-                    <div className="cp-don-stat">
-                      <span className="cp-don-stat-val">{donations.length}</span>
-                      <span className="cp-don-stat-lbl">Supporters</span>
-                    </div>
-                  </div>
-                  <div className="cp-don-list">
-                    {donations.map(d => (
-                      <div key={d.id} className="cp-don-item">
-                        <div className="cp-don-av">{(d.donor_name || 'A').charAt(0).toUpperCase()}</div>
-                        <div className="cp-don-info">
-                          <div className="cp-don-name">{d.donor_name || 'Anonymous'}</div>
-                          <div className="cp-don-date">{new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                          {d.message && <div className="cp-don-msg">"{d.message}"</div>}
-                        </div>
-                        <div className="cp-don-amount">${parseFloat(d.amount).toLocaleString()}</div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Updates */}
-          {tab === 'updates' && (
-            <div className="cp-card cp-fade">
-              <div className="cp-card-title">
-                <div className="cp-card-icon"><Icon d={ICO.news} size={16} stroke="var(--sage)" /></div>
-                Campaign Updates
-              </div>
-              {updates.length === 0 ? (
-                <div className="cp-empty"><div className="cp-empty-icon">📢</div><div className="cp-empty-txt">No updates yet. Check back soon!</div></div>
-              ) : (
-                updates.map(u => (
-                  <div key={u.id} className="cp-update">
-                    <div className="cp-update-date">{new Date(u.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
-                    <div className="cp-update-title">{u.title}</div>
-                    <div className="cp-update-body">{u.content}</div>
-                  </div>
-                ))
               )}
             </div>
           )}
@@ -581,7 +571,7 @@ export default function CampaignProfile() {
                 </div>
               </div>
             </div>
-            <button className="cp-share-btn" style={{ fontSize: 13 }} onClick={() => showToast('Contact feature coming soon')}>
+            <button className="cp-share-btn" style={{ fontSize: 13 }} onClick={() => setShowContactModal(true)}>
               <Icon d={ICO.mail} size={13} /> Contact Creator
             </button>
           </div>
@@ -610,6 +600,15 @@ export default function CampaignProfile() {
           <img src={lightbox} alt="Full size" />
         </div>
       )}
+
+      {/* Contact Modal */}
+      <ContactModal
+        isOpen={showContactModal}
+        onClose={() => setShowContactModal(false)}
+        campaign={campaign}
+        onSubmit={handleContactSubmit}
+        showToast={showToast}
+      />
     </div>
   );
 }

@@ -126,6 +126,9 @@ export const campaignApi = {
     method: 'POST', body: JSON.stringify(data),
   }),
 
+  // === Public Gallery (no authentication) ===
+  getGallery: (id) => request(`/campaigns/${id}/gallery`),
+
   // === Gallery Management (Creator only) ===
   getCreatorCampaign: (id) => request(`/campaigns/creator/${id}`),
   addGalleryImages: (id, formData) => {
@@ -142,6 +145,12 @@ export const campaignApi = {
       method: 'PATCH',
       body: JSON.stringify({ imageOrder }),
     }),
+
+  // === Contact Creator ===
+  contactCreator: (id, data) => request(`/campaigns/${id}/contact`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
 }
 
 // ── Donations ─────────────────────────────────────────────────────
