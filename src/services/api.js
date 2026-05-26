@@ -201,9 +201,7 @@ export const adminApi = {
   updateCampaignStatus: (id, body) => request(`/admin/campaigns/${id}/status`, {
     method: 'PATCH', body: JSON.stringify(body),
   }),
-  // FIXED: createCampaign now accepts FormData for image upload
   createCampaign: (data) => {
-    // Check if FormData (has image) or JSON (no image)
     if (data instanceof FormData) {
       return multipart('POST', '/admin/campaigns', data)
     }
@@ -226,8 +224,9 @@ export const adminApi = {
   // Theme & Content
   getTheme:  () => request('/admin/theme'),
   saveTheme: (theme) => request('/admin/theme', { method: 'PUT', body: JSON.stringify(theme) }),
-  getContent:  () => request('/admin/content'),
-  saveContent: (data) => request('/admin/content', { method: 'PUT', body: JSON.stringify(data) }),
+  // FIXED: Content endpoints now use /content (not /admin/content)
+  getContent:  () => request('/content'),
+  saveContent: (data) => request('/content', { method: 'PUT', body: JSON.stringify(data) }),
 
   // Settings
   getSettings:  () => request('/admin/settings'),
@@ -304,9 +303,7 @@ export const adminApi = {
   resolveDispute: (id) => request(`/admin/disputes/${id}/resolve`, { method: 'PATCH' }),
 
   // Wallet Management (Admin)
-  // FIXED: adjustWallet now uses proper transaction types
   adjustWallet: (userId, data) => {
-    // Ensure type is one of: 'credit', 'debit', 'deposit', 'withdrawal', 'refund'
     const validTypes = ['credit', 'debit', 'deposit', 'withdrawal', 'refund']
     const transactionType = validTypes.includes(data.type) ? data.type : 'credit'
     return request('/admin/wallet/adjust', {
