@@ -1572,3 +1572,16 @@ body.dark-mode .small-btn.neutral {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+/* Force remove blur from all modals used by settings */
+.modal-bd,
+.modal-bd *,
+.hb-modal-bd,
+.hb-modal-bd *,
+.modal-overlay,
+.modal-overlay *,
+.auth-overlay,
+.auth-overlay * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: rgba(0, 0, 0, 0.7) !important; /* solid dark overlay, no blur */
+}
