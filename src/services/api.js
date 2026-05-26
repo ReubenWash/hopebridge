@@ -125,6 +125,23 @@ export const campaignApi = {
   addUpdate: (id, data) => request(`/campaigns/${id}/updates`, {
     method: 'POST', body: JSON.stringify(data),
   }),
+
+  // === Gallery Management (Creator only) ===
+  getCreatorCampaign: (id) => request(`/campaigns/creator/${id}`),
+  addGalleryImages: (id, formData) => {
+    if (!(formData instanceof FormData)) {
+      console.error('addGalleryImages called without FormData')
+      throw new Error('Invalid form data for gallery upload')
+    }
+    return multipart('POST', `/campaigns/${id}/gallery`, formData)
+  },
+  deleteGalleryImage: (campaignId, imageId) => 
+    request(`/campaigns/${campaignId}/gallery/${imageId}`, { method: 'DELETE' }),
+  reorderGalleryImages: (campaignId, imageOrder) => 
+    request(`/campaigns/${campaignId}/gallery/reorder`, {
+      method: 'PATCH',
+      body: JSON.stringify({ imageOrder }),
+    }),
 }
 
 // ── Donations ─────────────────────────────────────────────────────

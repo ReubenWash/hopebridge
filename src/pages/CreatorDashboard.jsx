@@ -12,14 +12,16 @@ import {
   Gift, Banknote, History, RefreshCw, X, Menu, Sun, Moon, Target, 
   Landmark, Smartphone, Copy, ExternalLink, Star, Zap, Shield, Award,
   MessageCircle, Eye, EyeOff, MapPin, Phone, Mail, User, Edit, Trash2, Building,
-  Download, PiggyBank
+  Download, PiggyBank, MoveUp, MoveDown, GripVertical
 } from 'lucide-react';
 
+// ── Helper ───────────────────────────────────────
 const toNumber = (val, fallback = 0) => {
   const num = parseFloat(val);
   return isNaN(num) ? fallback : num;
 };
 
+// ── Styles (unchanged but extended for gallery reorder) ──
 let stylesInjected = false;
 const injectStyles = () => {
   if (stylesInjected) return;
@@ -121,6 +123,7 @@ const injectStyles = () => {
     .dba { background: var(--green-l); color: var(--green-d); }
     .dbr { background: var(--red-l); color: var(--red); }
     .dbv { background: var(--blue-l); color: #185FA5; }
+    .dbp { background: var(--amber-l); color: #854F0B; }
     .btn { padding: 10px 18px; border-radius: var(--r-sm); font-weight: 600; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; font-family: 'Raleway', sans-serif; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.8rem; transition: all var(--tr); }
     .btn-g { background: var(--primary); color: #fff; }
     .btn-g:hover { background: var(--primary-dark); transform: translateY(-1px); }
@@ -128,7 +131,7 @@ const injectStyles = () => {
     .fi { width: 100%; padding: 10px 12px; border: 1px solid var(--border-2); border-radius: var(--r-sm); margin-bottom: 16px; font-family: 'Open Sans', sans-serif; background: var(--surface); color: var(--txt); }
     .fl { font-size: 12px; font-weight: 700; color: var(--txt-2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 6px; display: block; }
 
-    /* ── Creator-scoped modal classes (avoids conflict with CampaignModal/DonationsModal/ProfileSettings) ── */
+    /* Modals (creator-specific) */
     .cr-modal-bd {
       position: fixed;
       inset: 0;
@@ -138,23 +141,115 @@ const injectStyles = () => {
       align-items: center;
       justify-content: center;
       backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-      filter: none !important;
     }
     .cr-modal {
       background: var(--surface);
       border-radius: var(--r-xl);
       padding: 28px;
       width: 90%;
-      max-width: 560px;
+      max-width: 700px;
       max-height: 90vh;
       overflow-y: auto;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-      filter: none !important;
     }
     .cr-modal-t { font-family: 'Raleway', sans-serif; font-size: 1.3rem; font-weight: 700; margin-bottom: 6px; color: var(--txt); }
     .cr-modal-s { font-size: 13px; color: var(--txt-2); margin-bottom: 20px; }
+
+    /* Gallery Manager Styles */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .gallery-item {
+      position: relative;
+      background: var(--surface-2);
+      border-radius: var(--r-md);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      transition: all var(--tr);
+    }
+    .gallery-item img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
+    }
+    .gallery-actions {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+      display: flex;
+      justify-content: space-between;
+      padding: 8px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .gallery-item:hover .gallery-actions {
+      opacity: 1;
+    }
+    .gallery-action-btn {
+      background: rgba(255,255,255,0.9);
+      border: none;
+      border-radius: 20px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all var(--tr);
+    }
+    .gallery-action-btn:hover {
+      background: white;
+      transform: scale(1.05);
+    }
+    .gallery-reorder-buttons {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      gap: 6px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 20px;
+      padding: 4px;
+    }
+    .reorder-btn {
+      background: rgba(255,255,255,0.9);
+      border: none;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--tr);
+    }
+    .reorder-btn:hover {
+      background: white;
+      transform: scale(1.1);
+    }
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: var(--r-lg);
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--tr);
+      margin-bottom: 20px;
+    }
+    .upload-area:hover {
+      border-color: var(--primary);
+      background: rgba(232,83,30,0.05);
+    }
+    .file-list {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--txt-2);
+    }
 
     /* Notifications Panel */
     .notif-panel { position: absolute; top: 50px; right: 0; width: 340px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--sh-lg); z-index: 1000; max-height: 480px; overflow-y: auto; }
@@ -165,7 +260,7 @@ const injectStyles = () => {
     .notif-text { font-size: 13px; color: var(--txt); line-height: 1.4; }
     .notif-time { font-size: 11px; color: var(--txt-3); margin-top: 3px; }
 
-    /* Hide mobile chrome on desktop */
+    /* Mobile */
     .mob-top, .bnav, .fab { display: none !important; }
     @media (min-width: 769px) {
       .mob-top, .bnav, .fab { display: none !important; }
@@ -197,6 +292,7 @@ const injectStyles = () => {
   document.head.appendChild(styleEl);
 };
 
+// ── TransactionHistory (unchanged) ──
 function TransactionHistory({ transactions, loading, onRefresh }) {
   const [showAll, setShowAll] = useState(false);
   const displayTransactions = showAll ? transactions : transactions.slice(0, 10);
@@ -229,6 +325,7 @@ function TransactionHistory({ transactions, loading, onRefresh }) {
   );
 }
 
+// ── WithdrawalModal (unchanged) ──
 function WithdrawalModal({ isOpen, onClose, onSubmit, balance, savedPaymentMethod, showToast }) {
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState(
@@ -236,9 +333,7 @@ function WithdrawalModal({ isOpen, onClose, onSubmit, balance, savedPaymentMetho
   );
   const [details, setDetails] = useState('');
   const [loading, setLoading] = useState(false);
-
   if (!isOpen) return null;
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     const amt = parseFloat(amount);
@@ -252,7 +347,6 @@ function WithdrawalModal({ isOpen, onClose, onSubmit, balance, savedPaymentMetho
     } catch (err) { showToast(err.message, true); }
     finally { setLoading(false); }
   };
-
   return (
     <div className="cr-modal-bd" onClick={onClose}>
       <div className="cr-modal" onClick={e => e.stopPropagation()}>
@@ -280,6 +374,7 @@ function WithdrawalModal({ isOpen, onClose, onSubmit, balance, savedPaymentMetho
   );
 }
 
+// ── Main CreatorDashboard ──
 export default function CreatorDashboard() {
   injectStyles();
   const { currentUser, myCampaigns, loadMyCampaigns, deleteCampaign, logout, showToast } = useApp();
@@ -307,6 +402,15 @@ export default function CreatorDashboard() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const notifRef = useRef(null);
+
+  // ── Gallery Management State ──
+  const [galleryModalOpen, setGalleryModalOpen] = useState(false);
+  const [galleryCampaign, setGalleryCampaign] = useState(null); // stores campaign object (id, title)
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const [galleryUploadFiles, setGalleryUploadFiles] = useState([]);
+  const [galleryReorderMode, setGalleryReorderMode] = useState(false);
 
   useEffect(() => {
     if (darkMode) document.body.classList.add('dark-mode');
@@ -401,6 +505,118 @@ export default function CreatorDashboard() {
 
   const handleLogout = () => { logout(); navigate('/'); };
 
+  // ── Gallery Management Functions ──
+  const openGalleryManager = async (campaign) => {
+    setGalleryCampaign(campaign);
+    setGalleryLoading(true);
+    try {
+      const token = localStorage.getItem('hb_token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/campaigns/creator/${campaign.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // data.campaign.gallery_images should be an array of objects with id, image_url, etc.
+        const images = data.campaign.gallery_images || [];
+        setGalleryImages(images);
+      } else {
+        setGalleryImages([]);
+      }
+    } catch (err) {
+      console.error('Failed to load gallery:', err);
+      showToast('Could not load gallery images', true);
+      setGalleryImages([]);
+    } finally {
+      setGalleryLoading(false);
+      setGalleryModalOpen(true);
+    }
+  };
+
+  const handleGalleryUpload = async (files) => {
+    if (!files.length) return;
+    const formData = new FormData();
+    for (let file of files) {
+      formData.append('gallery_images', file);
+    }
+    setGalleryUploading(true);
+    try {
+      const token = localStorage.getItem('hb_token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/campaigns/${galleryCampaign.id}/gallery`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      const data = await response.json();
+      if (response.ok) {
+        showToast(`${data.images?.length || 0} image(s) uploaded`);
+        // refresh gallery
+        const refreshRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/campaigns/creator/${galleryCampaign.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          setGalleryImages(refreshData.campaign.gallery_images || []);
+        }
+      } else {
+        showToast(data.error || 'Upload failed', true);
+      }
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setGalleryUploading(false);
+      setGalleryUploadFiles([]);
+    }
+  };
+
+  const handleDeleteGalleryImage = async (imageId) => {
+    if (!confirm('Remove this image permanently?')) return;
+    try {
+      const token = localStorage.getItem('hb_token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/campaigns/${galleryCampaign.id}/gallery/${imageId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        showToast('Image removed');
+        setGalleryImages(prev => prev.filter(img => img.id !== imageId));
+      } else {
+        const data = await response.json();
+        showToast(data.error || 'Delete failed', true);
+      }
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  };
+
+  const moveImage = (index, direction) => {
+    const newImages = [...galleryImages];
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= newImages.length) return;
+    [newImages[index], newImages[newIndex]] = [newImages[newIndex], newImages[index]];
+    setGalleryImages(newImages);
+  };
+
+  const saveOrder = async () => {
+    const imageOrder = galleryImages.map(img => img.id);
+    try {
+      const token = localStorage.getItem('hb_token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/campaigns/${galleryCampaign.id}/gallery/reorder`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ imageOrder })
+      });
+      if (response.ok) {
+        showToast('Order saved');
+        setGalleryReorderMode(false);
+      } else {
+        const data = await response.json();
+        showToast(data.error || 'Failed to save order', true);
+      }
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  };
+
   const safeCampaigns = Array.isArray(myCampaigns) ? myCampaigns : [];
   const safeDonations = Array.isArray(donations) ? donations : [];
   const safePayoutRequests = Array.isArray(payoutRequests) ? payoutRequests : [];
@@ -441,6 +657,7 @@ export default function CreatorDashboard() {
 
   return (
     <div className="shell">
+      {/* Sidebar (unchanged) */}
       <aside className="sidebar">
         <div className="sb-logo">
           <div className="logo-mark">
@@ -514,7 +731,7 @@ export default function CreatorDashboard() {
         <div className="page">
           {loadingData && <div style={{ padding: '8px 16px', background: 'var(--primary)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>Loading your data...</div>}
 
-          {/* Overview */}
+          {/* Overview Tab */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
             <div className="qg">
               <button className="qb" onClick={() => handleQuickAction('campaigns')}><div className="qi"><Target size={20} /></div><span className="ql">My Campaigns</span></button>
@@ -557,7 +774,7 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Campaigns */}
+          {/* Campaigns Tab */}
           <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
               <div style={{ fontFamily: 'Raleway', fontSize: '1.3rem', fontWeight: 700 }}>My Campaigns</div>
@@ -567,9 +784,18 @@ export default function CreatorDashboard() {
               <div className="card-b" style={{ padding: 0 }}>
                 <div className="ut-wrap">
                   <table className="ut">
-                    <thead><tr><th>Campaign</th><th>Goal</th><th>Raised</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead>
+                      <tr>
+                        <th>Campaign</th>
+                        <th>Goal</th>
+                        <th>Raised</th>
+                        <th>Progress</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
                     <tbody>
-                      {safeCampaigns.length === 0 && <tr><td colSpan="6" style={{ textAlign: 'center', padding: 24 }}>No campaigns yet</td></tr>}
+                      {safeCampaigns.length === 0 && <td><td colSpan="6" style={{ textAlign: 'center', padding: 24 }}>No campaigns yet</td><//>}
                       {safeCampaigns.map(c => {
                         const percent = Math.min(((c.raised || 0) / c.goal) * 100, 100);
                         return (
@@ -582,6 +808,7 @@ export default function CreatorDashboard() {
                             <td style={{ paddingRight: 20 }}>
                               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                                 <button className="db dbv" onClick={() => { setEditCampaign(c); setEditModalOpen(true); }}><Edit size={12} /> Edit</button>
+                                <button className="db dbp" onClick={() => openGalleryManager(c)}><Image size={12} /> Gallery</button>
                                 <button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}><Trash2 size={12} /> Delete</button>
                               </div>
                             </td>
@@ -595,7 +822,7 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Donations */}
+          {/* Donations Tab */}
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t"><Heart size={18} /> Donations Received</div></div>
@@ -607,7 +834,7 @@ export default function CreatorDashboard() {
                       {safeDonations.map(d => (
                         <tr key={d.id}><td>{d.donor_name || 'Anonymous'}</td><td>{d.campaign_title}</td><td>${parseFloat(d.amount || 0).toFixed(2)}</td><td>{new Date(d.created_at).toLocaleDateString()}</td></tr>
                       ))}
-                      {safeDonations.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: 24 }}>No donations yet</td></tr>}
+                      {safeDonations.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: 24 }}>No donations yet</td>//}
                     </tbody>
                   </table>
                 </div>
@@ -615,7 +842,7 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Payouts */}
+          {/* Payouts Tab */}
           <div className={`ps ${activeTab === 'payouts' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t"><Banknote size={18} /> Available Balance & Withdrawals</div></div>
@@ -638,7 +865,7 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Wallet */}
+          {/* Wallet Tab */}
           <div className={`ps ${activeTab === 'wallet' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t"><Wallet size={18} /> Creator Wallet</div></div>
@@ -673,7 +900,7 @@ export default function CreatorDashboard() {
       {/* FAB */}
       <button className="fab" onClick={() => { setEditCampaign(null); setModalOpen(true); }}><Plus size={24} color="#fff" /></button>
 
-      {/* Progress Modal – uses cr-modal-bd */}
+      {/* Progress Modal */}
       {progressModalOpen && (
         <div className="cr-modal-bd" onClick={() => setProgressModalOpen(false)}>
           <div className="cr-modal" onClick={e => e.stopPropagation()}>
@@ -688,7 +915,7 @@ export default function CreatorDashboard() {
         </div>
       )}
 
-      {/* Settings Modal – uses cr-modal-bd */}
+      {/* Settings Modal */}
       {showSettings && (
         <div className="cr-modal-bd" onClick={() => setShowSettings(false)}>
           <div className="cr-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: 0 }}>
@@ -697,7 +924,7 @@ export default function CreatorDashboard() {
         </div>
       )}
 
-      {/* Third-party modals – these render their own backdrop */}
+      {/* Third-party modals */}
       {modalOpen && <CampaignModal campaign={null} onClose={() => { setModalOpen(false); loadData(); }} />}
       {editModalOpen && editCampaign && <CampaignModal campaign={editCampaign} onClose={() => { setEditModalOpen(false); setEditCampaign(null); loadData(); }} />}
       {viewDonations && <DonationsModal campaign={viewDonations} onClose={() => setViewDonations(null)} />}
@@ -710,6 +937,88 @@ export default function CreatorDashboard() {
         savedPaymentMethod={paymentMethod}
         showToast={showToast}
       />
+
+      {/* ── Gallery Management Modal ── */}
+      {galleryModalOpen && galleryCampaign && (
+        <div className="cr-modal-bd" onClick={() => setGalleryModalOpen(false)}>
+          <div className="cr-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px' }}>
+            <div className="cr-modal-t">Manage Gallery – {galleryCampaign.title}</div>
+            <div className="cr-modal-s">Upload, reorder, or delete campaign images</div>
+            
+            {/* Upload Area */}
+            <div className="upload-area" onClick={() => document.getElementById('galleryFileInput').click()}>
+              <Upload size={32} stroke="var(--primary)" />
+              <div style={{ marginTop: 8, fontSize: 14, color: 'var(--txt-2)' }}>
+                Click to select images (JPEG, PNG, up to 5MB each)
+              </div>
+              <input
+                id="galleryFileInput"
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/jpg,image/webp"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  if (e.target.files.length) {
+                    handleGalleryUpload(Array.from(e.target.files));
+                    e.target.value = '';
+                  }
+                }}
+              />
+              {galleryUploading && <div className="file-list">Uploading... Please wait.</div>}
+            </div>
+
+            {galleryLoading ? (
+              <div style={{ textAlign: 'center', padding: 40 }}>Loading images...</div>
+            ) : galleryImages.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40, color: 'var(--txt-3)' }}>No images yet. Upload your first image above.</div>
+            ) : (
+              <>
+                <div className="gallery-grid">
+                  {galleryImages.map((img, idx) => (
+                    <div key={img.id} className="gallery-item">
+                      <img src={img.image_url} alt={`gallery-${idx}`} />
+                      {!galleryReorderMode && (
+                        <div className="gallery-actions">
+                          <button className="gallery-action-btn" onClick={() => handleDeleteGalleryImage(img.id)}>
+                            <Trash2 size={14} /> Delete
+                          </button>
+                        </div>
+                      )}
+                      {galleryReorderMode && (
+                        <div className="gallery-reorder-buttons">
+                          {idx > 0 && (
+                            <button className="reorder-btn" onClick={() => moveImage(idx, -1)}>
+                              <MoveUp size={16} />
+                            </button>
+                          )}
+                          {idx < galleryImages.length - 1 && (
+                            <button className="reorder-btn" onClick={() => moveImage(idx, 1)}>
+                              <MoveDown size={16} />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                  <button className="btn btn-gh" onClick={() => setGalleryReorderMode(!galleryReorderMode)}>
+                    {galleryReorderMode ? <><EyeOff size={14} /> Exit Reorder Mode</> : <><GripVertical size={14} /> Reorder Images</>}
+                  </button>
+                  {galleryReorderMode && (
+                    <button className="btn btn-g" onClick={saveOrder}>
+                      Save New Order
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+            <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-gh" onClick={() => setGalleryModalOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
