@@ -21,7 +21,7 @@ const toNumber = (val, fallback = 0) => {
   return isNaN(num) ? fallback : num;
 };
 
-// ── Styles (unchanged but extended for gallery reorder) ──
+// ── Styles ────────────────────────────────────────
 let stylesInjected = false;
 const injectStyles = () => {
   if (stylesInjected) return;
@@ -292,7 +292,7 @@ const injectStyles = () => {
   document.head.appendChild(styleEl);
 };
 
-// ── TransactionHistory (unchanged) ──
+// ── TransactionHistory ──
 function TransactionHistory({ transactions, loading, onRefresh }) {
   const [showAll, setShowAll] = useState(false);
   const displayTransactions = showAll ? transactions : transactions.slice(0, 10);
@@ -325,7 +325,7 @@ function TransactionHistory({ transactions, loading, onRefresh }) {
   );
 }
 
-// ── WithdrawalModal (unchanged) ──
+// ── WithdrawalModal ──
 function WithdrawalModal({ isOpen, onClose, onSubmit, balance, savedPaymentMethod, showToast }) {
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState(
@@ -548,7 +548,6 @@ export default function CreatorDashboard() {
       const data = await response.json();
       if (response.ok) {
         showToast(`${data.images?.length || 0} image(s) uploaded`);
-        // refresh gallery
         const refreshRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/campaigns/creator/${galleryCampaign.id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -656,7 +655,7 @@ export default function CreatorDashboard() {
 
   return (
     <div className="shell">
-      {/* Sidebar (unchanged) */}
+      {/* Sidebar */}
       <aside className="sidebar">
         <div className="sb-logo">
           <div className="logo-mark">
@@ -728,8 +727,6 @@ export default function CreatorDashboard() {
         </div>
 
         <div className="page">
-          {/* LOADING BANNER REMOVED */}
-
           {/* Overview Tab */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
             <div className="qg">
@@ -794,7 +791,11 @@ export default function CreatorDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {safeCampaigns.length === 0 && <td><td colSpan="6" style={{ textAlign: 'center', padding: 24 }}>No campaigns yet</td> </tr>}
+                      {safeCampaigns.length === 0 && (
+                        <tr>
+                          <td colSpan="6" style={{ textAlign: 'center', padding: 24 }}>No campaigns yet</td>
+                        </tr>
+                      )}
                       {safeCampaigns.map(c => {
                         const percent = Math.min(((c.raised || 0) / c.goal) * 100, 100);
                         return (
@@ -831,9 +832,13 @@ export default function CreatorDashboard() {
                     <thead><tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Date</th></tr></thead>
                     <tbody>
                       {safeDonations.map(d => (
-                        <tr key={d.id}><td>{d.donor_name || 'Anonymous'}</td><td>{d.campaign_title}</td><td>${parseFloat(d.amount || 0).toFixed(2)}</td><td>{new Date(d.created_at).toLocaleDateString()}</td> </tr>
+                        <tr key={d.id}><td>{d.donor_name || 'Anonymous'}</td><td>{d.campaign_title}</td><td>${parseFloat(d.amount || 0).toFixed(2)}</td><td>{new Date(d.created_at).toLocaleDateString()}</td></tr>
                       ))}
-                      {safeDonations.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: 24 }}>No donations yet</td> </tr>}
+                      {safeDonations.length === 0 && (
+                        <tr>
+                          <td colSpan="4" style={{ textAlign: 'center', padding: 24 }}>No donations yet</td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
