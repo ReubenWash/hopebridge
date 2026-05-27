@@ -591,7 +591,7 @@ export default function DonorDashboard() {
         </div>
 
         <div className="page">
-          {loadingData && <div style={{ padding: '8px 16px', background: 'var(--primary)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>Loading your data...</div>}
+          {/* REMOVED LOADING MESSAGE - no longer shown */}
 
           {/* Overview Tab */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
