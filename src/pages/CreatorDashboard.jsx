@@ -405,7 +405,7 @@ export default function CreatorDashboard() {
 
   // ── Gallery Management State ──
   const [galleryModalOpen, setGalleryModalOpen] = useState(false);
-  const [galleryCampaign, setGalleryCampaign] = useState(null); // stores campaign object (id, title)
+  const [galleryCampaign, setGalleryCampaign] = useState(null);
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [galleryUploading, setGalleryUploading] = useState(false);
@@ -516,7 +516,6 @@ export default function CreatorDashboard() {
       });
       if (response.ok) {
         const data = await response.json();
-        // data.campaign.gallery_images should be an array of objects with id, image_url, etc.
         const images = data.campaign.gallery_images || [];
         setGalleryImages(images);
       } else {
@@ -729,7 +728,7 @@ export default function CreatorDashboard() {
         </div>
 
         <div className="page">
-          {loadingData && <div style={{ padding: '8px 16px', background: 'var(--primary)', color: '#fff', borderRadius: 6, marginBottom: 12 }}>Loading your data...</div>}
+          {/* LOADING BANNER REMOVED */}
 
           {/* Overview Tab */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
@@ -795,10 +794,7 @@ export default function CreatorDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      
-
-                      {safeCampaigns.length === 0 && <tr><td colSpan="6" style={{ textAlign: 'center', padding: 24 }}>No campaigns yet</td></tr>}
-                      
+                      {safeCampaigns.length === 0 && <td><td colSpan="6" style={{ textAlign: 'center', padding: 24 }}>No campaigns yet</td> </tr>}
                       {safeCampaigns.map(c => {
                         const percent = Math.min(((c.raised || 0) / c.goal) * 100, 100);
                         return (
@@ -835,13 +831,9 @@ export default function CreatorDashboard() {
                     <thead><tr><th>Donor</th><th>Campaign</th><th>Amount</th><th>Date</th></tr></thead>
                     <tbody>
                       {safeDonations.map(d => (
-                        <tr key={d.id}><td>{d.donor_name || 'Anonymous'}</td><td>{d.campaign_title}</td><td>${parseFloat(d.amount || 0).toFixed(2)}</td><td>{new Date(d.created_at).toLocaleDateString()}</td></tr>
+                        <tr key={d.id}><td>{d.donor_name || 'Anonymous'}</td><td>{d.campaign_title}</td><td>${parseFloat(d.amount || 0).toFixed(2)}</td><td>{new Date(d.created_at).toLocaleDateString()}</td> </tr>
                       ))}
-                      
-
-
-                     {safeDonations.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: 24 }}>No donations yet</td></tr>}
-                      
+                      {safeDonations.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: 24 }}>No donations yet</td> </tr>}
                     </tbody>
                   </table>
                 </div>
@@ -945,14 +937,13 @@ export default function CreatorDashboard() {
         showToast={showToast}
       />
 
-      {/* ── Gallery Management Modal ── */}
+      {/* Gallery Management Modal */}
       {galleryModalOpen && galleryCampaign && (
         <div className="cr-modal-bd" onClick={() => setGalleryModalOpen(false)}>
           <div className="cr-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px' }}>
             <div className="cr-modal-t">Manage Gallery – {galleryCampaign.title}</div>
             <div className="cr-modal-s">Upload, reorder, or delete campaign images</div>
             
-            {/* Upload Area */}
             <div className="upload-area" onClick={() => document.getElementById('galleryFileInput').click()}>
               <Upload size={32} stroke="var(--primary)" />
               <div style={{ marginTop: 8, fontSize: 14, color: 'var(--txt-2)' }}>
