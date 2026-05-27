@@ -211,6 +211,19 @@ const injectStyles = () => {
       overflow-x: hidden;
       max-width: 100%;
     }
+    /* Force desktop sidebar & topbar visible */
+@media (min-width: 769px) {
+  .sidebar {
+    left: 0 !important;
+    display: flex !important;
+  }
+  .topbar {
+    display: flex !important;
+  }
+  .mobile-menu-btn {
+    display: none !important;
+  }
+}
   `;
   document.head.appendChild(el);
 };
