@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { authApi } from '../services/api';
+import ReCAPTCHA from 'react-google-recaptcha';
 import {
   X,
   Heart,
@@ -43,11 +44,19 @@ export default function AuthModal() {
   const [pendingEmail, setPendingEmail] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
 
+  // reCAPTCHA state
+  const [recaptchaToken, setRecaptchaToken] = useState(null);
+  const recaptchaRef = useRef(null);
+  const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '';
+
   useEffect(() => {
     if (authOpen) {
       authApi.getVerificationStatus().then(data => {
         setVerificationEnabled(data.enabled);
       }).catch(() => {});
+      // Reset recaptcha when modal opens
+      if (recaptchaRef.current) recaptchaRef.current.reset();
+      setRecaptchaToken(null);
     }
   }, [authOpen]);
 
@@ -68,6 +77,8 @@ export default function AuthModal() {
     setNeedsVerify(false);
     setVerifyEmail('');
     setResendCooldown(0);
+    setRecaptchaToken(null);
+    if (recaptchaRef.current) recaptchaRef.current.reset();
   };
 
   const handleSubmit = async (e) => {
@@ -75,7 +86,17 @@ export default function AuthModal() {
     setBusy(true);
     try {
       if (mode === 'register') {
-        const response = await authApi.register({ name, email, password, role, recaptchaToken: null });
+        // If reCAPTCHA is enabled (site key provided) and no token, block registration
+        if (recaptchaSiteKey && !recaptchaToken) {
+          showToast('Please complete the reCAPTCHA verification', true);
+          setBusy(false);
+          return;
+        }
+
+        const response = await authApi.register({ 
+          name, email, password, role, 
+          recaptchaToken: recaptchaToken || null 
+        });
         
         if (response.needsVerification) {
           setVerifyEmail(email);
@@ -92,6 +113,10 @@ export default function AuthModal() {
             sessionStorage.removeItem('pendingDonation');
             showToast('You can now complete your donation!');
           }
+          
+          // Reset captcha after successful registration
+          if (recaptchaRef.current) recaptchaRef.current.reset();
+          setRecaptchaToken(null);
           
           // Redirect to appropriate dashboard
           if (response.user?.role === 'admin') {
@@ -125,6 +150,11 @@ export default function AuthModal() {
         showToast('Please verify your email first.', true);
       } else {
         showToast(err.message, true);
+      }
+      // Reset recaptcha on registration error
+      if (mode === 'register' && recaptchaRef.current) {
+        recaptchaRef.current.reset();
+        setRecaptchaToken(null);
       }
     } finally {
       setBusy(false);
@@ -527,6 +557,18 @@ export default function AuthModal() {
                   {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+
+              {/* reCAPTCHA Widget - only if site key is provided */}
+              {recaptchaSiteKey && (
+                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={recaptchaSiteKey}
+                    onChange={(token) => setRecaptchaToken(token)}
+                    onExpired={() => setRecaptchaToken(null)}
+                  />
+                </div>
+              )}
 
               <button type="submit" style={{
                 ...btnStyle,

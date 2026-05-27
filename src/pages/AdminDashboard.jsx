@@ -9,7 +9,7 @@ import {
   Banknote, History, X, Receipt, Lock, Unlock,
   Mail as MailIcon, Trash2, RefreshCw, Image,
   Edit, Wallet, TrendingUp, TrendingDown, UserCheck,
-  AlertCircle, ChevronDown,
+  AlertCircle, ChevronDown, Menu,
 } from 'lucide-react';
 
 // ── Helpers ───────────────────────────────────────
@@ -37,7 +37,11 @@ const injectStyles = () => {
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     body{font-family:var(--fb);background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden;transition:background var(--tr),color var(--tr)}
     .shell{display:flex;min-height:100vh;overflow-x:hidden}
-    .sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;overflow-y:auto}
+    .sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:200;overflow-y:auto;transition:left 0.3s ease;}
+    .sidebar.mobile-closed{left:-260px;}
+    @media (max-width: 768px) { .sidebar { left: -260px; } .sidebar.mobile-open { left: 0; } }
+    .sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:150;display:none;}
+    .sidebar-overlay.open{display:block;}
     .sb-logo{padding:22px 20px 14px;border-bottom:1px solid var(--border)}
     .logo-mark{display:flex;align-items:center;gap:10px}
     .logo-icon{width:36px;height:36px;border-radius:var(--r-sm);background:var(--green);display:flex;align-items:center;justify-content:center}
@@ -85,7 +89,7 @@ const injectStyles = () => {
     .hst-v{font-family:var(--fd);font-size:26px;color:#fff;line-height:1}
     .hst-l{font-size:11px;color:rgba(255,255,255,0.6);font-weight:600;margin-top:3px;letter-spacing:.04em}
     .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
-    .sc{background:var(--surface);border-radius:var(--r-lg);padding:20px;box-shadow:var(--sh-sm);position:relative;overflow:hidden}
+    .sc{background:var(--surface);border-radius:var(--r-lg);padding:20px;box-shadow:var(--sh-sm);position:relative;overflow:hidden;cursor:pointer}
     .sc::after{content:'';position:absolute;bottom:-22px;right:-22px;width:80px;height:80px;border-radius:50%;background:var(--green-l);opacity:.6}
     .si{width:36px;height:36px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
     .si-g{background:var(--green-l);color:var(--green-d)}.si-b{background:var(--blue-l);color:var(--blue)}.si-a{background:var(--amber-l);color:#854F0B}.si-r{background:var(--red-l);color:var(--red)}
@@ -138,7 +142,8 @@ const injectStyles = () => {
     .tpl-desc{font-size:11px;color:var(--txt-3);margin-top:2px}
     .tpl-editor{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px}
     .tpl-preview{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:20px;margin-top:16px;font-size:13px;line-height:1.7;max-height:300px;overflow-y:auto}
-    .ut{width:100%;border-collapse:collapse;display:block;overflow-x:auto;white-space:nowrap}
+    .ut-wrapper{overflow-x:auto;width:100%;-webkit-overflow-scrolling:touch;}
+    .ut{width:100%;border-collapse:collapse;min-width:800px;}
     .ut th{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--txt-3);text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface-2)}
     .ut td{font-size:13px;padding:13px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
     .ut tr:last-child td{border-bottom:none}.ut tr:hover td{background:var(--surface-2)}
@@ -147,7 +152,7 @@ const injectStyles = () => {
     .uc{display:flex;align-items:center;gap:10px}
     .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
     .sht{font-family:var(--fd);font-size:20px;color:var(--txt);display:flex;align-items:center;gap:8px}
-    .di{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+    .di{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer}
     .di:last-child{border-bottom:none}
     .di-info{flex:1}
     .di-user{font-size:13px;font-weight:600;color:var(--txt)}
@@ -184,9 +189,11 @@ const injectStyles = () => {
     .bni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:none;background:none;font-family:var(--fb);padding:8px 4px;min-width:0}
     .bni.active svg{color:var(--green)}.bni.active .bni-lbl{color:var(--green);font-weight:700}
     .bni-lbl{font-size:10px;font-weight:600;color:var(--txt-3);white-space:nowrap}
+    .mobile-menu-btn{display:none;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px;cursor:pointer;}
     @media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}.qg{grid-template-columns:repeat(4,1fr)}.three-col{grid-template-columns:1fr}.qt-grid{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:768px){
-      .sidebar{display:none}.main{margin-left:0;max-width:100%}.topbar{display:none}
+      .sidebar{left:-260px;}.sidebar.mobile-open{left:0;}
+      .main{margin-left:0;max-width:100%}.topbar{display:none}
       .mob-top{display:flex}.bnav{display:block}
       .page{padding:16px;padding-bottom:calc(var(--bottom-nav) + 70px)}
       .stats-grid{grid-template-columns:1fr 1fr;gap:10px}.qg{grid-template-columns:repeat(3,1fr);gap:8px}
@@ -194,26 +201,15 @@ const injectStyles = () => {
       .notif-panel{width:calc(100vw - 32px);right:-60px}
       .bnav-inner{justify-content:space-around}
       .bni-lbl{font-size:9px}
-      .ut td, .ut th{white-space:normal;word-break:break-word}
+      .mobile-menu-btn{display:block;}
+      .ut-wrapper{overflow-x:auto;width:100%;}
+      .ut{min-width:600px;}
     }
     @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
     .ps.active>*{animation:fadeUp .35s ease both}
-
-    /* FIX: Prevent horizontal scroll */
     body, .shell, .main, .page, .card, .qg, .stats-grid, .qt-grid, .three-col {
       overflow-x: hidden;
       max-width: 100%;
-    }
-    .ut {
-      display: block;
-      overflow-x: auto;
-      white-space: nowrap;
-    }
-    @media (max-width: 768px) {
-      .ut td, .ut th {
-        white-space: normal;
-        word-break: break-word;
-      }
     }
   `;
   document.head.appendChild(el);
@@ -577,12 +573,46 @@ function WalletAdjustModal({ isOpen, onClose, user, onSave, showToast }) {
   );
 }
 
-// ── Campaign Progress Modal ───────────────────────
+// ── Campaign Progress Modal (updated with real donations + adjustment) ──
 function CampaignProgressModal({ isOpen, onClose, campaign, onSave, showToast }) {
   const [raised, setRaised] = useState('');
   const [loading, setLoading] = useState(false);
-  useEffect(() => { if (campaign) setRaised(campaign.raised?.toString() || '0'); }, [campaign]);
+  const [realTotal, setRealTotal] = useState(0);
+  const [manualAdjustment, setManualAdjustment] = useState(0);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  
+  useEffect(() => { 
+    if (campaign) {
+      setRaised(campaign.raised?.toString() || '0');
+      // Fetch real donations sum and current manual adjustment from backend
+      const fetchDetails = async () => {
+        setLoadingDetails(true);
+        try {
+          const token = localStorage.getItem('hb_token');
+          const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/admin/campaigns/${campaign.id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if (data.campaign) {
+            // Fetch real donations sum separately
+            const donationsRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/donations/campaign/${campaign.id}`);
+            const donationsData = await donationsRes.json();
+            const real = donationsData.total || 0;
+            setRealTotal(real);
+            setManualAdjustment(data.campaign.manual_adjustment || 0);
+          }
+        } catch (err) {
+          console.error('Failed to fetch campaign details', err);
+        } finally {
+          setLoadingDetails(false);
+        }
+      };
+      fetchDetails();
+    }
+  }, [campaign]);
+  
   if (!isOpen || !campaign) return null;
+  
   const handleSave = async e => {
     e.preventDefault();
     const amt = parseFloat(raised);
@@ -592,12 +622,23 @@ function CampaignProgressModal({ isOpen, onClose, campaign, onSave, showToast })
     catch (err) { showToast(err.message, true); }
     finally { setLoading(false); }
   };
-  const pct = Math.min(((parseFloat(raised) || 0) / (campaign.goal || 1)) * 100, 100);
+  
+  const pct = Math.min((parseFloat(raised) / campaign.goal) * 100, 100);
+  
   return (
     <div className="hb-modal-bd" onClick={onClose}>
       <div className="hb-modal" onClick={e => e.stopPropagation()}>
         <div className="hb-modal-t">Update Campaign Progress</div>
         <div className="hb-modal-s"><strong>{campaign.title}</strong> · Goal: ${toNum(campaign.goal).toLocaleString()}</div>
+        {loadingDetails ? (
+          <div style={{ textAlign: 'center', padding: '10px' }}>Loading donation details...</div>
+        ) : (
+          <div style={{ marginBottom: 16, padding: 12, background: 'var(--surface-2)', borderRadius: 'var(--r-md)' }}>
+            <div style={{ fontSize: 13, marginBottom: 4 }}>Real donations: <strong>${realTotal.toLocaleString()}</strong></div>
+            <div style={{ fontSize: 13, marginBottom: 4 }}>Manual adjustment: <strong>${manualAdjustment.toLocaleString()}</strong></div>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>Current displayed total: <strong>${(realTotal + manualAdjustment).toLocaleString()}</strong></div>
+          </div>
+        )}
         <form onSubmit={handleSave}>
           <label className="fl">New Raised Amount ($)</label>
           <input type="number" className="fi" value={raised} onChange={e => setRaised(e.target.value)} min="0" step="0.01" required />
@@ -612,6 +653,55 @@ function CampaignProgressModal({ isOpen, onClose, campaign, onSave, showToast })
             <button type="button" className="btn btn-gh" onClick={onClose}>Cancel</button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Deposit Details Modal ─────────────────────────
+function DepositDetailsModal({ isOpen, onClose, deposit }) {
+  if (!isOpen || !deposit) return null;
+  return (
+    <div className="hb-modal-bd" onClick={onClose}>
+      <div className="hb-modal" onClick={e => e.stopPropagation()}>
+        <div className="hb-modal-t">Deposit Request Details</div>
+        <div className="hb-modal-s">Request ID: #{deposit.id}</div>
+        <div style={{ marginBottom: 12 }}><strong>User:</strong> {deposit.name} ({deposit.email})</div>
+        <div style={{ marginBottom: 12 }}><strong>Amount:</strong> ${toNum(deposit.amount).toFixed(2)}</div>
+        <div style={{ marginBottom: 12 }}><strong>Status:</strong> <span className={`badge ${deposit.status === 'approved' ? 'ba' : deposit.status === 'rejected' ? 'bx' : 'bp'}`}>{deposit.status}</span></div>
+        {deposit.payment_method && <div style={{ marginBottom: 12 }}><strong>Payment Method:</strong> {deposit.payment_method}</div>}
+        {deposit.payment_details && <div style={{ marginBottom: 12 }}><strong>Payment Details:</strong> {deposit.payment_details}</div>}
+        {deposit.admin_instructions && <div style={{ marginBottom: 12 }}><strong>Instructions Sent:</strong> <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, background: 'var(--surface-2)', padding: 8, borderRadius: 6 }}>{deposit.admin_instructions}</pre></div>}
+        {deposit.admin_notes && <div style={{ marginBottom: 12 }}><strong>Admin Notes:</strong> {deposit.admin_notes}</div>}
+        {deposit.proof_image_url && (
+          <div><strong>Proof Image:</strong><ProofImageViewer url={deposit.proof_image_url} /></div>
+        )}
+        <div style={{ marginTop: 20, textAlign: 'right' }}>
+          <button className="btn btn-gh" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Withdrawal Details Modal ──────────────────────
+function WithdrawalDetailsModal({ isOpen, onClose, withdrawal }) {
+  if (!isOpen || !withdrawal) return null;
+  return (
+    <div className="hb-modal-bd" onClick={onClose}>
+      <div className="hb-modal" onClick={e => e.stopPropagation()}>
+        <div className="hb-modal-t">Withdrawal Request Details</div>
+        <div className="hb-modal-s">Request ID: #{withdrawal.id}</div>
+        <div style={{ marginBottom: 12 }}><strong>User:</strong> {withdrawal.name} ({withdrawal.email})</div>
+        <div style={{ marginBottom: 12 }}><strong>Amount:</strong> ${toNum(withdrawal.amount).toFixed(2)}</div>
+        <div style={{ marginBottom: 12 }}><strong>Status:</strong> <span className={`badge ${withdrawal.status === 'approved' ? 'ba' : withdrawal.status === 'paid' ? 'ba' : withdrawal.status === 'rejected' ? 'bx' : 'bp'}`}>{withdrawal.status}</span></div>
+        {withdrawal.payment_method && <div style={{ marginBottom: 12 }}><strong>Payment Method:</strong> {withdrawal.payment_method}</div>}
+        {withdrawal.payment_details && <div style={{ marginBottom: 12 }}><strong>Payment Details:</strong> {withdrawal.payment_details}</div>}
+        {withdrawal.admin_note && <div style={{ marginBottom: 12 }}><strong>Admin Note:</strong> {withdrawal.admin_note}</div>}
+        {withdrawal.transaction_id && <div style={{ marginBottom: 12 }}><strong>Transaction ID:</strong> {withdrawal.transaction_id}</div>}
+        <div style={{ marginTop: 20, textAlign: 'right' }}>
+          <button className="btn btn-gh" onClick={onClose}>Close</button>
+        </div>
       </div>
     </div>
   );
@@ -866,18 +956,20 @@ function FeeSettings({ fees, onSave, showToast }) {
   );
 }
 
-// ── DepositRequestsManager ────────────────────────
-function DepositRequestsManager({ requests, onApprove, onReject, onProvideInstructions, showToast }) {
+// ── DepositRequestsManager (with click to view details) ──
+function DepositRequestsManager({ requests, onApprove, onReject, onProvideInstructions, showToast, onSelect }) {
   const [instructions, setInstructions] = useState({});
   if (!requests.length) return <div style={{ color: 'var(--txt-3)' }}>No deposit requests.</div>;
   return (
     <div>
       {requests.map(req => (
         <div key={req.id} style={{ borderBottom: '1px solid var(--border)', padding: '16px 0' }}>
-          <div style={{ marginBottom: 4 }}><strong>{req.userName || req.name}</strong> ({req.email})</div>
-          <div style={{ fontSize: 13, color: 'var(--txt-2)', marginBottom: 8 }}>
-            Amount: <strong>$${toNum(req.amount).toFixed(2)}</strong> ·{' '}
-            <span className={`badge ${req.status === 'pending' ? 'bp' : req.status === 'approved' ? 'ba' : 'bx'}`}>{req.status}</span>
+          <div style={{ cursor: 'pointer' }} onClick={() => onSelect(req)}>
+            <div style={{ marginBottom: 4 }}><strong>{req.userName || req.name}</strong> ({req.email})</div>
+            <div style={{ fontSize: 13, color: 'var(--txt-2)', marginBottom: 8 }}>
+              Amount: <strong>$${toNum(req.amount).toFixed(2)}</strong> ·{' '}
+              <span className={`badge ${req.status === 'pending' ? 'bp' : req.status === 'approved' ? 'ba' : 'bx'}`}>{req.status}</span>
+            </div>
           </div>
           {req.admin_instructions && (
             <div style={{ fontSize: 12, background: 'var(--blue-l)', padding: 10, borderRadius: 8, marginBottom: 8, color: '#185FA5' }}>
@@ -912,17 +1004,19 @@ function DepositRequestsManager({ requests, onApprove, onReject, onProvideInstru
   );
 }
 
-// ── WithdrawalRequestsManager ─────────────────────
-function WithdrawalRequestsManager({ requests, onApprove, onReject }) {
+// ── WithdrawalRequestsManager (with click to view details) ──
+function WithdrawalRequestsManager({ requests, onApprove, onReject, onSelect }) {
   if (!requests.length) return <div style={{ color: 'var(--txt-3)' }}>No withdrawal requests.</div>;
   return (
     <div>
       {requests.map(req => (
         <div key={req.id} style={{ borderBottom: '1px solid var(--border)', padding: '16px 0' }}>
-          <div style={{ marginBottom: 4 }}><strong>{req.name}</strong> ({req.email})</div>
-          <div style={{ fontSize: 13, color: 'var(--txt-2)', marginBottom: 4 }}>Amount: <strong>$${toNum(req.amount).toFixed(2)}</strong> · {req.payment_method}</div>
-          <div style={{ fontSize: 12, color: 'var(--txt-3)', marginBottom: 8 }}>{req.payment_details}</div>
-          <span className={`badge ${req.status === 'pending' ? 'bp' : req.status === 'approved' ? 'ba' : 'bx'}`}>{req.status}</span>
+          <div style={{ cursor: 'pointer' }} onClick={() => onSelect(req)}>
+            <div style={{ marginBottom: 4 }}><strong>{req.name}</strong> ({req.email})</div>
+            <div style={{ fontSize: 13, color: 'var(--txt-2)', marginBottom: 4 }}>Amount: <strong>$${toNum(req.amount).toFixed(2)}</strong> · {req.payment_method}</div>
+            <div style={{ fontSize: 12, color: 'var(--txt-3)', marginBottom: 8 }}>{req.payment_details}</div>
+            <span className={`badge ${req.status === 'pending' ? 'bp' : req.status === 'approved' ? 'ba' : 'bx'}`}>{req.status}</span>
+          </div>
           {req.status === 'pending' && (
             <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
               <button className="db dba" onClick={() => onApprove(req.id)}><CheckCircle size={12} /> Approve</button>
@@ -973,46 +1067,47 @@ function PayoutsManager({ payouts, onMarkPaid }) {
           <button key={s} className={`db ${filter === s ? 'dba' : 'dbv'}`} onClick={() => setFilter(s)}>{s.charAt(0).toUpperCase() + s.slice(1)}</button>
         ))}
       </div>
-      <table className="ut">
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Amount</th>
-            <th>Method</th>
-            <th>Status</th>
-            <th>Date</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map(p => (
-            <tr key={p.id}>
-              <td><strong>{p.user_name}</strong><br /><small style={{ color: 'var(--txt-3)' }}>{p.user_email}</small></td>
-              <td><strong>$${toNum(p.amount).toFixed(2)}</strong></td>
-              <td>{p.payment_method}<br /><small>{p.payment_details?.substring(0, 30)}</small></td>
-              <td><span className={`badge ${p.status === 'paid' ? 'ba' : p.status === 'approved' ? 'bp' : 'bx'}`}>{p.status}</span></td>
-              <td>{new Date(p.created_at).toLocaleDateString()}</td>
-              <td>{p.status === 'approved' && <button className="db dba" onClick={() => onMarkPaid(p.id)}><CheckCircle size={12} /> Mark Paid</button>}</td>
+      <div className="ut-wrapper">
+        <table className="ut">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filtered.map(p => (
+              <tr key={p.id}>
+                <td><strong>{p.user_name}</strong><br /><small style={{ color: 'var(--txt-3)' }}>{p.user_email}</small></td>
+                <td><strong>$${toNum(p.amount).toFixed(2)}</strong></td>
+                <td>{p.payment_method}<br /><small>{p.payment_details?.substring(0, 30)}</small></td>
+                <td><span className={`badge ${p.status === 'paid' ? 'ba' : p.status === 'approved' ? 'bp' : 'bx'}`}>{p.status}</span></td>
+                <td>{new Date(p.created_at).toLocaleDateString()}</td>
+                <td>{p.status === 'approved' && <button className="db dba" onClick={() => onMarkPaid(p.id)}><CheckCircle size={12} /> Mark Paid</button>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
-// ── NotificationManager ───────────────────────────
+// ── NotificationManager (without Firebase config) ──
 function NotificationManager({ settings, onSave, onSend, history, showToast }) {
   const [local, setLocal] = useState(settings);
   const [notif, setNotif] = useState({ title: '', body: '', target_type: 'all' });
   const [sending, setSending] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [fcmKey, setFcmKey] = useState('');
   useEffect(() => setLocal(settings), [settings]);
 
   const handleSaveSettings = async () => {
     setSaving(true);
-    try { await onSave({ ...local, fcm_server_key: fcmKey || local.fcm_server_key }); showToast('Settings saved'); }
+    try { await onSave(local); showToast('Settings saved'); }
     catch (err) { showToast(err.message, true); }
     finally { setSaving(false); }
   };
@@ -1027,22 +1122,11 @@ function NotificationManager({ settings, onSave, onSend, history, showToast }) {
 
   return (
     <div>
-      <div style={{ background: 'var(--surface-2)', borderRadius: 'var(--r-md)', padding: 16, marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>🔥 Firebase Configuration</div>
-        <label className="fl">FCM Server Key</label>
-        <input type="password" className="fi" value={fcmKey || local.fcm_server_key || ''} onChange={e => setFcmKey(e.target.value)} placeholder="AAAA...your Firebase Server Key" />
-        <div style={{ fontSize: 12, color: 'var(--txt-3)', marginTop: -8, marginBottom: 12 }}>
-          Get from Firebase Console → Project Settings → Cloud Messaging → Server Key
-        </div>
-        <label className="fl">FCM Sender ID</label>
-        <input type="text" className="fi" value={local.fcm_sender_id || ''} onChange={e => setLocal(p => ({ ...p, fcm_sender_id: e.target.value }))} placeholder="Your Firebase Sender ID" />
-      </div>
-
       <div className="toggle-row">
         <div className="toggle-info"><strong>Push Notifications Enabled</strong><p>Enable/disable all push notifications</p></div>
         <Toggle checked={local.enabled} onChange={val => setLocal(p => ({ ...p, enabled: val }))} />
       </div>
-      <button className="btn btn-g" onClick={handleSaveSettings} disabled={saving} style={{ marginTop: 16, marginBottom: 24 }}>{saving ? 'Saving…' : 'Save Firebase Settings'}</button>
+      <button className="btn btn-g" onClick={handleSaveSettings} disabled={saving} style={{ marginTop: 16, marginBottom: 24 }}>{saving ? 'Saving…' : 'Save Settings'}</button>
 
       <hr style={{ margin: '4px 0 20px', borderColor: 'var(--border)' }} />
       <div style={{ fontWeight: 700, marginBottom: 16, fontSize: 15 }}>Send Push Notification</div>
@@ -1087,28 +1171,30 @@ function AuditLogs({ logs }) {
         <button className={`db ${!filter ? 'dba' : 'dbv'}`} onClick={() => setFilter('')}>All</button>
         {actions.map(a => <button key={a} className={`db ${filter === a ? 'dba' : 'dbv'}`} onClick={() => setFilter(a)}>{a.replace(/_/g, ' ')}</button>)}
       </div>
-      <table className="ut">
-        <thead>
-          <tr>
-            <th>Admin</th>
-            <th>Action</th>
-            <th>Entity</th>
-            <th>Details</th>
-            <th>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map(log => (
-            <tr key={log.id}>
-              <td>{log.admin_name || 'System'}</td>
-              <td><span className="badge br">{log.action}</span></td>
-              <td>{log.entity_type} #{log.entity_id}</td>
-              <td><small style={{ color: 'var(--txt-3)' }}>{log.details ? JSON.stringify(log.details).substring(0, 50) : '-'}</small></td>
-              <td><small>{new Date(log.created_at).toLocaleString()}</small></td>
+      <div className="ut-wrapper">
+        <table className="ut">
+          <thead>
+            <tr>
+              <th>Admin</th>
+              <th>Action</th>
+              <th>Entity</th>
+              <th>Details</th>
+              <th>Time</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filtered.map(log => (
+              <tr key={log.id}>
+                <td>{log.admin_name || 'System'}</td>
+                <td><span className="badge br">{log.action}</span></td>
+                <td>{log.entity_type} #{log.entity_id}</td>
+                <td><small style={{ color: 'var(--txt-3)' }}>{log.details ? JSON.stringify(log.details).substring(0, 50) : '-'}</small></td>
+                <td><small>{new Date(log.created_at).toLocaleString()}</small></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -1121,6 +1207,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const notifRef = useRef(null);
   const mobileNotifRef = useRef(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const [authChecked, setAuthChecked] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -1144,6 +1231,11 @@ export default function AdminDashboard() {
   const [addingUser, setAddingUser] = useState(false);
   const [editingUser, setEditingUser] = useState(false);
 
+  // Firebase config state (moved to Settings)
+  const [firebaseServerKey, setFirebaseServerKey] = useState('');
+  const [firebaseSenderId, setFirebaseSenderId] = useState('');
+  const [savingFirebase, setSavingFirebase] = useState(false);
+
   const [themeSettings, setThemeSettings] = useState({ '--primary': '#e8531e', '--primary-dark': '#c4400f', '--secondary': '#27a96c', '--dark': '#1a1a2e' });
   const [integrationKeys, setIntegrationKeys] = useState({ smtp_host: '', smtp_port: '', smtp_user: '', smtp_pass: '', recaptcha_site_key: '', recaptcha_secret_key: '' });
   const [socialLinks, setSocialLinks] = useState({ facebook: '', twitter: '', instagram: '', youtube: '', linkedin: '' });
@@ -1159,10 +1251,14 @@ export default function AdminDashboard() {
   const [guestDonationFilter, setGuestDonationFilter] = useState('all');
   const [sendingInstructions, setSendingInstructions] = useState({});
 
-  // Payment instructions state (ADDED FOR PAYMENT INSTRUCTIONS)
+  // Payment instructions state
   const [paymentInstructions, setPaymentInstructions] = useState({});
   const [loadingInstructions, setLoadingInstructions] = useState(false);
   const [savingInstructions, setSavingInstructions] = useState(false);
+
+  // Deposit/Withdrawal details modal
+  const [selectedDeposit, setSelectedDeposit] = useState(null);
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState(null);
 
   const [campaigns, setCampaigns] = useState([]);
   const [users, setUsers] = useState([]);
@@ -1185,6 +1281,16 @@ export default function AdminDashboard() {
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  useEffect(() => {
+    // Close sidebar when clicking overlay
+    const overlay = document.getElementById('sidebarOverlay');
+    if (overlay) {
+      const closeSidebar = () => setMobileSidebarOpen(false);
+      overlay.addEventListener('click', closeSidebar);
+      return () => overlay.removeEventListener('click', closeSidebar);
+    }
   }, []);
 
   const addNotif = (message, type = 'info') => {
@@ -1257,18 +1363,18 @@ export default function AdminDashboard() {
       setMaintenanceMode({ enabled: k.maintenance_mode === 'true', message: k.maintenance_message || '' });
       setRecaptchaEnabled(k.recaptcha_enabled === 'true');
       setIntegrationKeys(prev => ({ ...prev, ...k }));
+      // Load existing Firebase settings
+      setFirebaseServerKey(k.firebase_server_key || '');
+      setFirebaseSenderId(k.firebase_sender_id || '');
     }
     try { const v = await adminApi.getVerificationSetting?.(); if (v) setVerificationEnabled(v.enabled !== false); } catch {}
   };
 
-  // Fetch guest donations
   const fetchGuestDonations = async () => {
     try {
       const token = localStorage.getItem('hb_token');
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/guest-donations/admin/guest-donations`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
       setGuestDonations(data.requests || []);
@@ -1277,7 +1383,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // ADDED FOR PAYMENT INSTRUCTIONS: Fetch and save functions
   const fetchPaymentInstructions = async () => {
     setLoadingInstructions(true);
     try {
@@ -1303,12 +1408,28 @@ export default function AdminDashboard() {
     }
   };
 
+  const saveFirebaseConfig = async () => {
+    setSavingFirebase(true);
+    try {
+      await adminApi.updateNotificationSettings({
+        enabled: notifSettings.enabled,
+        server_key: firebaseServerKey,
+        sender_id: firebaseSenderId
+      });
+      showToast('Firebase configuration saved');
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setSavingFirebase(false);
+    }
+  };
+
   useEffect(() => { 
     if (authChecked) { 
       fetchAll(); 
       fetchExtras();
       fetchGuestDonations();
-      fetchPaymentInstructions(); // ADDED FOR PAYMENT INSTRUCTIONS
+      fetchPaymentInstructions();
     } 
   }, [authChecked]);
 
@@ -1373,7 +1494,7 @@ export default function AdminDashboard() {
   const handleSaveSettings = async () => { try { await adminApi.saveSettings({ theme: themeSettings, keys: integrationKeys }); showToast('Settings saved'); } catch (err) { showToast(err.message, true); } };
   const handleSaveFees = async data => { try { await adminApi.updateFeeSettings?.(data); setFeeSettings(data); showToast('Fee settings saved'); } catch (err) { showToast(err.message, true); } };
   const handleMarkPayoutPaid = async id => { try { await adminApi.markPayoutAsPaid?.(id); showToast('Marked as paid'); fetchExtras(); } catch (err) { showToast(err.message, true); } };
-  const handleSaveNotifSettings = async data => { try { await adminApi.updateNotificationSettings?.(data); showToast('Saved'); } catch (err) { showToast(err.message, true); } };
+  const handleSaveNotifSettings = async data => { try { await adminApi.updateNotificationSettings?.(data); setNotifSettings(data); showToast('Saved'); } catch (err) { showToast(err.message, true); } };
   const handleSendPushNotif = async data => { try { await adminApi.sendPushNotification?.(data); showToast('Notification sent'); addNotif(`Push sent: "${data.title}"`); fetchExtras(); } catch (err) { showToast(err.message, true); } };
   const handleChangePassword = async data => { await adminApi.changePassword?.(data); };
   const handleLogout = () => { logout(); navigate('/'); };
@@ -1411,9 +1532,7 @@ export default function AdminDashboard() {
       const token = localStorage.getItem('hb_token');
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/guest-donations/admin/approve/${id}`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
       if (response.ok) {
@@ -1432,7 +1551,6 @@ export default function AdminDashboard() {
   const handleRejectGuestDonation = async (id) => {
     const reason = prompt('Reason for rejection:');
     if (!reason) return;
-    
     try {
       const token = localStorage.getItem('hb_token');
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/guest-donations/admin/reject/${id}`, {
@@ -1471,15 +1589,16 @@ export default function AdminDashboard() {
   const tabLabel = t => ({ email_templates: 'Email Templates', notifications: 'Notifications', 'audit-logs': 'Audit Logs', fees: 'Fee Settings', payouts: 'Payouts', guest_donations: 'Guest Donations' }[t] || (t.charAt(0).toUpperCase() + t.slice(1)));
 
   const SideNavBtn = ({ id, label, icon, badge, badgeClass = '' }) => (
-    <button className={`nl ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}>
+    <button className={`nl ${activeTab === id ? 'active' : ''}`} onClick={() => { setActiveTab(id); setMobileSidebarOpen(false); }}>
       {icon}{label}{badge > 0 && <span className={`nb ${badgeClass}`}>{badge}</span>}
     </button>
   );
 
   return (
     <div className="shell">
-      {/* Sidebar */}
-      <aside className="sidebar">
+      {/* Sidebar with mobile toggle */}
+      <div id="sidebarOverlay" className={`sidebar-overlay ${mobileSidebarOpen ? 'open' : ''}`}></div>
+      <aside className={`sidebar ${mobileSidebarOpen ? 'mobile-open' : 'mobile-closed'}`}>
         <div className="sb-logo">
           <div className="logo-mark">
             <div className="logo-icon"><Heart size={20} color="#fff" /></div>
@@ -1550,6 +1669,9 @@ export default function AdminDashboard() {
         
         {/* Mobile header */}
         <div className="mob-top">
+          <div className="mobile-menu-btn" onClick={() => setMobileSidebarOpen(true)}>
+            <Menu size={20} />
+          </div>
           <div className="mob-logo">HopeBridge</div>
           <div ref={mobileNotifRef} style={{ position: 'relative' }}>
             <div className="tb-btn" onClick={() => setShowMobileNotifPanel(p => !p)} style={{ width: 38, height: 38 }}>
@@ -1597,10 +1719,10 @@ export default function AdminDashboard() {
             </div>
 
             <div className="stats-grid">
-              <div className="sc"><div className="si si-g"><Users size={18} /></div><div className="sv">{users.length}</div><div className="sl">Total Users</div></div>
-              <div className="sc"><div className="si si-b"><Target size={18} /></div><div className="sv">{activeCampaigns}</div><div className="sl">Active Campaigns</div></div>
-              <div className="sc"><div className="si si-a"><DollarSign size={18} /></div><div className="sv">${(totalRaised / 1000).toFixed(0)}k</div><div className="sl">Total Raised</div></div>
-              <div className="sc"><div className="si si-r"><Clock size={18} /></div><div className="sv">{pendingCompletions}</div><div className="sl">Pending Completions</div></div>
+              <div className="sc" onClick={() => setActiveTab('users')}><div className="si si-g"><Users size={18} /></div><div className="sv">{users.length}</div><div className="sl">Total Users</div></div>
+              <div className="sc" onClick={() => setActiveTab('campaigns')}><div className="si si-b"><Target size={18} /></div><div className="sv">{activeCampaigns}</div><div className="sl">Active Campaigns</div></div>
+              <div className="sc" onClick={() => setActiveTab('donations')}><div className="si si-a"><DollarSign size={18} /></div><div className="sv">${(totalRaised / 1000).toFixed(0)}k</div><div className="sl">Total Raised</div></div>
+              <div className="sc" onClick={() => setActiveTab('completions')}><div className="si si-r"><Clock size={18} /></div><div className="sv">{pendingCompletions}</div><div className="sl">Pending Completions</div></div>
             </div>
 
             {/* Quick Toggles */}
@@ -1682,10 +1804,10 @@ export default function AdminDashboard() {
                   <div className="card-h"><div className="card-t"><Clock size={18} /> Withdrawal Queue</div><button className="card-a" onClick={() => setActiveTab('withdrawals')}>Manage <ArrowRight size={14} /></button></div>
                   <div className="card-b">
                     {withdrawalRequests.filter(w => w.status === 'pending').slice(0, 2).map(req => (
-                      <div key={req.id} className="di">
+                      <div key={req.id} className="di" onClick={() => setSelectedWithdrawal(req)}>
                         <div className="uav ava" style={{ width: 32, height: 32, fontSize: 11 }}>{req.name?.[0] || 'U'}</div>
                         <div className="di-info"><div className="di-user">{req.name}</div><div className="di-amt">${req.amount.toFixed(2)}</div></div>
-                        <div className="di-acts">
+                        <div className="di-acts" onClick={e => e.stopPropagation()}>
                           <button className="db dba" onClick={() => handleApproveWithdrawal(req.id)}><CheckCircle size={12} /></button>
                           <button className="db dbr" onClick={() => handleRejectWithdrawal(req.id)}><X size={12} /></button>
                         </div>
@@ -1706,66 +1828,68 @@ export default function AdminDashboard() {
             </div>
             <div className="card">
               <div className="card-b" style={{ padding: 0 }}>
-                <table className="ut">
-                  <thead>
-                    <tr>
-                      <th style={{ paddingLeft: 20 }}>Campaign</th>
-                      <th>Goal</th>
-                      <th>Raised</th>
-                      <th>Progress</th>
-                      <th>Status</th>
-                      <th style={{ paddingRight: 20 }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {campaigns.map(c => (
-                      <tr key={c.id}>
-                        <td style={{ paddingLeft: 20 }}>
-                          <div style={{ fontWeight: 600 }}>{c.title}</div>
-                          <small style={{ color: 'var(--txt-3)' }}>{c.creator_name}</small>
-                        </td>
-                        <td>${c.goal.toLocaleString()}</td>
-                        <td>${c.raised.toLocaleString()}</td>
-                        <td>
-                          <div className="pb" style={{ width: 80 }}>
-                            <div className="pf" style={{ width: `${Math.min((c.raised / c.goal) * 100, 100)}%` }} />
-                          </div>
-                          {Math.round((c.raised / c.goal) * 100)}%
-                        </td>
-                        <td>
-                          <span className={`badge ${c.status === 'approved' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>
-                            {c.status}
-                          </span>
-                        </td>
-                        <td style={{ paddingRight: 20 }}>
-                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                            {c.status === 'pending' && (
-                              <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>
-                                <CheckCircle size={12} /> Approve
-                              </button>
-                            )}
-                            <button className="db dbv" onClick={() => setEditCampaignModal({ open: true, campaign: c })}>
-                              <Edit size={12} /> Edit
-                            </button>
-                            <button className="db dbp" onClick={() => setProgressModal({ open: true, campaign: c })}>
-                              <TrendingUp size={12} /> Progress
-                            </button>
-                            <button 
-                              className="db dbr" 
-                              onClick={() => { 
-                                if (window.confirm(`Delete "${c.title}" permanently?`)) {
-                                  handleDeleteCampaign(c.id);
-                                } 
-                              }}
-                            >
-                              <Trash2 size={12} /> Delete
-                            </button>
-                          </div>
-                        </td>
+                <div className="ut-wrapper">
+                  <table className="ut">
+                    <thead>
+                      <tr>
+                        <th style={{ paddingLeft: 20 }}>Campaign</th>
+                        <th>Goal</th>
+                        <th>Raised</th>
+                        <th>Progress</th>
+                        <th>Status</th>
+                        <th style={{ paddingRight: 20 }}>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {campaigns.map(c => (
+                        <tr key={c.id}>
+                          <td style={{ paddingLeft: 20 }}>
+                            <div style={{ fontWeight: 600 }}>{c.title}</div>
+                            <small style={{ color: 'var(--txt-3)' }}>{c.creator_name}</small>
+                          </td>
+                          <td>${c.goal.toLocaleString()}</td>
+                          <td>${c.raised.toLocaleString()}</td>
+                          <td>
+                            <div className="pb" style={{ width: 80 }}>
+                              <div className="pf" style={{ width: `${Math.min((c.raised / c.goal) * 100, 100)}%` }} />
+                            </div>
+                            {Math.round((c.raised / c.goal) * 100)}%
+                          </td>
+                          <td>
+                            <span className={`badge ${c.status === 'approved' ? 'ba' : c.status === 'pending' ? 'bp' : 'br'}`}>
+                              {c.status}
+                            </span>
+                          </td>
+                          <td style={{ paddingRight: 20 }}>
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                              {c.status === 'pending' && (
+                                <button className="db dba" onClick={() => handleApproveCampaign(c.id)}>
+                                  <CheckCircle size={12} /> Approve
+                                </button>
+                              )}
+                              <button className="db dbv" onClick={() => setEditCampaignModal({ open: true, campaign: c })}>
+                                <Edit size={12} /> Edit
+                              </button>
+                              <button className="db dbp" onClick={() => setProgressModal({ open: true, campaign: c })}>
+                                <TrendingUp size={12} /> Progress
+                              </button>
+                              <button 
+                                className="db dbr" 
+                                onClick={() => { 
+                                  if (window.confirm(`Delete "${c.title}" permanently?`)) {
+                                    handleDeleteCampaign(c.id);
+                                  } 
+                                }}
+                              >
+                                <Trash2 size={12} /> Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
@@ -1777,65 +1901,67 @@ export default function AdminDashboard() {
               <button className="btn btn-g" onClick={() => setShowAddUserModal(true)}><Plus size={16} /> Add User</button>
             </div>
             <div className="card"><div className="card-b" style={{ padding: 0 }}>
-              <table className="ut">
-                <thead>
-                  <tr>
-                    <th style={{ paddingLeft: 20 }}>User</th>
-                    <th>Role</th>
-                    <th>Joined</th>
-                    <th>Wallet</th>
-                    <th>Status</th>
-                    <th style={{ paddingRight: 20 }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map(u => (
-                    <tr key={u.id}>
-                      <td style={{ paddingLeft: 20 }}>
-                        <div className="uc">
-                          <div className="uav avg">{u.name?.charAt(0)}</div>
-                          <div>
-                            <div style={{ fontWeight: 600 }}>{u.name}</div>
-                            <small style={{ color: 'var(--txt-3)' }}>{u.email}</small>
-                          </div>
-                        </div>
-                      </td>
-                      <td><span className="badge br">{u.role}</span></td>
-                      <td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
-                      <td><div style={{ fontWeight: 600 }}>${(u.wallet_balance || 0).toFixed(2)}</div></td>
-                      <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                          <span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span>
-                          {u.is_verified && <span className="badge" style={{ background: 'var(--blue-l)', color: '#185FA5' }}>Verified</span>}
-                        </div>
-                      </td>
-                      <td style={{ paddingRight: 20 }}>
-                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                          <button className="db dbv" onClick={() => { setEditUser({ name: u.name, email: u.email, role: u.role, is_verified: u.is_verified }); setEditUserModal({ open: true, user: u }); }}>
-                            <Edit size={12} /> Edit
-                          </button>
-                          <button className="db dbv" onClick={() => handleToggleUser(u.id)}>
-                            {u.is_active ? <Lock size={12} /> : <Unlock size={12} />} {u.is_active ? 'Suspend' : 'Restore'}
-                          </button>
-                          {!u.is_verified && u.role !== 'admin' && (
-                            <button className="db dba" onClick={() => handleVerifyUser(u.id)}>
-                              <UserCheck size={12} /> Verify
-                            </button>
-                          )}
-                          <button className="db dbp" onClick={() => setWalletModal({ open: true, user: u })}>
-                            <Wallet size={12} /> Wallet
-                          </button>
-                          {u.role !== 'admin' && (
-                            <button className="db dbr" onClick={() => setDeleteUserModal({ open: true, userId: u.id, userName: u.name })}>
-                              <Trash2 size={12} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
+              <div className="ut-wrapper">
+                <table className="ut">
+                  <thead>
+                    <tr>
+                      <th style={{ paddingLeft: 20 }}>User</th>
+                      <th>Role</th>
+                      <th>Joined</th>
+                      <th>Wallet</th>
+                      <th>Status</th>
+                      <th style={{ paddingRight: 20 }}>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {users.map(u => (
+                      <tr key={u.id}>
+                        <td style={{ paddingLeft: 20 }}>
+                          <div className="uc">
+                            <div className="uav avg">{u.name?.charAt(0)}</div>
+                            <div>
+                              <div style={{ fontWeight: 600 }}>{u.name}</div>
+                              <small style={{ color: 'var(--txt-3)' }}>{u.email}</small>
+                            </div>
+                          </div>
+                        </td>
+                        <td><span className="badge br">{u.role}</span></td>
+                        <td style={{ color: 'var(--txt-2)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
+                        <td><div style={{ fontWeight: 600 }}>${(u.wallet_balance || 0).toFixed(2)}</div></td>
+                        <td>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <span className={`badge ${u.is_active ? 'ba' : 'bx'}`}>{u.is_active ? 'Active' : 'Suspended'}</span>
+                            {u.is_verified && <span className="badge" style={{ background: 'var(--blue-l)', color: '#185FA5' }}>Verified</span>}
+                          </div>
+                        </td>
+                        <td style={{ paddingRight: 20 }}>
+                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                            <button className="db dbv" onClick={() => { setEditUser({ name: u.name, email: u.email, role: u.role, is_verified: u.is_verified }); setEditUserModal({ open: true, user: u }); }}>
+                              <Edit size={12} /> Edit
+                            </button>
+                            <button className="db dbv" onClick={() => handleToggleUser(u.id)}>
+                              {u.is_active ? <Lock size={12} /> : <Unlock size={12} />} {u.is_active ? 'Suspend' : 'Restore'}
+                            </button>
+                            {!u.is_verified && u.role !== 'admin' && (
+                              <button className="db dba" onClick={() => handleVerifyUser(u.id)}>
+                                <UserCheck size={12} /> Verify
+                              </button>
+                            )}
+                            <button className="db dbp" onClick={() => setWalletModal({ open: true, user: u })}>
+                              <Wallet size={12} /> Wallet
+                            </button>
+                            {u.role !== 'admin' && (
+                              <button className="db dbr" onClick={() => setDeleteUserModal({ open: true, userId: u.id, userName: u.name })}>
+                                <Trash2 size={12} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div></div>
           </div>
 
@@ -1843,41 +1969,59 @@ export default function AdminDashboard() {
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><DollarSign size={18} /> All Donations</div></div>
             <div className="card"><div className="card-b" style={{ padding: 0 }}>
-              <table className="ut">
-                <thead>
-                  <tr>
-                    <th>Donor</th>
-                    <th>Campaign</th>
-                    <th>Amount</th>
-                    <th>Monthly</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {donations.map(d => (
-                    <tr key={d.id}>
-                      <td>{d.donor_name || 'Anonymous'}</td>
-                      <td>{d.campaign_title}</td>
-                      <td>${d.amount.toLocaleString()}</td>
-                      <td>{d.is_monthly ? '✅' : '—'}</td>
-                      <td>{new Date(d.created_at).toLocaleDateString()}</td>
+              <div className="ut-wrapper">
+                <table className="ut">
+                  <thead>
+                    <tr>
+                      <th>Donor</th>
+                      <th>Campaign</th>
+                      <th>Amount</th>
+                      <th>Monthly</th>
+                      <th>Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {donations.map(d => (
+                      <tr key={d.id}>
+                        <td>{d.donor_name || 'Anonymous'}</td>
+                        <td>{d.campaign_title}</td>
+                        <td>${d.amount.toLocaleString()}</td>
+                        <td>{d.is_monthly ? '✅' : '—'}</td>
+                        <td>{new Date(d.created_at).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div></div>
           </div>
 
           {/* Deposits Section */}
           <div className={`ps ${activeTab === 'deposits' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><CreditCard size={18} /> Deposit Requests</div></div>
-            <div className="card"><div className="card-b"><DepositRequestsManager requests={depositRequests} onApprove={handleApproveDeposit} onReject={handleRejectDeposit} onProvideInstructions={handleProvideInstructions} showToast={showToast} /></div></div>
+            <div className="card"><div className="card-b">
+              <DepositRequestsManager 
+                requests={depositRequests} 
+                onApprove={handleApproveDeposit} 
+                onReject={handleRejectDeposit} 
+                onProvideInstructions={handleProvideInstructions} 
+                showToast={showToast} 
+                onSelect={(deposit) => setSelectedDeposit(deposit)}
+              />
+            </div></div>
           </div>
 
           {/* Withdrawals Section */}
           <div className={`ps ${activeTab === 'withdrawals' ? 'active' : ''}`}>
             <div className="sh"><div className="sht"><Banknote size={18} /> Withdrawal Requests</div></div>
-            <div className="card"><div className="card-b"><WithdrawalRequestsManager requests={withdrawalRequests} onApprove={handleApproveWithdrawal} onReject={handleRejectWithdrawal} /></div></div>
+            <div className="card"><div className="card-b">
+              <WithdrawalRequestsManager 
+                requests={withdrawalRequests} 
+                onApprove={handleApproveWithdrawal} 
+                onReject={handleRejectWithdrawal}
+                onSelect={(withdrawal) => setSelectedWithdrawal(withdrawal)}
+              />
+            </div></div>
           </div>
 
           {/* Completions Section */}
@@ -1963,7 +2107,7 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* ADDED FOR PAYMENT INSTRUCTIONS: Auto-Instruction Templates Card */}
+            {/* Auto-Instruction Templates Card */}
             <div className="card" style={{ marginBottom: 24 }}>
               <div className="card-h">
                 <div className="card-t"><Settings size={18} /> Auto‑Instruction Templates (sent after 5 minutes)</div>
@@ -2000,7 +2144,6 @@ export default function AdminDashboard() {
 
             <div className="card">
               <div className="card-b">
-                {/* Status filters */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
                   {[
                     { key: 'all', label: 'All' },
@@ -2026,7 +2169,6 @@ export default function AdminDashboard() {
                   ))}
                 </div>
                 
-                {/* Guest Donations List */}
                 {guestDonations.filter(g => guestDonationFilter === 'all' || g.payment_status === guestDonationFilter).length === 0 ? (
                   <div style={{ textAlign: 'center', padding: 60, color: 'var(--txt-3)' }}>
                     <Users size={48} style={{ marginBottom: 16, opacity: 0.4 }} />
@@ -2036,7 +2178,6 @@ export default function AdminDashboard() {
                 ) : (
                   guestDonations.filter(g => guestDonationFilter === 'all' || g.payment_status === guestDonationFilter).map(g => (
                     <div key={g.id} style={{ borderBottom: '1px solid var(--border)', padding: '20px 0' }}>
-                      {/* Header */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 15 }}>
@@ -2065,7 +2206,6 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       
-                      {/* Pending Instructions - Show form to send instructions */}
                       {g.payment_status === 'pending_instructions' && (
                         <div style={{ marginTop: 16, background: 'var(--surface-2)', padding: 16, borderRadius: 12 }}>
                           <label className="fl" style={{ marginBottom: 8 }}>Payment Instructions</label>
@@ -2109,7 +2249,6 @@ export default function AdminDashboard() {
                         </div>
                       )}
                       
-                      {/* Instructions Sent - Show what was sent */}
                       {g.payment_status === 'instructions_sent' && g.admin_instructions && (
                         <div style={{ marginTop: 12, padding: 12, background: 'var(--blue-l)', borderRadius: 10, fontSize: 13 }}>
                           <strong style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
@@ -2124,7 +2263,6 @@ export default function AdminDashboard() {
                         </div>
                       )}
                       
-                      {/* Pending Verification - Show proof and approve/reject buttons */}
                       {g.payment_status === 'pending_verification' && g.proof_image_url && (
                         <div style={{ marginTop: 16 }}>
                           <div style={{ fontWeight: 600, marginBottom: 8 }}>Payment Proof:</div>
@@ -2140,7 +2278,6 @@ export default function AdminDashboard() {
                         </div>
                       )}
                       
-                      {/* Approved - Show confirmation */}
                       {g.payment_status === 'approved' && (
                         <div style={{ marginTop: 12, padding: 12, background: 'var(--green-l)', borderRadius: 10, fontSize: 13, color: 'var(--green-d)' }}>
                           <CheckCircle size={14} style={{ display: 'inline', marginRight: 6 }} />
@@ -2149,7 +2286,6 @@ export default function AdminDashboard() {
                         </div>
                       )}
                       
-                      {/* Rejected - Show reason */}
                       {g.payment_status === 'rejected' && g.admin_notes && (
                         <div style={{ marginTop: 12, padding: 12, background: 'var(--red-l)', borderRadius: 10, fontSize: 13, color: 'var(--red)' }}>
                           <X size={14} style={{ display: 'inline', marginRight: 6 }} />
@@ -2167,9 +2303,9 @@ export default function AdminDashboard() {
           <div className={`ps ${activeTab === 'settings' ? 'active' : ''}`}>
             <div className="card"><div className="card-h"><div className="card-t"><Settings size={18} /> System Settings</div></div><div className="card-b">
               <div className="settings-tabs">
-                {['security', 'theme', 'keys', 'social'].map(t => (
+                {['security', 'theme', 'keys', 'social', 'firebase'].map(t => (
                   <button key={t} className={`role-tab ${settingsTab === t ? 'active' : ''}`} onClick={() => setSettingsTab(t)}>
-                    {t === 'security' ? 'Security' : t === 'theme' ? 'Theme' : t === 'keys' ? 'SMTP Keys' : 'Social Links'}
+                    {t === 'security' ? 'Security' : t === 'theme' ? 'Theme' : t === 'keys' ? 'SMTP Keys' : t === 'social' ? 'Social Links' : 'Firebase'}
                   </button>
                 ))}
               </div>
@@ -2244,12 +2380,31 @@ export default function AdminDashboard() {
                   <button className="btn btn-g" onClick={async () => { try { await adminApi.saveContent({ ...content, social_links: socialLinks }); showToast('Social links saved'); } catch (err) { showToast(err.message, true); } }}>Save Social Links</button>
                 </div>
               )}
+
+              {settingsTab === 'firebase' && (
+                <div>
+                  <div style={{ fontWeight: 700, marginBottom: 12 }}>Firebase Push Notification Configuration</div>
+                  <div style={{ padding: 16, background: 'var(--surface-2)', borderRadius: 'var(--r-md)', marginBottom: 20 }}>
+                    <div style={{ fontSize: 13, marginBottom: 12 }}>Configure Firebase Cloud Messaging for push notifications.</div>
+                    <label className="fl">FCM Server Key</label>
+                    <input type="password" className="fi" value={firebaseServerKey} onChange={e => setFirebaseServerKey(e.target.value)} placeholder="AAAA...your Firebase Server Key" />
+                    <div style={{ fontSize: 12, color: 'var(--txt-3)', marginTop: -8, marginBottom: 12 }}>
+                      Get from Firebase Console → Project Settings → Cloud Messaging → Server Key
+                    </div>
+                    <label className="fl">FCM Sender ID</label>
+                    <input type="text" className="fi" value={firebaseSenderId} onChange={e => setFirebaseSenderId(e.target.value)} placeholder="Your Firebase Sender ID" />
+                    <button className="btn btn-g" onClick={saveFirebaseConfig} disabled={savingFirebase}>
+                      {savingFirebase ? 'Saving...' : 'Save Firebase Configuration'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div></div>
           </div>
         </div>
       </div>
 
-      {/* Mobile bottom navigation */}
+      {/* Mobile bottom navigation (removed Alerts) */}
       <nav className="bnav">
         <div className="bnav-inner">
           {[
@@ -2258,7 +2413,7 @@ export default function AdminDashboard() {
             { id: 'deposits', icon: <CreditCard size={20} />, label: 'Deposits' },
             { id: 'withdrawals', icon: <Banknote size={20} />, label: 'Withdrawals' },
             { id: 'guest_donations', icon: <Users size={20} />, label: 'Guest' },
-            { id: 'notifications', icon: <Bell size={20} />, label: 'Alerts' },
+            { id: 'notifications', icon: <Bell size={20} />, label: 'Push' },
             { id: 'settings', icon: <Settings size={20} />, label: 'Settings' },
           ].map(({ id, icon, label }) => (
             <button key={id} className={`bni ${activeTab === id ? 'active' : ''}`} onClick={() => setActiveTab(id)}>
@@ -2278,6 +2433,11 @@ export default function AdminDashboard() {
       <CreateCampaignModal isOpen={createCampaignModal} onClose={() => setCreateCampaignModal(false)} onSave={handleCreateCampaignSave} showToast={showToast} />
       <WalletAdjustModal isOpen={walletModal.open} onClose={() => setWalletModal({ open: false, user: null })} user={walletModal.user} onSave={handleWalletAdjust} showToast={showToast} />
       <CampaignProgressModal isOpen={progressModal.open} onClose={() => setProgressModal({ open: false, campaign: null })} campaign={progressModal.campaign} onSave={handleUpdateProgress} showToast={showToast} />
+      
+      {/* Deposit & Withdrawal Details Modals */}
+      <DepositDetailsModal isOpen={!!selectedDeposit} onClose={() => setSelectedDeposit(null)} deposit={selectedDeposit} />
+      <WithdrawalDetailsModal isOpen={!!selectedWithdrawal} onClose={() => setSelectedWithdrawal(null)} withdrawal={selectedWithdrawal} />
     </div>
+      
   );
 }
