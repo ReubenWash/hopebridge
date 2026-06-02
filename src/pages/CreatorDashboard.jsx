@@ -12,7 +12,7 @@ import {
   Gift, Banknote, History, RefreshCw, X, Menu, Sun, Moon, Target, 
   Landmark, Smartphone, Copy, ExternalLink, Star, Zap, Shield, Award,
   MessageCircle, Eye, EyeOff, MapPin, Phone, Mail, User, Edit, Trash2, Building,
-  Download, PiggyBank, MoveUp, MoveDown, GripVertical
+  Download, PiggyBank, MoveUp, MoveDown, GripVertical, Info
 } from 'lucide-react';
 
 // ── Helper ───────────────────────────────────────
@@ -21,7 +21,7 @@ const toNumber = (val, fallback = 0) => {
   return isNaN(num) ? fallback : num;
 };
 
-// ── Styles (FULL restored CSS) ───────────────────
+// ── Styles (fully restored from original) ────────
 let stylesInjected = false;
 const injectStyles = () => {
   if (stylesInjected) return;
@@ -374,6 +374,27 @@ function WithdrawalModal({ isOpen, onClose, onSubmit, balance, savedPaymentMetho
   );
 }
 
+// ── Confirmation Modal for Completion ──
+function CompletionConfirmModal({ isOpen, onClose, onConfirm, campaignTitle }) {
+  if (!isOpen) return null;
+  return (
+    <div className="cr-modal-bd" onClick={onClose}>
+      <div className="cr-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+        <div className="cr-modal-t">Request Campaign Completion</div>
+        <div className="cr-modal-s">
+          Are you sure you want to mark <strong>{campaignTitle}</strong> as completed?
+          <br /><br />
+          This will notify the admin to release the escrowed funds. The campaign will be closed and no more donations will be accepted.
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button className="btn btn-gh" onClick={onClose}>Cancel</button>
+          <button className="btn btn-g" onClick={onConfirm}>Yes, Request Completion</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main CreatorDashboard ──
 export default function CreatorDashboard() {
   injectStyles();
@@ -402,7 +423,7 @@ export default function CreatorDashboard() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
   const notifRef = useRef(null);
-
+  
   // Gallery state
   const [galleryModalOpen, setGalleryModalOpen] = useState(false);
   const [galleryCampaign, setGalleryCampaign] = useState(null);
@@ -411,6 +432,11 @@ export default function CreatorDashboard() {
   const [galleryUploading, setGalleryUploading] = useState(false);
   const [galleryUploadFiles, setGalleryUploadFiles] = useState([]);
   const [galleryReorderMode, setGalleryReorderMode] = useState(false);
+  
+  // Escrow state
+  const [campaignEscrow, setCampaignEscrow] = useState({});
+  const [completionConfirmOpen, setCompletionConfirmOpen] = useState(false);
+  const [selectedCampaignForCompletion, setSelectedCampaignForCompletion] = useState(null);
 
   useEffect(() => {
     if (darkMode) document.body.classList.add('dark-mode');
@@ -431,6 +457,28 @@ export default function CreatorDashboard() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const fetchEscrowForCampaigns = async (campaigns) => {
+    const escrowMap = {};
+    for (const camp of campaigns) {
+      try {
+        const token = localStorage.getItem('hb_token');
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/campaigns/${camp.id}/escrow-sum`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          escrowMap[camp.id] = data.held_amount || 0;
+        } else {
+          escrowMap[camp.id] = 0;
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch escrow for campaign ${camp.id}:`, err);
+        escrowMap[camp.id] = 0;
+      }
+    }
+    setCampaignEscrow(escrowMap);
+  };
+
   const loadData = async () => {
     setLoadingData(true);
     try {
@@ -449,6 +497,8 @@ export default function CreatorDashboard() {
         }
       }
       setDonations(allDonations);
+
+      await fetchEscrowForCampaigns(myCamps);
 
       let payRes = { requests: [] };
       try { const raw = await donationApi.getMyPayoutRequests(); payRes = { requests: Array.isArray(raw) ? raw : raw?.requests || [] }; } catch {}
@@ -632,6 +682,27 @@ export default function CreatorDashboard() {
     }
   };
 
+  const handleRequestCompletionClick = (campaign) => {
+    setSelectedCampaignForCompletion(campaign);
+    setCompletionConfirmOpen(true);
+  };
+
+  const confirmCompletion = async () => {
+    if (!selectedCampaignForCompletion) return;
+    setRequestingCompletion(selectedCampaignForCompletion.id);
+    try {
+      await campaignApi.requestCompletion(selectedCampaignForCompletion.id);
+      showToast('Completion request sent to admin');
+      await loadData();
+    } catch (err) {
+      showToast(err.message, true);
+    } finally {
+      setRequestingCompletion(null);
+      setCompletionConfirmOpen(false);
+      setSelectedCampaignForCompletion(null);
+    }
+  };
+
   const safeCampaigns = Array.isArray(myCampaigns) ? myCampaigns : [];
   const safeDonations = Array.isArray(donations) ? donations : [];
   const safePayoutRequests = Array.isArray(payoutRequests) ? payoutRequests : [];
@@ -641,6 +712,7 @@ export default function CreatorDashboard() {
   const pendingPayouts = safePayoutRequests.filter(p => p.status === 'pending');
   const pendingPayoutSum = pendingPayouts.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
   const isVerified = currentUser?.is_verified === true;
+  const [requestingCompletion, setRequestingCompletion] = useState(null);
 
   const handleQuickAction = (action) => {
     if (action === 'campaigns') setActiveTab('campaigns');
@@ -787,7 +859,7 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Campaigns Tab */}
+          {/* Campaigns Tab – with enhanced escrow display */}
           <div className={`ps ${activeTab === 'campaigns' ? 'active' : ''}`}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
               <div style={{ fontFamily: 'Raleway', fontSize: '1.3rem', fontWeight: 700 }}>My Campaigns</div>
@@ -802,6 +874,7 @@ export default function CreatorDashboard() {
                         <th>Campaign</th>
                         <th>Goal</th>
                         <th>Raised</th>
+                        <th>Escrow (held)</th>
                         <th>Progress</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -810,22 +883,45 @@ export default function CreatorDashboard() {
                     <tbody>
                       {safeCampaigns.length === 0 && (
                         <tr>
-                          <td colSpan="6" style={{ textAlign: 'center', padding: 24 }}>No campaigns yet</td>
+                          <td colSpan="7" style={{ textAlign: 'center', padding: 24 }}>No campaigns yet</td>
                         </tr>
                       )}
                       {safeCampaigns.map(c => {
                         const percent = Math.min(((c.raised || 0) / c.goal) * 100, 100);
+                        const escrow = campaignEscrow[c.id] || 0;
+                        const canComplete = c.status === 'approved' && !c.completion_requested;
                         return (
                           <tr key={c.id}>
                             <td><strong>{c.title}</strong><div style={{ fontSize: 11, color: 'var(--txt-3)' }}>Created {new Date(c.created_at).toLocaleDateString()}</div></td>
                             <td>${parseFloat(c.goal).toLocaleString()}</td>
                             <td>${parseFloat(c.raised || 0).toLocaleString()}</td>
-                            <td><div className="pb" style={{ width: 100 }}><div className="pf" style={{ width: `${percent}%` }} /></div>{Math.round(percent)}%</td>
+                            <td>
+                              <div className="escrow-pill" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--amber-l)', padding: '4px 10px', borderRadius: '30px', fontSize: '12px', fontWeight: '600', color: '#854F0B', cursor: 'help' }}>
+                                <Info size={12} />
+                                ${escrow.toFixed(2)}
+                                <span className="tooltip-text" style={{ display: 'none', position: 'absolute', background: '#1f2937', color: 'white', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', whiteSpace: 'nowrap', transform: 'translateY(-20px)' }}>Funds held until campaign completion</span>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="pb" style={{ width: 100 }}>
+                                <div className="pf" style={{ width: `${percent}%` }} />
+                              </div>
+                              {Math.round(percent)}%
+                            </td>
                             <td><span className="badge ba">{c.status}</span></td>
                             <td style={{ paddingRight: 20 }}>
                               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                                 <button className="db dbv" onClick={() => { setEditCampaign(c); setEditModalOpen(true); }}><Edit size={12} /> Edit</button>
                                 <button className="db dbp" onClick={() => openGalleryManager(c)}><Image size={12} /> Gallery</button>
+                                {canComplete && (
+                                  <button 
+                                    className="db dba" 
+                                    onClick={() => handleRequestCompletionClick(c)}
+                                    disabled={requestingCompletion === c.id}
+                                  >
+                                    <CheckCircle size={12} /> Complete
+                                  </button>
+                                )}
                                 <button className="db dbr" onClick={() => handleDeleteCampaign(c.id)}><Trash2 size={12} /> Delete</button>
                               </div>
                             </td>
@@ -950,6 +1046,14 @@ export default function CreatorDashboard() {
         </div>
       )}
 
+      {/* Completion Confirmation Modal */}
+      <CompletionConfirmModal
+        isOpen={completionConfirmOpen}
+        onClose={() => setCompletionConfirmOpen(false)}
+        onConfirm={confirmCompletion}
+        campaignTitle={selectedCampaignForCompletion?.title}
+      />
+
       {/* Third-party modals */}
       {modalOpen && <CampaignModal campaign={null} onClose={() => { setModalOpen(false); loadData(); }} />}
       {editModalOpen && editCampaign && <CampaignModal campaign={editCampaign} onClose={() => { setEditModalOpen(false); setEditCampaign(null); loadData(); }} />}
@@ -970,7 +1074,6 @@ export default function CreatorDashboard() {
           <div className="cr-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '900px' }}>
             <div className="cr-modal-t">Manage Gallery – {galleryCampaign.title}</div>
             <div className="cr-modal-s">Upload, reorder, or delete campaign images</div>
-            
             <div className="upload-area" onClick={() => document.getElementById('galleryFileInput').click()}>
               <Upload size={32} stroke="var(--primary)" />
               <div style={{ marginTop: 8, fontSize: 14, color: 'var(--txt-2)' }}>
@@ -991,7 +1094,6 @@ export default function CreatorDashboard() {
               />
               {galleryUploading && <div className="file-list">Uploading... Please wait.</div>}
             </div>
-
             {galleryLoading ? (
               <div style={{ textAlign: 'center', padding: 40 }}>Loading images...</div>
             ) : galleryImages.length === 0 ? (

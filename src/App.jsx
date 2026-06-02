@@ -9,6 +9,9 @@ import CreatorDashboard from './pages/CreatorDashboard'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminLogin from './pages/AdminLogin'
 import CampaignProfile from './pages/CampaignProfile'
+import GuestDonationResume from './pages/GuestDonationResume';
+
+
 import VerifyEmail from './pages/VerifyEmail'
 import AuthModal from './components/AuthModal'
 import Toast from './components/Toast'
@@ -231,6 +234,7 @@ function AppContent() {
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/guest-donation/resume/:id" element={<GuestDonationResume />} />
       </Routes>
 
       <AuthModal />

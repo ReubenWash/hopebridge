@@ -36,7 +36,140 @@ const statusLabel = (s) => ({
   rejected: 'Rejected',
 }[s] || s);
 
-// ----------  (Guaranteed to work) ----------
+// ---------- Professional Escrow Card Component ----------
+function DepositStatusCard({ deposit, onUploadProof, proofFile, setProofFile, proofUploading, showToast }) {
+  const getStep = () => {
+    if (deposit.status === 'pending') return 1;
+    if (deposit.status === 'instructions_sent') return 2;
+    if (deposit.status === 'awaiting_proof') return 3;
+    if (deposit.status === 'approved') return 4;
+    if (deposit.status === 'rejected') return 5;
+    return 1;
+  };
+  const currentStep = getStep();
+
+  const [timeLeft, setTimeLeft] = useState(null);
+  useEffect(() => {
+    if (deposit.created_at) {
+      const expiry = new Date(deposit.created_at).getTime() + 30 * 60 * 1000; // 30 min
+      const timer = setInterval(() => {
+        const remaining = Math.max(0, Math.floor((expiry - Date.now()) / 1000));
+        setTimeLeft(remaining);
+        if (remaining <= 0) clearInterval(timer);
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [deposit.created_at]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) setProofFile(file);
+  };
+
+  return (
+    <div className="escrow-card">
+      <div className="escrow-header">
+        <div className="escrow-title">
+          <Wallet size={22} />
+          <h3>Deposit Request #{deposit.id}</h3>
+        </div>
+        <span className={`escrow-status ${deposit.status}`}>
+          {statusLabel(deposit.status)}
+        </span>
+      </div>
+
+      <div className="escrow-steps">
+        <div className={`step ${currentStep >= 1 ? 'active' : ''}`}>
+          <div className="step-circle">1</div>
+          <span>Request</span>
+        </div>
+        <div className={`step-line ${currentStep >= 2 ? 'active' : ''}`} />
+        <div className={`step ${currentStep >= 2 ? 'active' : ''}`}>
+          <div className="step-circle">2</div>
+          <span>Instructions</span>
+        </div>
+        <div className={`step-line ${currentStep >= 3 ? 'active' : ''}`} />
+        <div className={`step ${currentStep >= 3 ? 'active' : ''}`}>
+          <div className="step-circle">3</div>
+          <span>Upload Proof</span>
+        </div>
+        <div className={`step-line ${currentStep >= 4 ? 'active' : ''}`} />
+        <div className={`step ${currentStep >= 4 ? 'active' : ''}`}>
+          <div className="step-circle">4</div>
+          <span>Verify</span>
+        </div>
+      </div>
+
+      <div className="escrow-details">
+        <div className="detail-row">
+          <span>Amount requested</span>
+          <strong>${deposit.amount.toFixed(2)}</strong>
+        </div>
+
+        {deposit.admin_instructions && (
+          <div className="instructions-box">
+            <strong>📄 Payment Instructions</strong>
+            <p>{deposit.admin_instructions}</p>
+          </div>
+        )}
+
+        {(deposit.status === 'instructions_sent' || deposit.status === 'pending') && !deposit.proof_image_url && (
+          <div className="upload-section">
+            <label className="upload-btn">
+              <Upload size={16} /> Select Proof
+              <input type="file" accept="image/*" onChange={handleFileSelect} hidden />
+            </label>
+            {proofFile && (
+              <button className="btn-primary" onClick={onUploadProof} disabled={proofUploading}>
+                {proofUploading ? 'Uploading...' : 'Submit Proof'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {deposit.proof_image_url && (
+          <div className="proof-preview">
+            <img src={deposit.proof_image_url} alt="Proof" />
+          </div>
+        )}
+
+        {deposit.status === 'awaiting_proof' && (
+          <div className="info-message">
+            <Clock size={16} /> Proof received – admin will verify soon.
+          </div>
+        )}
+
+        {deposit.status === 'approved' && (
+          <div className="success-message">
+            <CheckCircle size={16} /> Deposit approved – wallet credited.
+          </div>
+        )}
+
+        {deposit.status === 'rejected' && (
+          <div className="error-message">
+            <X size={16} /> Deposit rejected. Contact support for details.
+          </div>
+        )}
+      </div>
+
+      {deposit.status !== 'approved' && deposit.status !== 'rejected' && (
+        <div className="escrow-timer">
+          <Clock size={14} />
+          Session expires in: <span>{timeLeft !== null ? formatTime(timeLeft) : 'calculating...'}</span>
+          <span className="helper-text">This page updates automatically when admin provides instructions.</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- Styles (injectStyles) ----------
 let stylesInjected = false;
 const injectStyles = () => {
   if (stylesInjected) return;
@@ -231,12 +364,152 @@ const injectStyles = () => {
   .mob-top { display: flex !important; }
   .bnav { display: block !important; }
 }
+
+/* ========== PROFESSIONAL ESCROW CARD STYLES ========== */
+.escrow-card {
+  background: var(--surface);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.escrow-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+}
+.escrow-title { display: flex; align-items: center; gap: 12px; }
+.escrow-title h3 { margin: 0; font-size: 1.2rem; }
+.escrow-status {
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.escrow-status.pending { background: #fef3c7; color: #92400e; }
+.escrow-status.instructions_sent { background: #dbeafe; color: #1e40af; }
+.escrow-status.awaiting_proof { background: #fef3c7; color: #b45309; }
+.escrow-status.approved { background: #d1fae5; color: #065f46; }
+.escrow-status.rejected { background: #fee2e2; color: #991b1b; }
+
+.escrow-steps {
+  display: flex;
+  align-items: center;
+  padding: 24px 24px 16px;
+  gap: 8px;
+}
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  font-size: 12px;
+  color: var(--txt-3);
+}
+.step.active { color: var(--primary); }
+.step-circle {
+  width: 32px;
+  height: 32px;
+  background: var(--surface-2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+.step.active .step-circle {
+  background: var(--primary);
+  color: white;
+}
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+}
+.step-line.active { background: var(--primary); }
+
+.escrow-details { padding: 0 24px 20px; }
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.instructions-box {
+  background: #fefce8;
+  border-left: 4px solid #eab308;
+  padding: 16px;
+  border-radius: 12px;
+  margin: 16px 0;
+}
+.upload-section {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+.upload-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 30px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 30px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.proof-preview {
+  margin-top: 16px;
+  border-radius: 12px;
+  overflow: hidden;
+  max-width: 200px;
+}
+.info-message, .success-message, .error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  margin-top: 16px;
+}
+.info-message { background: #e0f2fe; color: #0369a1; }
+.success-message { background: #d1fae5; color: #065f46; }
+.error-message { background: #fee2e2; color: #991b1b; }
+.escrow-timer {
+  padding: 12px 24px;
+  background: #f1f5f9;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+}
+.helper-text {
+  font-size: 11px;
+  color: var(--txt-3);
+  margin-left: auto;
+}
   `;
   document.head.appendChild(styleEl);
   console.log('✅ Donor dashboard styles injected');
 };
 
-// Transaction History Component
+// ---------- Transaction History Component (unchanged) ----------
 function TransactionHistory({ transactions, loading, onRefresh }) {
   const [showAll, setShowAll] = useState(false);
   const displayTransactions = showAll ? transactions : transactions.slice(0, 5);
@@ -591,8 +864,6 @@ export default function DonorDashboard() {
         </div>
 
         <div className="page">
-          {/* REMOVED LOADING MESSAGE - no longer shown */}
-
           {/* Overview Tab */}
           <div className={`ps ${activeTab === 'overview' ? 'active' : ''}`}>
             {/* Quick Actions Grid */}
@@ -647,7 +918,14 @@ export default function DonorDashboard() {
           <div className={`ps ${activeTab === 'donations' ? 'active' : ''}`}>
             <div className="card"><div className="card-h"><div className="card-t"><DollarSign size={18} /> All Donations</div></div><div className="card-b" style={{ padding: 0 }}>
               <table className="ut"><thead><tr><th>Campaign</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead><tbody>
-                {donations.map(d => <tr key={d.id}><td>{d.campaign_title || `Campaign #${d.campaign_id}`}</td><td>${toNumber(d.amount).toFixed(2)}</td><td>{new Date(d.created_at).toLocaleDateString()}</td><td><span className="badge ba">{d.escrow_status || 'held'}</span></td></tr>)}
+                {donations.map(d => (
+  <tr key={d.id}>
+    <td>{d.campaign_title || `Campaign #${d.campaign_id}`}</td>
+    <td>${toNumber(d.amount).toFixed(2)}</td>
+    <td>{new Date(d.created_at).toLocaleDateString()}</td>
+    <td><span className="badge ba">{d.escrow_status || 'held'}</span></td>
+  </tr>
+))}
                 {donations.length === 0 && <tr><td colSpan="4" style={{ textAlign: 'center', padding: '40px' }}>No donations yet</td></tr>}
               </tbody></table>
             </div></div>
@@ -658,31 +936,20 @@ export default function DonorDashboard() {
             <div className="card"><div className="card-h"><div className="card-t"><Gift size={18} /> Make a Donation</div></div><div className="card-b"><DonationForm /></div></div>
           </div>
 
-          {/* Deposit Tab */}
+          {/* Deposit Tab – Professional Escrow UI */}
           <div className={`ps ${activeTab === 'deposit' ? 'active' : ''}`}>
             <div className="card">
               <div className="card-h"><div className="card-t"><Plus size={18} /> Deposit Funds</div></div>
               <div className="card-b">
                 {pendingDeposit ? (
-                  <div>
-                    <div style={{ background: '#e3f2fd', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                      <div><strong>Pending Deposit #{pendingDeposit.id}</strong> – ${pendingDeposit.amount}</div>
-                      <div>Status: <span style={{ color: statusColor(pendingDeposit.status) }}>{statusLabel(pendingDeposit.status)}</span></div>
-                      {pendingDeposit.admin_instructions && <div style={{ marginTop: 12, background: '#dbeafe', padding: 12, borderRadius: 8 }}><strong>Instructions:</strong><br/>{pendingDeposit.admin_instructions}</div>}
-                    </div>
-                    {(pendingDeposit.status === 'pending' || pendingDeposit.status === 'instructions_sent') && !pendingDeposit.proof_image_url && (
-                      <>
-                        <input type="file" ref={proofInputRef} accept="image/*" style={{ display: 'none' }} onChange={e => setProofFile(e.target.files[0])} />
-                        {proofFile ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Image size={16} /> {proofFile.name}<button className="db dbr" onClick={() => setProofFile(null)}>Remove</button></div>
-                        ) : (
-                          <button className="db dba" onClick={() => proofInputRef.current?.click()}><Upload size={12} /> Select Proof Image</button>
-                        )}
-                        {proofFile && <button className="btn btn-g" onClick={handleUploadProof} disabled={proofUploading} style={{ marginTop: 12 }}>{proofUploading ? 'Uploading...' : <><Upload size={14} /> Upload Proof</>}</button>}
-                      </>
-                    )}
-                    {pendingDeposit.status === 'awaiting_proof' && <div><CheckCircle size={14} /> Proof submitted, waiting for admin verification.</div>}
-                  </div>
+                  <DepositStatusCard
+                    deposit={pendingDeposit}
+                    onUploadProof={handleUploadProof}
+                    proofFile={proofFile}
+                    setProofFile={setProofFile}
+                    proofUploading={proofUploading}
+                    showToast={showToast}
+                  />
                 ) : (
                   <form onSubmit={handleRequestDeposit}>
                     <label className="fl">Amount (USD)</label>
